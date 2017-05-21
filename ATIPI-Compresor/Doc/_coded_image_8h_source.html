@@ -1,0 +1,119 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-Type" content="text/xhtml;charset=UTF-8"/>
+<meta http-equiv="X-UA-Compatible" content="IE=9"/>
+<meta name="generator" content="Doxygen 1.8.13"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>CodificadorPGM: Fichero Fuente C:/Users/BPS-Pc/workspace/WCodificador/src/CodedImage.h</title>
+<link href="tabs.css" rel="stylesheet" type="text/css"/>
+<script type="text/javascript" src="jquery.js"></script>
+<script type="text/javascript" src="dynsections.js"></script>
+<link href="navtree.css" rel="stylesheet" type="text/css"/>
+<script type="text/javascript" src="resize.js"></script>
+<script type="text/javascript" src="navtreedata.js"></script>
+<script type="text/javascript" src="navtree.js"></script>
+<script type="text/javascript">
+  $(document).ready(initResizable);
+</script>
+<link href="search/search.css" rel="stylesheet" type="text/css"/>
+<script type="text/javascript" src="search/searchdata.js"></script>
+<script type="text/javascript" src="search/search.js"></script>
+<link href="doxygen.css" rel="stylesheet" type="text/css" />
+</head>
+<body>
+<div id="top"><!-- do not remove this div, it is closed by doxygen! -->
+<div id="titlearea">
+<table cellspacing="0" cellpadding="0">
+ <tbody>
+ <tr style="height: 56px;">
+  <td id="projectlogo"><img alt="Logo" src="logo.png"/></td>
+  <td id="projectalign" style="padding-left: 0.5em;">
+   <div id="projectname">CodificadorPGM
+   &#160;<span id="projectnumber">1.0</span>
+   </div>
+   <div id="projectbrief">Compresor/Descompresor PGM</div>
+  </td>
+ </tr>
+ </tbody>
+</table>
+</div>
+<!-- end header part -->
+<!-- Generado por Doxygen 1.8.13 -->
+<script type="text/javascript">
+var searchBox = new SearchBox("searchBox", "search",false,'Buscar');
+</script>
+<script type="text/javascript" src="menudata.js"></script>
+<script type="text/javascript" src="menu.js"></script>
+<script type="text/javascript">
+$(function() {
+  initMenu('',true,false,'search.php','Buscar');
+  $(document).ready(function() { init_search(); });
+});
+</script>
+<div id="main-nav"></div>
+</div><!-- top -->
+<div id="side-nav" class="ui-resizable side-nav-resizable">
+  <div id="nav-tree">
+    <div id="nav-tree-contents">
+      <div id="nav-sync" class="sync"></div>
+    </div>
+  </div>
+  <div id="splitbar" style="-moz-user-select:none;" 
+       class="ui-resizable-handle">
+  </div>
+</div>
+<script type="text/javascript">
+$(document).ready(function(){initNavTree('_coded_image_8h_source.html','');});
+</script>
+<div id="doc-content">
+<!-- window showing the filter options -->
+<div id="MSearchSelectWindow"
+     onmouseover="return searchBox.OnSearchSelectShow()"
+     onmouseout="return searchBox.OnSearchSelectHide()"
+     onkeydown="return searchBox.OnSearchSelectKey(event)">
+</div>
+
+<!-- iframe showing the search results (closed by default) -->
+<div id="MSearchResultsWindow">
+<iframe src="javascript:void(0)" frameborder="0" 
+        name="MSearchResults" id="MSearchResults">
+</iframe>
+</div>
+
+<div class="header">
+  <div class="headertitle">
+<div class="title">CodedImage.h</div>  </div>
+</div><!--header-->
+<div class="contents">
+<a href="_coded_image_8h.html">Ir a la documentación de este archivo.</a><div class="fragment"><div class="line"><a name="l00001"></a><span class="lineno">    1</span>&#160;</div><div class="line"><a name="l00009"></a><span class="lineno">    9</span>&#160;<span class="preprocessor">#ifndef CODEDIMAGE_H_</span></div><div class="line"><a name="l00010"></a><span class="lineno">   10</span>&#160;<span class="preprocessor">#define CODEDIMAGE_H_</span></div><div class="line"><a name="l00011"></a><span class="lineno">   11</span>&#160;</div><div class="line"><a name="l00012"></a><span class="lineno">   12</span>&#160;<span class="preprocessor">#include &lt;cstdlib&gt;</span></div><div class="line"><a name="l00013"></a><span class="lineno">   13</span>&#160;<span class="preprocessor">#include &lt;iostream&gt;</span></div><div class="line"><a name="l00014"></a><span class="lineno">   14</span>&#160;<span class="preprocessor">#include &lt;fstream&gt;</span></div><div class="line"><a name="l00015"></a><span class="lineno">   15</span>&#160;<span class="preprocessor">#include &lt;bitset&gt;</span></div><div class="line"><a name="l00016"></a><span class="lineno">   16</span>&#160;<span class="preprocessor">#include &lt;unistd.h&gt;</span></div><div class="line"><a name="l00017"></a><span class="lineno">   17</span>&#160;</div><div class="line"><a name="l00018"></a><span class="lineno">   18</span>&#160;</div><div class="line"><a name="l00019"></a><span class="lineno">   19</span>&#160;<span class="preprocessor">#include &lt;cstdlib&gt;</span></div><div class="line"><a name="l00020"></a><span class="lineno">   20</span>&#160;<span class="preprocessor">#include &lt;iostream&gt;</span></div><div class="line"><a name="l00021"></a><span class="lineno">   21</span>&#160;<span class="preprocessor">#include &lt;iomanip&gt;</span></div><div class="line"><a name="l00022"></a><span class="lineno">   22</span>&#160;</div><div class="line"><a name="l00023"></a><span class="lineno">   23</span>&#160;<span class="preprocessor">#include &lt;math.h&gt;</span></div><div class="line"><a name="l00024"></a><span class="lineno">   24</span>&#160;</div><div class="line"><a name="l00025"></a><span class="lineno">   25</span>&#160;<span class="keyword">namespace </span><a class="code" href="namespacestd.html">std</a> {</div><div class="line"><a name="l00026"></a><span class="lineno">   26</span>&#160;</div><div class="line"><a name="l00027"></a><span class="lineno"><a class="line" href="classstd_1_1_coded_image.html">   27</a></span>&#160;<span class="keyword">class </span><a class="code" href="classstd_1_1_coded_image.html">CodedImage</a> {</div><div class="line"><a name="l00028"></a><span class="lineno">   28</span>&#160;<span class="keyword">public</span>:</div><div class="line"><a name="l00029"></a><span class="lineno">   29</span>&#160;    <a class="code" href="classstd_1_1_coded_image.html#a0454cbcf9fa8598d6004a43d92f1c4de">CodedImage</a>();</div><div class="line"><a name="l00030"></a><span class="lineno">   30</span>&#160;    <a class="code" href="classstd_1_1_coded_image.html#a0454cbcf9fa8598d6004a43d92f1c4de">CodedImage</a>(<span class="keywordtype">int</span>, <span class="keywordtype">int</span>);</div><div class="line"><a name="l00031"></a><span class="lineno">   31</span>&#160;    <a class="code" href="classstd_1_1_coded_image.html#a0454cbcf9fa8598d6004a43d92f1c4de">CodedImage</a>(<span class="keywordtype">string</span>);</div><div class="line"><a name="l00032"></a><span class="lineno">   32</span>&#160;    <a class="code" href="classstd_1_1_coded_image.html#a0454cbcf9fa8598d6004a43d92f1c4de">CodedImage</a>(<span class="keywordtype">string</span>, <span class="keywordtype">string</span>);</div><div class="line"><a name="l00033"></a><span class="lineno">   33</span>&#160;    <span class="keyword">virtual</span> <a class="code" href="classstd_1_1_coded_image.html#a8d5136ad170380297b8381d59e421750">~CodedImage</a>();</div><div class="line"><a name="l00034"></a><span class="lineno">   34</span>&#160;</div><div class="line"><a name="l00035"></a><span class="lineno">   35</span>&#160;    <span class="keywordtype">void</span> <a class="code" href="classstd_1_1_coded_image.html#a3b9bb0e16d35f34c75f1e674efd69c1d">loadImage</a>();</div><div class="line"><a name="l00036"></a><span class="lineno">   36</span>&#160;        <span class="keywordtype">void</span> <a class="code" href="classstd_1_1_coded_image.html#a3799e4397729c5f8652ede307b89692b">setMagic</a>(ifstream&amp;,<span class="keywordtype">char</span>&amp;);</div><div class="line"><a name="l00037"></a><span class="lineno">   37</span>&#160;        <span class="keywordtype">void</span> <a class="code" href="classstd_1_1_coded_image.html#a96bf6035751741971b3560bdf6b4b062">setWidth</a>(ifstream&amp;,<span class="keywordtype">char</span>&amp;);</div><div class="line"><a name="l00038"></a><span class="lineno">   38</span>&#160;        <span class="keywordtype">void</span> <a class="code" href="classstd_1_1_coded_image.html#ad3acf660a116b0145c891db3e0da4550">setHeigth</a>(ifstream&amp;,<span class="keywordtype">char</span>&amp;);</div><div class="line"><a name="l00039"></a><span class="lineno">   39</span>&#160;        <span class="keywordtype">void</span> <a class="code" href="classstd_1_1_coded_image.html#a1549be1c9af13dea165890b56a84bc04">setWhite</a>(ifstream&amp;,<span class="keywordtype">char</span>&amp;);</div><div class="line"><a name="l00040"></a><span class="lineno">   40</span>&#160;        <span class="keywordtype">void</span> <a class="code" href="classstd_1_1_coded_image.html#abfecba113334227aa2d0e3aaa0266900">setNmax</a>(ifstream&amp;,<span class="keywordtype">char</span>&amp;);</div><div class="line"><a name="l00041"></a><span class="lineno">   41</span>&#160;</div><div class="line"><a name="l00042"></a><span class="lineno"><a class="line" href="classstd_1_1_coded_image.html#a5085ee934d0bb54be62be1be241468ae">   42</a></span>&#160;        <span class="keywordtype">string</span> <a class="code" href="classstd_1_1_coded_image.html#a5085ee934d0bb54be62be1be241468ae">path</a>;</div><div class="line"><a name="l00043"></a><span class="lineno">   43</span>&#160;</div><div class="line"><a name="l00044"></a><span class="lineno"><a class="line" href="classstd_1_1_coded_image.html#ad26659f700f342653ad867b214ad3178">   44</a></span>&#160;        <span class="keywordtype">string</span> <a class="code" href="classstd_1_1_coded_image.html#ad26659f700f342653ad867b214ad3178">name</a>;</div><div class="line"><a name="l00045"></a><span class="lineno">   45</span>&#160;</div><div class="line"><a name="l00046"></a><span class="lineno"><a class="line" href="classstd_1_1_coded_image.html#a314c9b3015ad4043d826a5835c9aa49d">   46</a></span>&#160;        <span class="keywordtype">string</span> <a class="code" href="classstd_1_1_coded_image.html#a314c9b3015ad4043d826a5835c9aa49d">magic</a>;</div><div class="line"><a name="l00047"></a><span class="lineno">   47</span>&#160;</div><div class="line"><a name="l00048"></a><span class="lineno"><a class="line" href="classstd_1_1_coded_image.html#a04d5d30c57af238e3a550d3fa9a4385a">   48</a></span>&#160;        <span class="keywordtype">int</span> <a class="code" href="classstd_1_1_coded_image.html#a04d5d30c57af238e3a550d3fa9a4385a">width</a>;</div><div class="line"><a name="l00049"></a><span class="lineno"><a class="line" href="classstd_1_1_coded_image.html#aed8864e50ecbb0078c0195532fac6125">   49</a></span>&#160;        <span class="keywordtype">int</span> <a class="code" href="classstd_1_1_coded_image.html#aed8864e50ecbb0078c0195532fac6125">heigth</a>;</div><div class="line"><a name="l00050"></a><span class="lineno">   50</span>&#160;</div><div class="line"><a name="l00051"></a><span class="lineno"><a class="line" href="classstd_1_1_coded_image.html#a432c4fb03e6be79efb777197e56fc281">   51</a></span>&#160;        <span class="keywordtype">int</span> <a class="code" href="classstd_1_1_coded_image.html#a432c4fb03e6be79efb777197e56fc281">white</a>;</div><div class="line"><a name="l00052"></a><span class="lineno">   52</span>&#160;</div><div class="line"><a name="l00053"></a><span class="lineno">   53</span>&#160;        <span class="comment">/* esta variable representa la imagen codificada, es un array de chars donde cada elemento es</span></div><div class="line"><a name="l00054"></a><span class="lineno">   54</span>&#160;<span class="comment">        cada byte leido del archivo */</span></div><div class="line"><a name="l00055"></a><span class="lineno"><a class="line" href="classstd_1_1_coded_image.html#afe74ea70613f3c0bf89ec37e26925102">   55</a></span>&#160;        <span class="keywordtype">char</span> *<a class="code" href="classstd_1_1_coded_image.html#afe74ea70613f3c0bf89ec37e26925102">image</a>;</div><div class="line"><a name="l00056"></a><span class="lineno">   56</span>&#160;</div><div class="line"><a name="l00057"></a><span class="lineno"><a class="line" href="classstd_1_1_coded_image.html#a68216eba507fea6de0f7ee9cd5665706">   57</a></span>&#160;        <span class="keywordtype">int</span> <a class="code" href="classstd_1_1_coded_image.html#a68216eba507fea6de0f7ee9cd5665706">Nmax</a>;</div><div class="line"><a name="l00058"></a><span class="lineno">   58</span>&#160;</div><div class="line"><a name="l00059"></a><span class="lineno">   59</span>&#160;};</div><div class="line"><a name="l00060"></a><span class="lineno">   60</span>&#160;</div><div class="line"><a name="l00061"></a><span class="lineno">   61</span>&#160;} <span class="comment">/* namespace std */</span></div><div class="line"><a name="l00062"></a><span class="lineno">   62</span>&#160;</div><div class="line"><a name="l00063"></a><span class="lineno">   63</span>&#160;<span class="preprocessor">#endif </span><span class="comment">/* CODEDIMAGE_H_ */</span><span class="preprocessor"></span></div><div class="ttc" id="classstd_1_1_coded_image_html_ad3acf660a116b0145c891db3e0da4550"><div class="ttname"><a href="classstd_1_1_coded_image.html#ad3acf660a116b0145c891db3e0da4550">std::CodedImage::setHeigth</a></div><div class="ttdeci">void setHeigth(ifstream &amp;, char &amp;)</div><div class="ttdef"><b>Definition:</b> <a href="_coded_image_8cpp_source.html#l00183">CodedImage.cpp:183</a></div></div>
+<div class="ttc" id="classstd_1_1_coded_image_html_a0454cbcf9fa8598d6004a43d92f1c4de"><div class="ttname"><a href="classstd_1_1_coded_image.html#a0454cbcf9fa8598d6004a43d92f1c4de">std::CodedImage::CodedImage</a></div><div class="ttdeci">CodedImage()</div><div class="ttdef"><b>Definition:</b> <a href="_coded_image_8cpp_source.html#l00017">CodedImage.cpp:17</a></div></div>
+<div class="ttc" id="classstd_1_1_coded_image_html_a432c4fb03e6be79efb777197e56fc281"><div class="ttname"><a href="classstd_1_1_coded_image.html#a432c4fb03e6be79efb777197e56fc281">std::CodedImage::white</a></div><div class="ttdeci">int white</div><div class="ttdef"><b>Definition:</b> <a href="_coded_image_8h_source.html#l00051">CodedImage.h:51</a></div></div>
+<div class="ttc" id="namespacestd_html"><div class="ttname"><a href="namespacestd.html">std</a></div><div class="ttdef"><b>Definition:</b> <a href="_coded_image_8cpp_source.html#l00015">CodedImage.cpp:15</a></div></div>
+<div class="ttc" id="classstd_1_1_coded_image_html_a3799e4397729c5f8652ede307b89692b"><div class="ttname"><a href="classstd_1_1_coded_image.html#a3799e4397729c5f8652ede307b89692b">std::CodedImage::setMagic</a></div><div class="ttdeci">void setMagic(ifstream &amp;, char &amp;)</div><div class="ttdef"><b>Definition:</b> <a href="_coded_image_8cpp_source.html#l00137">CodedImage.cpp:137</a></div></div>
+<div class="ttc" id="classstd_1_1_coded_image_html_a96bf6035751741971b3560bdf6b4b062"><div class="ttname"><a href="classstd_1_1_coded_image.html#a96bf6035751741971b3560bdf6b4b062">std::CodedImage::setWidth</a></div><div class="ttdeci">void setWidth(ifstream &amp;, char &amp;)</div><div class="ttdef"><b>Definition:</b> <a href="_coded_image_8cpp_source.html#l00156">CodedImage.cpp:156</a></div></div>
+<div class="ttc" id="classstd_1_1_coded_image_html_a5085ee934d0bb54be62be1be241468ae"><div class="ttname"><a href="classstd_1_1_coded_image.html#a5085ee934d0bb54be62be1be241468ae">std::CodedImage::path</a></div><div class="ttdeci">string path</div><div class="ttdef"><b>Definition:</b> <a href="_coded_image_8h_source.html#l00042">CodedImage.h:42</a></div></div>
+<div class="ttc" id="classstd_1_1_coded_image_html_a8d5136ad170380297b8381d59e421750"><div class="ttname"><a href="classstd_1_1_coded_image.html#a8d5136ad170380297b8381d59e421750">std::CodedImage::~CodedImage</a></div><div class="ttdeci">virtual ~CodedImage()</div><div class="ttdef"><b>Definition:</b> <a href="_coded_image_8cpp_source.html#l00051">CodedImage.cpp:51</a></div></div>
+<div class="ttc" id="classstd_1_1_coded_image_html_abfecba113334227aa2d0e3aaa0266900"><div class="ttname"><a href="classstd_1_1_coded_image.html#abfecba113334227aa2d0e3aaa0266900">std::CodedImage::setNmax</a></div><div class="ttdeci">void setNmax(ifstream &amp;, char &amp;)</div><div class="ttdef"><b>Definition:</b> <a href="_coded_image_8cpp_source.html#l00106">CodedImage.cpp:106</a></div></div>
+<div class="ttc" id="classstd_1_1_coded_image_html"><div class="ttname"><a href="classstd_1_1_coded_image.html">std::CodedImage</a></div><div class="ttdef"><b>Definition:</b> <a href="_coded_image_8h_source.html#l00027">CodedImage.h:27</a></div></div>
+<div class="ttc" id="classstd_1_1_coded_image_html_a1549be1c9af13dea165890b56a84bc04"><div class="ttname"><a href="classstd_1_1_coded_image.html#a1549be1c9af13dea165890b56a84bc04">std::CodedImage::setWhite</a></div><div class="ttdeci">void setWhite(ifstream &amp;, char &amp;)</div><div class="ttdef"><b>Definition:</b> <a href="_coded_image_8cpp_source.html#l00212">CodedImage.cpp:212</a></div></div>
+<div class="ttc" id="classstd_1_1_coded_image_html_afe74ea70613f3c0bf89ec37e26925102"><div class="ttname"><a href="classstd_1_1_coded_image.html#afe74ea70613f3c0bf89ec37e26925102">std::CodedImage::image</a></div><div class="ttdeci">char * image</div><div class="ttdef"><b>Definition:</b> <a href="_coded_image_8h_source.html#l00055">CodedImage.h:55</a></div></div>
+<div class="ttc" id="classstd_1_1_coded_image_html_a68216eba507fea6de0f7ee9cd5665706"><div class="ttname"><a href="classstd_1_1_coded_image.html#a68216eba507fea6de0f7ee9cd5665706">std::CodedImage::Nmax</a></div><div class="ttdeci">int Nmax</div><div class="ttdef"><b>Definition:</b> <a href="_coded_image_8h_source.html#l00057">CodedImage.h:57</a></div></div>
+<div class="ttc" id="classstd_1_1_coded_image_html_a314c9b3015ad4043d826a5835c9aa49d"><div class="ttname"><a href="classstd_1_1_coded_image.html#a314c9b3015ad4043d826a5835c9aa49d">std::CodedImage::magic</a></div><div class="ttdeci">string magic</div><div class="ttdef"><b>Definition:</b> <a href="_coded_image_8h_source.html#l00046">CodedImage.h:46</a></div></div>
+<div class="ttc" id="classstd_1_1_coded_image_html_a3b9bb0e16d35f34c75f1e674efd69c1d"><div class="ttname"><a href="classstd_1_1_coded_image.html#a3b9bb0e16d35f34c75f1e674efd69c1d">std::CodedImage::loadImage</a></div><div class="ttdeci">void loadImage()</div><div class="ttdef"><b>Definition:</b> <a href="_coded_image_8cpp_source.html#l00055">CodedImage.cpp:55</a></div></div>
+<div class="ttc" id="classstd_1_1_coded_image_html_a04d5d30c57af238e3a550d3fa9a4385a"><div class="ttname"><a href="classstd_1_1_coded_image.html#a04d5d30c57af238e3a550d3fa9a4385a">std::CodedImage::width</a></div><div class="ttdeci">int width</div><div class="ttdef"><b>Definition:</b> <a href="_coded_image_8h_source.html#l00048">CodedImage.h:48</a></div></div>
+<div class="ttc" id="classstd_1_1_coded_image_html_aed8864e50ecbb0078c0195532fac6125"><div class="ttname"><a href="classstd_1_1_coded_image.html#aed8864e50ecbb0078c0195532fac6125">std::CodedImage::heigth</a></div><div class="ttdeci">int heigth</div><div class="ttdef"><b>Definition:</b> <a href="_coded_image_8h_source.html#l00049">CodedImage.h:49</a></div></div>
+<div class="ttc" id="classstd_1_1_coded_image_html_ad26659f700f342653ad867b214ad3178"><div class="ttname"><a href="classstd_1_1_coded_image.html#ad26659f700f342653ad867b214ad3178">std::CodedImage::name</a></div><div class="ttdeci">string name</div><div class="ttdef"><b>Definition:</b> <a href="_coded_image_8h_source.html#l00044">CodedImage.h:44</a></div></div>
+</div><!-- fragment --></div><!-- contents -->
+</div><!-- doc-content -->
+<!-- start footer part -->
+<div id="nav-path" class="navpath"><!-- id is needed for treeview function! -->
+  <ul>
+    <li class="navelem"><a class="el" href="dir_a5be7bbed3ff2f129951759fe96bf5d5.html">workspace</a></li><li class="navelem"><a class="el" href="dir_037f7dcc8a9473d64da45c2d07695805.html">WCodificador</a></li><li class="navelem"><a class="el" href="dir_f28fe13486fdb42832a9583951475685.html">src</a></li><li class="navelem"><a class="el" href="_coded_image_8h.html">CodedImage.h</a></li>
+    <li class="footer">Generado por
+    <a href="http://www.doxygen.org/index.html">
+    <img class="footer" src="doxygen.png" alt="doxygen"/></a> 1.8.13 </li>
+  </ul>
+</div>
+</body>
+</html>
