@@ -6,7 +6,7 @@
 *  Se eligieron las siguientes regiones para gc: [<-3, <0, 0, >0, >3]
 *  Según se describe en el informe el Nmax recomendado es = 64
 *
-*  @author Felipe Tambasco, Mauro Barbosa
+*  @author Felipe Tambasco, Mauro Barbosa, Juan Godoy
 *  @date Feb, 2017
 *
 */
