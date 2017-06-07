@@ -8,15 +8,15 @@
 */
 
 #include "Coder.h"
+#include "Rachas.h"
 #include <sstream>
 
-namespace std {
+using namespace std;
 
 
 
 
 Coder::Coder() {
-
 
 }
 
@@ -27,7 +27,6 @@ Coder::Coder(Image image, int Nmax) {
 	this->Nmax=Nmax;
 
 	this->image=image;
-
 
 
 
@@ -595,9 +594,236 @@ void Coder::writeWhite(ofstream &salida){
 }
 
 
+void Coder::encodeRun(void){
+	int largo, prefijo, aciertos=0, i=0, l_racha=-1, ri_type, eps_val, A_racha, N_racha, Nn_racha, T_racha, K_racha, map,
+	    M_eps, caso_map, L_max, Q_max, Q_golomb, R_golomb, l_pixel;
+	char tipo[10];
+	unsigned char resto[2]={0x00, 0x00}, resto_bit, racha[10], racha_byte=0x00, golomb[4];
+
+	int J[32]={ // Almaceno en memoria la correspondencia con los kr.
+			0,  0,  0,  0,
+			1,  1,  1,  1, 
+			2,  2,  2,  2,
+			3,  3,  3,  3,
+			4,  4,  5,  5,
+			6,  6,  7,  7,
+			8,  9,  10, 11,
+			12, 13, 14, 15
+		};
+	
+	printf(">> Largo de la racha: ");
+	scanf("%d", &largo);
+	printf(">> Interrumpida por: [P]ixel distinto / [F]in de fila : ");
+	scanf("%s", tipo);
+	printf(">> Run Interruption Type: [0] a!=b / [1] a==b : ");
+	scanf("%d", &ri_type);
+	printf(">> Error de prediccion a codificar: ");
+	scanf("%d", &eps_val);
+	printf(">> Estadistico A: ");
+	scanf("%d", &A_racha);
+	printf(">> Estadistico N: ");
+	scanf("%d", &N_racha);
+	printf(">> Estadistico Nn: ");
+	scanf("%d", &Nn_racha);
+	printf("\n");
+	
+	if(largo > 32768){ // Explota el sistema.
+		printf("Are you kidding me?\n");
+		exit(255);
+	}
+	
+	for(int k=0; k<10; k++) racha[k]=0x00;
+	
+	if(!largo){
+		l_racha=0;
+		printf(">> Racha de largo nulo.\n");
+	}
+		
+	while((largo>0) & (i<32)){ // Adaptativo.
+		largo-=(1<<J[i]);      // kr = 2^(J[i])
+		i++;                   // "Aciertos"
+		printf(">> i = %02d - kr = %05d - resto = %03d\n", i, 1<<J[i], largo);
+	}
+	
+	if(l_racha==-1){
+		if(largo) l_racha=i+1+J[i];   // Racha de "1"s + 1 bit de prefijo + largo del resto
+		else      l_racha=i;          // Solamente la racha de "1"s (no hay fallos).
+	}
+	
+	for(int k=0; k<i; k++){           // Armo la tira de "1"s
+		racha_byte=racha_byte|(1<<(7-(k%8)));
+		racha[k/8]=racha_byte;
+		if(!((k+1)%8)) racha_byte=0x00;
+	}
+	
+	if(largo<0){  // "Fallo"
+		prefijo=(!strncmp(tipo, "P", 1) ? 0 : 1);
+		printf(">> prefijo = %d\n", prefijo);
+
+		largo*=-1;  //lo dejo positivo.
+		printf(">> resto = %d = " BYTE_TO_BINARY_PATTERN " " BYTE_TO_BINARY_PATTERN "b representado con %d bits = ", largo, BYTE_TO_BINARY((unsigned char)(largo/256)), BYTE_TO_BINARY((unsigned char)(largo)), J[i]);
+
+		resto[0]=(unsigned char)(largo/256);   // El resto nunca puede
+		resto[1]=(unsigned char)(largo%256);   // ocupar mas de 2 bytes.
+
+		if(J[i]>8){  //Oscuro. Difuso. Debug interno. (!)
+			for(int k=16-J[i]; k<8; k++){
+				resto_bit=((resto[0]&(1<<(7-k)))>>(7-k))&0x01;
+				printf("%c", resto_bit==0x01 ? '1' : '0');
+			}
+			for(int k=0; k<8; k++){
+				resto_bit=((resto[1]&(1<<(7-k)))>>(7-k))&0x01;
+				printf("%c", resto_bit==0x01 ? '1' : '0');
+			}
+		}else{
+			for(int k=8-J[i]; k<8; k++){
+				resto_bit=((resto[1]&(1<<(7-k)))>>(7-k))&0x01;
+				printf("%c", resto_bit==0x01 ? '1' : '0');
+			}			
+		}
+		printf("b\n\n");
+		
+		racha[i/8]=racha[i/8]|(prefijo<<(7-i%8));   // Agrego el prefijo...	
+		if(J[i]>8){                                 // ...y el resto, que puede tener 2 bytes...
+			for(int k=i+1; k<i+J[i]-7; k++)      POKE_BIT(racha, k, resto[0], 15-J[i]+k-i);
+			for(int k=i+J[i]-7; k<i+J[i]+1; k++) POKE_BIT(racha, k, resto[1], 7-J[i]+k-i);
+		}else{                                      // ...o 1 byte.
+			for(int k=i+1; k<i+J[i]+1; k++)      POKE_BIT(racha, k, resto[1], 7-J[i]+k-i);
+		}
+	}
+	
+	printf(">> Codificacion del largo de racha: ");
+	for(int k=0; k<6; k++) printf(BYTE_TO_BINARY_PATTERN" ", BYTE_TO_BINARY(racha[k]));
+	printf("b - Largo: %d bits.\n\n", l_racha);
+	
+	if(!prefijo){    // Si la racha es interrumpida por un pixel de otro color, codifico el pixel de interrupcion.
+		T_racha=((ri_type==1) ? A_racha : A_racha + N_racha/2);   // Calculo la variable T para determinar k de Golomb.
+		for(K_racha=0; (N_racha<<K_racha)<T_racha; K_racha++);    // k = min{k' / 2^(k') >= T}
+
+		// Decisiones para hallar el valor de "map", utilizado en el mapeo que se le hace al error a codificar.
+		if(  K_racha  && (eps_val<=0) && (2*Nn_racha>=N_racha)) {map=(eps_val ? 1 : 0); caso_map=1;}
+		if(  K_racha  && (eps_val<=0) && (2*Nn_racha <N_racha)) {map=(eps_val ? 1 : 0); caso_map=2;}
+		if(  K_racha  && (eps_val >0) && (2*Nn_racha>=N_racha)) {map=0; caso_map=3;}
+		if(  K_racha  && (eps_val >0) && (2*Nn_racha <N_racha)) {map=0; caso_map=4;}
+		if((!K_racha) && (eps_val<=0) && (2*Nn_racha>=N_racha)) {map=(eps_val ? 1 : 0); caso_map=5;}
+		if((!K_racha) && (eps_val<=0) && (2*Nn_racha <N_racha)) {map=0; caso_map=6;}
+		if((!K_racha) && (eps_val >0) && (2*Nn_racha>=N_racha)) {map=0; caso_map=7;}
+		if((!K_racha) && (eps_val >0) && (2*Nn_racha <N_racha)) {map=1; caso_map=8;}
+	
+		M_eps=2*abs(eps_val)-ri_type-map;    // Mapeo del error a codificar por Golomb(2^k).
+	
+		printf(">> A      = %d\n", A_racha);
+		printf(">> N      = %d\n", N_racha);
+		printf(">> Nn     = %d\n", Nn_racha);
+		printf(">> RIType = %d\n", ri_type);
+		printf(">> T      = %d\n", T_racha);
+		printf(">> k      = %d\n", K_racha);
+		printf(">> map    = %d\n", map);
+		printf(">> caso   = %d\n", caso_map);	
+		printf(">> eps    = %d\n", eps_val);
+		printf(">> M(eps) = %d\n\n", M_eps);
+	
+		Q_golomb=(M_eps>>K_racha);             // q=n/m   donde n=M_eps, m=2^k, k=K_racha. Dividir entre   m es "perder" K_racha bits.
+		R_golomb=(M_eps-(Q_golomb<<K_racha));  // r=n-m*k donde n=M_eps, m=2^k, k=K_racha. Multipilcar por m es "ganar"  K_racha bits.
+		// Notese que la otra ecuacion, c=techo(log2(m)) con m=2^k, implica c=k. Como k=K_racha, ya lo tenemos calculado.
+	
+		L_max=32-J[i];    // Largo maximo para el Golomb de largo limitado.          L_max = 32 - (kr + 1)	
+		Q_max=L_max-9;    // Valor de q que decide si limitamos el largo del codigo. q_max = (L_max - 1) - 8
+	
+		printf(">> n     = %d\n", M_eps);
+		printf(">> m     = %d\n", 1<<K_racha);
+		printf(">> q     = %d\n", Q_golomb);
+		printf(">> r     = %d\n", R_golomb);
+		printf(">> c     = %d\n", K_racha);
+		printf(">> L     = %d\n", Q_golomb+1);
+		printf(">> L_max = %d\n", L_max);
+		printf(">> q_max = %d\n\n", Q_max);
+	
+		for(int k=0; k<4; k++) golomb[i]=0x00;
+		if(Q_golomb<Q_max){   // No limitamos el largo del codigo. Codificamos en Golomb(2^k).
+			printf(">> Codificamos en Golomb(2^%d).\n>> El prefijo ocupa %d bits y el resto ocupa %d bits.\n", K_racha, Q_golomb+1, K_racha);
+		
+			// Parte unaria
+			for(int k=0; k<Q_golomb; k++) POKE_BIT(golomb, k, 0xFF, 1);      // Agrego q 1's...
+			POKE_BIT(golomb, Q_golomb+1, 0x00, 1);                           // ...y un 0.
+		
+			// Parte binaria
+			racha_byte=(unsigned char)(R_golomb%256);
+			for(int k=Q_golomb+1; k<Q_golomb+1+K_racha; k++) POKE_BIT(golomb, k, racha_byte, 7-Q_golomb+k-K_racha);
+		
+			printf(">> Parte unaria  [%02d bits] : ", Q_golomb+1);
+			for(int k=0; k<Q_golomb+1; k++){
+				resto_bit=((golomb[k/8]&(1<<(7-k%8)))>>(7-k%8))&0x01;
+				printf("%c", resto_bit==0x01 ? '1' : '0');
+			}
+			printf("b\n");
+		
+			printf(">> Parte binaria [%02d bits] : ", K_racha);
+			for(int k=Q_golomb+1; k<Q_golomb+1+K_racha; k++){
+				resto_bit=((golomb[k/8]&(1<<(7-k%8)))>>(7-k%8))&0x01;
+				printf("%c", resto_bit==0x01 ? '1' : '0');
+			}
+			printf("b\n\n");
+		
+			printf(">> Codificacion del pixel de salida: ");
+			for(int k=0; k<4; k++) printf(BYTE_TO_BINARY_PATTERN" ", BYTE_TO_BINARY(golomb[k]));
+			printf("b - Largo: %d bits.\n", Q_golomb+1+K_racha);
+		
+			l_pixel=Q_golomb+1+K_racha;   // Largo total de la codificacion del pixel de salida.
+		}else{                // Limitamos el largo del codigo. Enviamos "codigo de escape".
+			printf(">> Enviamos codigo de escape.\n>> Limitamos el largo del prefijo (%d bits) a %d bits, con 8 bits de resto.\n", Q_golomb+1, Q_max+1);
+		
+			// Parte unaria
+			for(int k=0; k<Q_max; k++) POKE_BIT(golomb, k, 0xFF, 1);      // Agrego q_max 1's...
+			POKE_BIT(golomb, Q_max+1, 0x00, 1);                           // ...y un 0.
+		
+			// Parte binaria
+			racha_byte=(unsigned char)((M_eps-1)%256);   // En este caso, se codifica (M(eps) - 1) por definicion.
+			for(int k=Q_max+1; k<Q_max+9; k++) POKE_BIT(golomb, k, racha_byte, k-1-Q_max);
+
+			printf(">> Parte unaria  [%02d bits] : ", Q_max+1);
+			for(int k=0; k<Q_max+1; k++){
+				resto_bit=((golomb[k/8]&(1<<(7-k%8)))>>(7-k%8))&0x01;
+				printf("%c", resto_bit==0x01 ? '1' : '0');
+			}
+			printf("b\n");
+		
+			printf(">> Parte binaria [08 bits] : ");
+			for(int k=0; k<8; k++){
+				resto_bit=((racha_byte&(1<<(7-k)))>>(7-k))&0x01;
+				printf("%c", resto_bit==0x01 ? '1' : '0');
+			}
+			printf("b\n\n");
+		
+			printf(">> Codificacion del pixel de salida: ");
+			for(int k=0; k<4; k++) printf(BYTE_TO_BINARY_PATTERN" ", BYTE_TO_BINARY(golomb[k]));
+			printf("b representada con %d bits.\n", Q_max+9);
+		
+			l_pixel=Q_max+9;   // Largo total de la codificacion del pixel de salida.
+		}
+	
+		// Agrego a la codificacion del largo la codificacion del pixel de salida.
+		for(int m=0; m<4; m++){
+			for(int k=l_racha%8; k<8; k++)   POKE_BIT(racha, l_racha+8*m+k-l_racha%8, golomb[m], k-l_racha%8);
+			for(int k=8-l_racha%8; k<8; k++) POKE_BIT(racha, l_racha+8*m+k, golomb[m], k);	
+		}
+	}
+	
+	printf(">> Tira de bits: ");
+	for(int k=0; k<10; k++) printf(BYTE_TO_BINARY_PATTERN" ", BYTE_TO_BINARY(racha[k]));
+	printf("b - Largo: %d\n", l_racha+l_pixel);
+	
+	// Reset de estadisticos.
+	if(A_racha > 64){
+		A_racha/=2;
+		N_racha/=2;
+		Nn_racha/=2;
+		
+		printf(">> RESET de estadisticos: A=%d - N=%d - Nn=%d\n", A_racha, N_racha, Nn_racha);
+	}
+}
+
 
 Coder::~Coder() {
 
 }
-
-} /* namespace std */

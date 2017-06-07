@@ -54,6 +54,7 @@ public:
 	void writeWhite(ofstream&);
 	void writeMagic(ofstream&);
 	void writeNmax(ofstream&);
+	static void encodeRun(void);
 	virtual ~Coder();
 
 	/* Este objeto representa la imagen a ser codificada */

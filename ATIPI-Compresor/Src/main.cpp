@@ -28,7 +28,7 @@ using namespace std;
 
 int main(int nargs, char *args[]){
 
-	if (nargs<3)	{
+	if (nargs<3 )	{
 		cout<<"error...! parámetros insuficientes !"<<endl;
 	}
 	else{
@@ -72,7 +72,11 @@ int main(int nargs, char *args[]){
 			Decoder decoder(codedImage);
 			decoder.decode();
 
-		}else cout<<"error...! comando no encontrado !"<<endl;
+		}else if (mode.compare("-r")==0){
+			cout << "Modo RACHAS" << endl;
+			Coder::encodeRun();
+		}
+		else cout<<"error...! comando no encontrado !"<<endl;
 
 	}
 
