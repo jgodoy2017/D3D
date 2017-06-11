@@ -86,6 +86,8 @@ int main(int argc, char **argv){
 	
 	for(int k=0; k<10; k++) racha[k]=0x00;
 	
+	if(!largo) l_racha=0;
+	
 	while((largo>0) & (i<32)){ // Adaptativo.
 		largo-=(1<<J[i]);      // kr = 2^(J[i])
 		i++;                   // "Aciertos"
