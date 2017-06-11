@@ -19,7 +19,7 @@
 	  Las posiciones se miden siempre de izquierda a derecha (desde el bit mas significativo al menos significativo).
 	  
 	  (n)/8 = byte de (a) que se debe modificar.
-	  7-(m) = posicion en (b) del bit a copiar, medida desde la izquierda.
+	  7-(m) = posicion en (b) del bit a copiar, medida desde la derecha.
 
 	  1<<(7-(m)) = |000...010.....0|
 	               |------>|       | 
@@ -40,6 +40,33 @@
 	  (a)[(n)/8] | ((((b)&(1<<(7-(m))))>>(7-(m)))<<(7-(n)%8)) = |a0a1a2...x......a7|       (an = bit n de a)
 	                                                            |         |<-------|
 	                                                                         7-n%8
+*/
+	  
+#define PEEK_BIT(a, n, b, m) ((b) = (b) | ((((a)[(n)/8]&(1<<(7-(n)%8)))>>(7-(n)%8))<<(7-(m))))
+/*
+	  Expresion que dada una tira de bits (a), obtiene el bit en la posicion (n) y lo copia en la posicion (m) de un byte (b) de referencia.
+	  Las posiciones se miden siempre de izquierda a derecha (desde el bit mas significativo al menos significativo).
+	  
+	  (n)/8   = byte de (a) que se debe leer.
+	  7-(n)%8 = posicion en el byte (n)/8 de (a) que ocupa el bit (n), medida desde la derecha.
+	  
+	  1<<(7-(n)%8) = |000...010.....0|
+	                 |------>|       | 
+	                   7-n%8
+	  
+	  a[(n)/8] = byte (n)/8 de (a).
+	  (a)[(n)/8]&(1<<(7-(n)%8)) = |000...0x0.....0|       (x = bit 7-n%8 de a[(n)/8])
+	            	  	          |------>|       | 
+	        			            7-n%8
+	  
+	  7-(m) = posicion en (b) del bit a escribir, medida desde la izquierda.
+	  (((a)[(n)/8]&(1<<(7-(n)%8)))>>(7-(n)%8))<<(7-(m)) = |000...0x0.....0|
+	                                                      |       |<------|
+	                                                                 7-m
+	  
+	  (b) | ((((a)[(n)/8]&(1<<(7-(n)%8)))>>(7-(n)%8))<<(7-(m))) = |b0b1b2...x......b7|       (bm = bit m de b)
+	                                                              |         |<-------|
+	                                                                            7-m
 */
 
 using namespace std;
