@@ -37,8 +37,7 @@ public:
 		} grad;
 
 		Decoder(CodedImage);
-			virtual ~Decoder();
-			void decode();
+		void decode();
 		pixels getPixels(int);
 		int getP(pixels);
 		grad setGradients(int, pixels);
@@ -57,6 +56,8 @@ public:
 		void completaArray();
 		int getBit();
 		int getError(int);
+		void decodeRun(ofstream&);
+		virtual ~Decoder();
 
 		/* Este objeto representa la imagen codificada que está decodificando */
 		CodedImage codedImage;

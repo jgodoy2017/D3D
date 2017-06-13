@@ -78,6 +78,9 @@ int main(int argc, char **argv){
 	scanf("%d", &Nn_racha);
 	printf("\n");
 	
+	prefijo=(!strncmp(tipo, "P", 1) ? 0 : 1);
+	printf(">> prefijo = %d\n", prefijo);
+	
 	// Reduccion de rango para el error a codificar ([-255, 255] --> [-128, 127]).
 	if(eps_val<0)    eps_val+=256;
 	if(eps_val>=128) eps_val-=256;
@@ -106,9 +109,6 @@ int main(int argc, char **argv){
 	}
 	
 	if(largo<0){  // "Fallo"
-		prefijo=(!strncmp(tipo, "P", 1) ? 0 : 1);
-		printf(">> prefijo = %d\n", prefijo);
-
 		largo*=-1;  // Lo dejo positivo.
 		printf(">> resto = %d = "BYTE_TO_BINARY_PATTERN" "BYTE_TO_BINARY_PATTERN"b representado con %d bits.\n", largo, BYTE_TO_BINARY((unsigned char)(largo/256)), BYTE_TO_BINARY((unsigned char)(largo)), J[i]);
 
@@ -171,7 +171,7 @@ int main(int argc, char **argv){
 		printf(">> L_max = %d\n", L_max);
 		printf(">> q_max = %d\n\n", Q_max);
 	
-		for(int k=0; k<4; k++) golomb[i]=0x00;
+		for(int k=0; k<4; k++) golomb[k]=0x00;
 		if(Q_golomb<Q_max){   // No limitamos el largo del codigo. Codificamos en Golomb(2^k).
 			printf(">> Codificamos en Golomb(2^%d).\n>> El prefijo ocupa %d bits y el resto ocupa %d bits.\n\n", K_racha, Q_golomb+1, K_racha);
 		

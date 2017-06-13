@@ -11,6 +11,7 @@
 
 #include "Image.h"
 #include "Context.h"
+#include "ContextRun.h"
 
 namespace std {
 
@@ -54,7 +55,9 @@ public:
 	void writeWhite(ofstream&);
 	void writeMagic(ofstream&);
 	void writeNmax(ofstream&);
-	static void encodeRun(void);
+	int encodeRun(ofstream&, int);
+	void updateContextoRun(int, int);
+	void uchar2bool(unsigned char*, int);
 	virtual ~Coder();
 
 	/* Este objeto representa la imagen a ser codificada */
@@ -62,12 +65,13 @@ public:
 	int Nmax;		//el valor de Nmax
 	int i;
 
-
-
 	static const int CANTIDAD_MAXIMA_CONTEXTOS=9*9*5;
 
 	/* Array de contextos, cada entrada representa un contexto posible */
 	Context contexts[CANTIDAD_MAXIMA_CONTEXTOS];
+	
+	/* Array con los 2 contextos especiales que aparecen en el modo de rachas: (a==b) y (a!=b) */
+	ContextRun contextsRun[2];
 
 	/* En este array auxiliar se van guardando los bits de código generado a escribir en el archivo
 	se usa 800 como un tamaño suficiente, este número tiene que ser mayor al error más grande que pueda ser codificado + 7

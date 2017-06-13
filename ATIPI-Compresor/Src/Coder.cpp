@@ -38,7 +38,7 @@ Coder::Coder(Image image, int Nmax) {
 
 	ss1 << Nmax;
 	string nmax = ss1.str();
-
+	int prox=0, largo_racha;
 
 
 	string path_salida=image.path+image.name+"_coded_Nmax_"+nmax+"_region_3";
@@ -48,33 +48,26 @@ Coder::Coder(Image image, int Nmax) {
 	writeHeader(salida);
 
 	setContextsArray();
+	
+	while(prox<image.heigth*image.width){       // Bucle principal que recorre la imagen y la va codificando
+		pixels pxls = getPixels(prox);          // obtiene los píxeles de la vecindad: a,b y c
+		int p = getP(pxls);	                    // calcula p
+		grad gradients=setGradients(p,pxls);    // calcula los gradientes
 
-	for(int prox=0;prox<image.heigth*image.width;prox++){
-							//bucle principal que recorre la imagen y va codificando cada pixel
-
-		int currentPixel=image.image[prox]; //valor del pixel actual
-
-		pixels pxls = getPixels(prox); //obtiene los píxeles de la vecindad: a,b y c
-
-		int p = getP(pxls);	//calcula p
-
-		grad gradients=setGradients(p,pxls); //calcula los gradientes
-
-		int contexto = getContext(gradients);	//trae el contexto asociado a ese gradiente
-
-		int predicted = getPredictedValue(pxls);	//calcula el valor pixel predicho
-
-		int error_= currentPixel-predicted;	//calcula el error como la resta entre el valor actual y el valor predicho
-
-		int k= getK(contexto);	//calcula k para ese contexto
-
-		int error =rice(error_);	//devuelve mapeo de rice del error
-
-		encode(error,k, salida);	//codifica el error
-
-		updateContexto(contexto, error_);	//actualiza los valores para el contexto
-
-
+		if(!gradients.ga && !gradients.gb && !gradients.gc){   // Si encuentra una racha...
+			largo_racha=encodeRun(salida, prox);               // ...codifica la racha (incluye actualizacion de estadisticos)...
+			prox+=largo_racha;                                 // ...y saltea los pixeles codificados.
+		}else{                                                 // De lo contrario codifica en modo normal.
+			int currentPixel=image.image[prox];                // valor del pixel actual
+			int contexto = getContext(gradients);	           // trae el contexto asociado a ese gradiente
+			int predicted = getPredictedValue(pxls);	       // calcula el valor pixel predicho
+			int error_ = currentPixel-predicted;	           // calcula el error como la resta entre el valor actual y el valor predicho
+			int k = getK(contexto);	                           // calcula k para ese contexto
+			int error = rice(error_);	                       // devuelve mapeo de rice del error
+			encode(error, k, salida);	                       // ...codifica el error...
+			updateContexto(contexto, error_);	               // ...actualiza los valores para el contexto...
+			prox++;                                            // ...y avanza 1 pixel.
+		}
 	}
 
 	flushEncoder(salida);	//termina de escribir los últimos bits que hayan quedado en el array de bits
@@ -593,52 +586,31 @@ void Coder::writeWhite(ofstream &salida){
 
 }
 
+// Actualiza los datos N, A y Nn del contexto para rachas
+void Coder::updateContextoRun(int contexto, int error){
+	contextsRun[contexto].updateA(error);
+	contextsRun[contexto].updateNn(error);
+	if(contextsRun[contexto].A_racha>RESET) contextsRun[contexto].reset();
+	contextsRun[contexto].updateN();   // N_racha se actualiza siempre despues de un posible RESET.
+}
 
-void Coder::encodeRun(void){
-	int largo, prefijo, aciertos=0, i=0, l_racha=-1, ri_type, eps_val, A_racha, N_racha, Nn_racha, T_racha, K_racha, map,
-	    M_eps, caso_map, L_max, Q_max, Q_golomb, R_golomb, l_pixel;
-	char tipo[10];
+int Coder::encodeRun(ofstream& salida, int pos){
+	int largo=0, prefijo, aciertos=0, i=0, l_racha=-1, ri_type, eps_val, T_racha, K_racha, map,
+	    M_eps, caso_map, L_max, Q_max, Q_golomb, R_golomb, l_pixel, px_a, px_b, px_x;
 	unsigned char resto[2]={0x00, 0x00}, resto_bit, racha[10], racha_byte=0x00, golomb[4];
+	
+	printf(">> Dimensiones de la imagen: [%d]x[%d]px - Pos.: %d\n", image.width, image.heigth, pos);
+	
+	px_a=getPixels(pos).a;   // Pixel inicial de la racha, que se repite.
+	while((image.image[pos+largo]==px_a) && ((pos+1+largo)%image.width)) largo++;   // Calculo el largo de la racha (pixeles), limitado por la fila actual.
 
-	int J[32]={ // Almaceno en memoria la correspondencia con los kr.
-			0,  0,  0,  0,
-			1,  1,  1,  1, 
-			2,  2,  2,  2,
-			3,  3,  3,  3,
-			4,  4,  5,  5,
-			6,  6,  7,  7,
-			8,  9,  10, 11,
-			12, 13, 14, 15
-		};
-	
-	printf(">> Largo de la racha: ");
-	scanf("%d", &largo);
-	printf(">> Interrumpida por: [P]ixel distinto / [F]in de fila : ");
-	scanf("%s", tipo);
-	printf(">> Run Interruption Type: [0] a!=b / [1] a==b : ");
-	scanf("%d", &ri_type);
-	printf(">> Error de prediccion a codificar: ");
-	scanf("%d", &eps_val);
-	printf(">> Estadistico A: ");
-	scanf("%d", &A_racha);
-	printf(">> Estadistico N: ");
-	scanf("%d", &N_racha);
-	printf(">> Estadistico Nn: ");
-	scanf("%d", &Nn_racha);
-	printf("\n");
-	
-	if(largo > 32768){ // Explota el sistema.
-		printf("Are you kidding me?\n");
-		exit(255);
-	}
-	
+	prefijo=(((pos+1+largo)%image.width) ? 0 : 1);  // Determino si la racha se corto por un pixel de otro color o porque termino la fila.
+	printf(">> prefijo = %d\n\n", prefijo);
+			
 	for(int k=0; k<10; k++) racha[k]=0x00;
 	
-	if(!largo){
-		l_racha=0;
-		printf(">> Racha de largo nulo.\n");
-	}
-		
+	if(!largo) l_racha=1;      // Solamente el prefijo.
+	
 	while((largo>0) & (i<32)){ // Adaptativo.
 		largo-=(1<<J[i]);      // kr = 2^(J[i])
 		i++;                   // "Aciertos"
@@ -647,7 +619,7 @@ void Coder::encodeRun(void){
 	
 	if(l_racha==-1){
 		if(largo) l_racha=i+1+J[i];   // Racha de "1"s + 1 bit de prefijo + largo del resto
-		else      l_racha=i;          // Solamente la racha de "1"s (no hay fallos).
+		else      l_racha=i+1;        // Racha de "1"s + 1 bit de prefijo
 	}
 	
 	for(int k=0; k<i; k++){           // Armo la tira de "1"s
@@ -656,32 +628,12 @@ void Coder::encodeRun(void){
 		if(!((k+1)%8)) racha_byte=0x00;
 	}
 	
-	if(largo<0){  // "Fallo"
-		prefijo=(!strncmp(tipo, "P", 1) ? 0 : 1);
-		printf(">> prefijo = %d\n", prefijo);
-
-		largo*=-1;  //lo dejo positivo.
-		printf(">> resto = %d = " BYTE_TO_BINARY_PATTERN " " BYTE_TO_BINARY_PATTERN "b representado con %d bits = ", largo, BYTE_TO_BINARY((unsigned char)(largo/256)), BYTE_TO_BINARY((unsigned char)(largo)), J[i]);
+	if(largo<0){    // "Fallo"
+		largo*=-1;  // Lo dejo positivo.
+		printf(">> resto = %d = " BYTE_TO_BINARY_PATTERN " " BYTE_TO_BINARY_PATTERN "b representado con %d bits.\n", largo, BYTE_TO_BINARY((unsigned char)(largo/256)), BYTE_TO_BINARY((unsigned char)(largo)), J[i]);
 
 		resto[0]=(unsigned char)(largo/256);   // El resto nunca puede
 		resto[1]=(unsigned char)(largo%256);   // ocupar mas de 2 bytes.
-
-		if(J[i]>8){  //Oscuro. Difuso. Debug interno. (!)
-			for(int k=16-J[i]; k<8; k++){
-				resto_bit=((resto[0]&(1<<(7-k)))>>(7-k))&0x01;
-				printf("%c", resto_bit==0x01 ? '1' : '0');
-			}
-			for(int k=0; k<8; k++){
-				resto_bit=((resto[1]&(1<<(7-k)))>>(7-k))&0x01;
-				printf("%c", resto_bit==0x01 ? '1' : '0');
-			}
-		}else{
-			for(int k=8-J[i]; k<8; k++){
-				resto_bit=((resto[1]&(1<<(7-k)))>>(7-k))&0x01;
-				printf("%c", resto_bit==0x01 ? '1' : '0');
-			}			
-		}
-		printf("b\n\n");
 		
 		racha[i/8]=racha[i/8]|(prefijo<<(7-i%8));   // Agrego el prefijo...	
 		if(J[i]>8){                                 // ...y el resto, que puede tener 2 bytes...
@@ -696,26 +648,40 @@ void Coder::encodeRun(void){
 	for(int k=0; k<6; k++) printf(BYTE_TO_BINARY_PATTERN" ", BYTE_TO_BINARY(racha[k]));
 	printf("b - Largo: %d bits.\n\n", l_racha);
 	
-	if(!prefijo){    // Si la racha es interrumpida por un pixel de otro color, codifico el pixel de interrupcion.
-		T_racha=((ri_type==1) ? A_racha : A_racha + N_racha/2);   // Calculo la variable T para determinar k de Golomb.
-		for(K_racha=0; (N_racha<<K_racha)<T_racha; K_racha++);    // k = min{k' / 2^(k') >= T}
+	if(!prefijo){            // Si la racha es interrumpida por un pixel de otro color, codifico el pixel de interrupcion.
+		px_x=image.image[pos+1+largo];    // Pixel x, corte de la racha.
+		px_b=getPixels(pos+1+largo).b;    // Pixel b, superior al de corte.
+		
+		ri_type=(px_a=px_b ? 1 : 0);      // Run Interruption Type.
+		eps_val=px_x-px_b;                // Error de prediccion a codificar.
+		
+		printf(">> RIType = %d\n", ri_type);	
+		printf(">> A      = %d\n", contextsRun[ri_type].A_racha);
+		printf(">> N      = %d\n", contextsRun[ri_type].N_racha);
+		printf(">> Nn     = %d\n\n", contextsRun[ri_type].Nn_racha);
+			
+		// Reduccion de rango para el error a codificar ([-255, 255] --> [-128, 127]).
+		if(eps_val<0)    eps_val+=256;
+		if(eps_val>=128) eps_val-=256;
+		if(eps_val<-128) eps_val=-128;
+		if(eps_val>127)  eps_val=127;
+
+		// Calculo la variable T para determinar k de Golomb.
+		T_racha=((ri_type==1) ? contextsRun[ri_type].A_racha : contextsRun[ri_type].A_racha + contextsRun[ri_type].N_racha/2);   
+		for(K_racha=0; (contextsRun[ri_type].N_racha<<K_racha)<T_racha; K_racha++);    // k = min{k' / 2^(k') >= T}
 
 		// Decisiones para hallar el valor de "map", utilizado en el mapeo que se le hace al error a codificar.
-		if(  K_racha  && (eps_val<=0) && (2*Nn_racha>=N_racha)) {map=(eps_val ? 1 : 0); caso_map=1;}
-		if(  K_racha  && (eps_val<=0) && (2*Nn_racha <N_racha)) {map=(eps_val ? 1 : 0); caso_map=2;}
-		if(  K_racha  && (eps_val >0) && (2*Nn_racha>=N_racha)) {map=0; caso_map=3;}
-		if(  K_racha  && (eps_val >0) && (2*Nn_racha <N_racha)) {map=0; caso_map=4;}
-		if((!K_racha) && (eps_val<=0) && (2*Nn_racha>=N_racha)) {map=(eps_val ? 1 : 0); caso_map=5;}
-		if((!K_racha) && (eps_val<=0) && (2*Nn_racha <N_racha)) {map=0; caso_map=6;}
-		if((!K_racha) && (eps_val >0) && (2*Nn_racha>=N_racha)) {map=0; caso_map=7;}
-		if((!K_racha) && (eps_val >0) && (2*Nn_racha <N_racha)) {map=1; caso_map=8;}
+		if(  K_racha  && (eps_val<=0) && (2*contextsRun[ri_type].Nn_racha>=contextsRun[ri_type].N_racha)) {map=(eps_val ? 1 : 0); caso_map=1;}
+		if(  K_racha  && (eps_val<=0) && (2*contextsRun[ri_type].Nn_racha <contextsRun[ri_type].N_racha)) {map=(eps_val ? 1 : 0); caso_map=2;}
+		if(  K_racha  && (eps_val >0) && (2*contextsRun[ri_type].Nn_racha>=contextsRun[ri_type].N_racha)) {map=0; caso_map=3;}
+		if(  K_racha  && (eps_val >0) && (2*contextsRun[ri_type].Nn_racha <contextsRun[ri_type].N_racha)) {map=0; caso_map=4;}
+		if((!K_racha) && (eps_val<=0) && (2*contextsRun[ri_type].Nn_racha>=contextsRun[ri_type].N_racha)) {map=(eps_val ? 1 : 0); caso_map=5;}
+		if((!K_racha) && (eps_val<=0) && (2*contextsRun[ri_type].Nn_racha <contextsRun[ri_type].N_racha)) {map=0; caso_map=6;}
+		if((!K_racha) && (eps_val >0) && (2*contextsRun[ri_type].Nn_racha>=contextsRun[ri_type].N_racha)) {map=0; caso_map=7;}
+		if((!K_racha) && (eps_val >0) && (2*contextsRun[ri_type].Nn_racha <contextsRun[ri_type].N_racha)) {map=1; caso_map=8;}
 	
 		M_eps=2*abs(eps_val)-ri_type-map;    // Mapeo del error a codificar por Golomb(2^k).
 	
-		printf(">> A      = %d\n", A_racha);
-		printf(">> N      = %d\n", N_racha);
-		printf(">> Nn     = %d\n", Nn_racha);
-		printf(">> RIType = %d\n", ri_type);
 		printf(">> T      = %d\n", T_racha);
 		printf(">> k      = %d\n", K_racha);
 		printf(">> map    = %d\n", map);
@@ -739,39 +705,25 @@ void Coder::encodeRun(void){
 		printf(">> L_max = %d\n", L_max);
 		printf(">> q_max = %d\n\n", Q_max);
 	
-		for(int k=0; k<4; k++) golomb[i]=0x00;
+		for(int k=0; k<4; k++) golomb[k]=0x00;
 		if(Q_golomb<Q_max){   // No limitamos el largo del codigo. Codificamos en Golomb(2^k).
-			printf(">> Codificamos en Golomb(2^%d).\n>> El prefijo ocupa %d bits y el resto ocupa %d bits.\n", K_racha, Q_golomb+1, K_racha);
+			printf(">> Codificamos en Golomb(2^%d).\n>> El prefijo ocupa %d bits y el resto ocupa %d bits.\n\n", K_racha, Q_golomb+1, K_racha);
 		
 			// Parte unaria
-			for(int k=0; k<Q_golomb; k++) POKE_BIT(golomb, k, 0xFF, 1);      // Agrego q 1's...
-			POKE_BIT(golomb, Q_golomb+1, 0x00, 1);                           // ...y un 0.
+			for(int k=0; k<Q_golomb; k++) POKE_BIT(golomb, k, 0xFF, 7);      // Agrego q 1's...
+			POKE_BIT(golomb, Q_golomb, 0x00, 7);                             // ...y un 0.
 		
 			// Parte binaria
-			racha_byte=(unsigned char)(R_golomb%256);
+			racha_byte=(unsigned char)(R_golomb&0xFF);
 			for(int k=Q_golomb+1; k<Q_golomb+1+K_racha; k++) POKE_BIT(golomb, k, racha_byte, 7-Q_golomb+k-K_racha);
-		
-			printf(">> Parte unaria  [%02d bits] : ", Q_golomb+1);
-			for(int k=0; k<Q_golomb+1; k++){
-				resto_bit=((golomb[k/8]&(1<<(7-k%8)))>>(7-k%8))&0x01;
-				printf("%c", resto_bit==0x01 ? '1' : '0');
-			}
-			printf("b\n");
-		
-			printf(">> Parte binaria [%02d bits] : ", K_racha);
-			for(int k=Q_golomb+1; k<Q_golomb+1+K_racha; k++){
-				resto_bit=((golomb[k/8]&(1<<(7-k%8)))>>(7-k%8))&0x01;
-				printf("%c", resto_bit==0x01 ? '1' : '0');
-			}
-			printf("b\n\n");
-		
+			
 			printf(">> Codificacion del pixel de salida: ");
 			for(int k=0; k<4; k++) printf(BYTE_TO_BINARY_PATTERN" ", BYTE_TO_BINARY(golomb[k]));
 			printf("b - Largo: %d bits.\n", Q_golomb+1+K_racha);
 		
 			l_pixel=Q_golomb+1+K_racha;   // Largo total de la codificacion del pixel de salida.
 		}else{                // Limitamos el largo del codigo. Enviamos "codigo de escape".
-			printf(">> Enviamos codigo de escape.\n>> Limitamos el largo del prefijo (%d bits) a %d bits, con 8 bits de resto.\n", Q_golomb+1, Q_max+1);
+			printf(">> Enviamos codigo de escape.\n>> Limitamos el largo del prefijo (%d bits) a %d bits, con 8 bits de resto.\n\n", Q_golomb+1, Q_max+1);
 		
 			// Parte unaria
 			for(int k=0; k<Q_max; k++) POKE_BIT(golomb, k, 0xFF, 1);      // Agrego q_max 1's...
@@ -780,20 +732,6 @@ void Coder::encodeRun(void){
 			// Parte binaria
 			racha_byte=(unsigned char)((M_eps-1)%256);   // En este caso, se codifica (M(eps) - 1) por definicion.
 			for(int k=Q_max+1; k<Q_max+9; k++) POKE_BIT(golomb, k, racha_byte, k-1-Q_max);
-
-			printf(">> Parte unaria  [%02d bits] : ", Q_max+1);
-			for(int k=0; k<Q_max+1; k++){
-				resto_bit=((golomb[k/8]&(1<<(7-k%8)))>>(7-k%8))&0x01;
-				printf("%c", resto_bit==0x01 ? '1' : '0');
-			}
-			printf("b\n");
-		
-			printf(">> Parte binaria [08 bits] : ");
-			for(int k=0; k<8; k++){
-				resto_bit=((racha_byte&(1<<(7-k)))>>(7-k))&0x01;
-				printf("%c", resto_bit==0x01 ? '1' : '0');
-			}
-			printf("b\n\n");
 		
 			printf(">> Codificacion del pixel de salida: ");
 			for(int k=0; k<4; k++) printf(BYTE_TO_BINARY_PATTERN" ", BYTE_TO_BINARY(golomb[k]));
@@ -807,23 +745,30 @@ void Coder::encodeRun(void){
 			for(int k=l_racha%8; k<8; k++)   POKE_BIT(racha, l_racha+8*m+k-l_racha%8, golomb[m], k-l_racha%8);
 			for(int k=8-l_racha%8; k<8; k++) POKE_BIT(racha, l_racha+8*m+k, golomb[m], k);	
 		}
+		
+		updateContextoRun(ri_type, eps_val);   // Actualizacion y reset de estadisticos.
+		printf(">> Valores actualizados de los estadisticos para el contexto [%d]: A = [%d] - N = [%d] - Nn = [%d]\n\n", ri_type, contextsRun[ri_type].A_racha, contextsRun[ri_type].N_racha, contextsRun[ri_type].Nn_racha);
 	}
 	
 	printf(">> Tira de bits: ");
 	for(int k=0; k<10; k++) printf(BYTE_TO_BINARY_PATTERN" ", BYTE_TO_BINARY(racha[k]));
+	
 	printf("b - Largo: %d\n", l_racha+l_pixel);
 	
-	// Reset de estadisticos.
-	if(A_racha > 64){
-		A_racha/=2;
-		N_racha/=2;
-		Nn_racha/=2;
+	uchar2bool(racha, l_racha+l_pixel);  // Cargo el array de bools.
+	writeCode(salida);	                 // Escribo en el archivo.
+	return(1+largo);                     // Devuelvo la cantidad de pixeles consumidos. Como minimo se lee 1 pixel.
+}
+
+void Coder::uchar2bool(unsigned char* uchar, int bits_uchar){	
+	if(bits_uchar && (bitsToFilePointer+bits_uchar<800)){
+		for(int k=0; k<bits_uchar; k++){
+			if(((uchar[k/8]&(1<<(7-k%8)))>>(7-k%8))==0x01) bitsToFile[bitsToFilePointer+k]=true;
+			else                                           bitsToFile[bitsToFilePointer+k]=false;
+		}
 		
-		printf(">> RESET de estadisticos: A=%d - N=%d - Nn=%d\n", A_racha, N_racha, Nn_racha);
-	}
+		bitsToFilePointer+=bits_uchar;
+	}		
 }
 
-
-Coder::~Coder() {
-
-}
+Coder::~Coder() {}

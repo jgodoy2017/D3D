@@ -73,8 +73,24 @@ int main(int nargs, char *args[]){
 			decoder.decode();
 
 		}else if (mode.compare("-r")==0){
-			cout << "Modo RACHAS" << endl;
-			Coder::encodeRun();
+			cout << "Modo CODE RACHAS" << endl;
+			
+			string aux=args[3];
+			int Nmax=atoi(aux.c_str());
+			Image image(path);
+			Coder coder(image, Nmax);
+			
+			coder.code();
+		}else if (mode.compare("-R")==0){
+			cout << "Modo DECODE RACHAS" << endl;
+
+			ofstream temp;
+			string aux=args[3];
+			int Nmax=atoi(aux.c_str());
+			CodedImage codedImage(path+"_coded_Nmax_"+aux+"_region_3");
+			Decoder decoder(codedImage);
+			
+			decoder.decodeRun(temp);
 		}
 		else cout<<"error...! comando no encontrado !"<<endl;
 
