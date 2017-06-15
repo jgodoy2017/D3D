@@ -6,7 +6,7 @@
 *  Se eligieron las siguientes regiones para gc: [<-3, <0, 0, >0, >3]
 *  Según se describe en el informe el Nmax recomendado es = 64
 *
-*  @author Felipe Tambasco, Mauro Barbosa, Juan Godoy
+*  @author Felipe Tambasco, Mauro Barbosa
 *  @date Feb, 2017
 *
 */
@@ -30,7 +30,7 @@ using namespace std;
 
 int main(int nargs, char *args[]){
 
-	string path="/home/felipe/Documents/ATIPI/img_prueba/kodim20.pgm";
+	string path="/home/felipe/Documents/ATIPI/img_prueba/barbara.pgm";
 	int Nmax=256;
 
 	Image image(path);

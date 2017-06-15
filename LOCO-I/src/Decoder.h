@@ -25,6 +25,7 @@ public:
 			int a;
 			int b;
 			int c;
+			int d;
 
 		} pixels;
 
@@ -41,7 +42,7 @@ public:
 			void decode();
 		pixels getPixels(int);
 		int getP(pixels);
-		grad setGradients(int, pixels);
+		grad setGradients(pixels);
 		void setContextsArray();
 		int getContext(grad);
 		int getPredictedValue(pixels);
@@ -67,7 +68,7 @@ public:
 		int Nmax;
 		int i;
 
-		static const int CANTIDAD_MAXIMA_CONTEXTOS=9*9*5;
+		static const int CANTIDAD_MAXIMA_CONTEXTOS=9*9*9;
 
 		Context contexts[CANTIDAD_MAXIMA_CONTEXTOS];
 

@@ -22,6 +22,7 @@ public:
 		int a;
 		int b;
 		int c;
+		int d;
 
 	} pixels;	//se define esta estructura para agrupar los píxeles a, b y c
 
@@ -38,7 +39,7 @@ public:
 	void code();
 	pixels getPixels(int);
 	int getP(pixels);
-	grad setGradients(int, pixels);
+	grad setGradients(pixels);
 	void setContextsArray();
 	int getContext(grad);
 	int getPredictedValue(pixels);
@@ -70,7 +71,7 @@ public:
 
 
 
-	static const int CANTIDAD_MAXIMA_CONTEXTOS=9*9*5;
+	static const int CANTIDAD_MAXIMA_CONTEXTOS=9*9*9;
 
 	/* Array de contextos, cada entrada representa un contexto posible */
 	Context contexts[CANTIDAD_MAXIMA_CONTEXTOS];

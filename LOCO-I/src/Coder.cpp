@@ -57,21 +57,37 @@ Coder::Coder(Image image, int Nmax) {
 
 		pixels pxls = getPixels(prox); //obtiene los píxeles de la vecindad: a,b y c
 
-		int p = getP(pxls);	//calcula p
+		//if (prox==0) cout<<prox<<" " << pxls.a<<" "<< pxls.b<<" "<< pxls.c<<" "<< pxls.d<<endl;
 
-		grad gradients=setGradients(p,pxls); //calcula los gradientes
+		// int p = getP(pxls);	//calcula p
+
+		grad gradients=setGradients(pxls); //calcula los gradientes
+
+		//cout<<prox<<" " << gradients.ga<<" "<< gradients.gb<<" "<< gradients.gc<<" "<<endl;
 
 		int contexto = getContext(gradients);	//trae el contexto asociado a ese gradiente
 
+		//cout<<contexto<<endl;
+
 		int predicted = getPredictedValue(pxls);	//calcula el valor pixel predicho
+
+		//cout<<predicted<<endl;
 
 		predicted=fixPrediction(predicted, contexto);
 
+		//cout<<predicted<<endl;
+
 		int error_= currentPixel-predicted;	//calcula el error como la resta entre el valor actual y el valor predicho
+
+		//cout<<error_<<endl;
 
 		int k= getK(contexto);	//calcula k para ese contexto
 
+		//cout<<k<<endl;
+
 		int error =rice(error_);	//devuelve mapeo de rice del error
+
+		//cout<<error<<endl;
 
 		encode(error,k, salida);	//codifica el error
 
@@ -105,6 +121,7 @@ void Coder::updateContexto(int contexto, int error){
 
 		/* si el valor de N para ese contexto es igual a Nmax divide N y A entre 2 */
 		contexts[contexto].N=contexts[contexto].N/2;
+		contexts[contexto].N_=contexts[contexto].N_/2;
 		contexts[contexto].A=floor((double)contexts[contexto].A/(double)2);
 
 		contexts[contexto].B=floor((double)contexts[contexto].B/(double)2);
@@ -116,6 +133,8 @@ void Coder::updateContexto(int contexto, int error){
 	contexts[contexto].A=contexts[contexto].A+abs(error);
 
 	contexts[contexto].N++;	//actualiza N
+
+	if (error<0) contexts[contexto].N_++;
 
 	if (contexts[contexto].B<=-contexts[contexto].N){
 
@@ -276,9 +295,9 @@ int Coder::getK(int contexto){
 
 	/** Calcula k según la expresión de las diapositivas del curso */
 
-	double AdivN=(double)contexts[contexto].A/(double)contexts[contexto].N;
+	double AdivN_=(double)contexts[contexto].A/(double)contexts[contexto].N_;
 
-	return round(log2(AdivN));
+	return round(log2(AdivN_));
 }
 
 int Coder::getPredictedValue(pixels pxls){
@@ -332,15 +351,19 @@ int Coder::getContext(grad gradients){
 		else if (gradients.gb<=21) contgb=7;
 		else contgb=8;
 
-	if (gradients.gc<-3) contgc=0;	//cambiar zonas
-		else if (gradients.gc<0) contgc=1;
-		else if (gradients.gc==0) contgc=2;
-		else if (gradients.gc<=3) contgc=3;
-		else contgc=4;
+	if (gradients.gc<-21) contgc=0;
+		else if (gradients.gc<-7) contgc=1;
+		else if (gradients.gc<-3) contgc=2;
+		else if (gradients.gc<0) contgc=3;
+		else if (gradients.gc==0) contgc=4;
+		else if (gradients.gc<=3) contgc=5;
+		else if (gradients.gc<=7) contgc=6;
+		else if (gradients.gc<=21) contgc=7;
+		else contgc=8;
 
 	//mapeo elegido para representar los contextos
 
-	return (5*9*contga)+(5*contgb)+(contgc);
+	return (9*9*contga)+(9*contgb)+(contgc);
 }
 
 void Coder::setContextsArray(){
@@ -353,7 +376,7 @@ void Coder::setContextsArray(){
 
 		for (int j=-4;j<5;j++){
 
-			for (int i=-2;i<3;i++){
+			for (int i=-4;i<5;i++){
 
 					Context contexto(k,j,i);
 					contexts[indice]=contexto;
@@ -367,24 +390,24 @@ void Coder::setContextsArray(){
 
 }
 
-Coder::grad Coder::setGradients(int p,pixels pxls){
+Coder::grad Coder::setGradients(pixels pxls){
 
-	/** Dado p y los píxeles a, b y c de la vecindad,
+	/** Dado p y los píxeles a, b, c y d de la vecindad,
 	forma el vector de gradientes */
 
-	grad gradients={pxls.a-p,pxls.b-p,pxls.c-p};
+	grad gradients={pxls.d-pxls.b,pxls.b-pxls.c,pxls.c-pxls.a};
 
 	return gradients;
 }
-
+/**
 int Coder::getP(pixels pxls){
 
-	/** Devuelve el valor de p, según expresión de las diapositivas del curso */
+	/** Devuelve el valor de p, según expresión de las diapositivas del curso
 
 	return floor((double)(2*pxls.a+2*pxls.b+2*pxls.c+3)/(double)6);
 
 }
-
+*/
 Coder::pixels Coder::getPixels(int current){
 
 	/** Devuelve los píxeles de la vecindad: a, b y c */
@@ -392,6 +415,7 @@ Coder::pixels Coder::getPixels(int current){
 	int a=-1;
 	int b=-1;
 	int c=-1;
+	int d=-1;
 
 	if ((current%image.width)==0){
 
@@ -399,6 +423,16 @@ Coder::pixels Coder::getPixels(int current){
 		o la mitad del valor de blanco de la imagen */
 		a=ceil((double)image.white/(double)2);
 		c=ceil((double)image.white/(double)2);
+
+
+	}
+
+	if ((current%image.width)==image.width-1){
+
+		/* Si estoy parado en un borde derecho, el valor de d tiene que ser "128",
+		o la mitad del valor de blanco de la imagen */
+		d=ceil((double)image.white/(double)2);
+
 
 	}
 
@@ -408,15 +442,17 @@ Coder::pixels Coder::getPixels(int current){
 		o la mitad del valor de blanco de la imagen */
 		if (b==-1) b=ceil((double)image.white/(double)2);
 		if (c==-1) c=ceil((double)image.white/(double)2);
+		if (d==-1) d=ceil((double)image.white/(double)2);
 	}
 
-	/* Para cada a, b y c, si no se cumple una condición de borde, y por lo tanto no hubo asignación en los if que preceden,
-	se traen los valores de a, b y c de la imagen */
+	/* Para cada a, b,c y d, si no se cumple una condición de borde, y por lo tanto no hubo asignación en los if que preceden,
+	se traen los valores de a, b,c y d de la imagen */
 	if (a==-1) a=image.image[current-1];
 	if (b==-1) b=image.image[current-image.width];
 	if (c==-1) c=image.image[current-image.width-1];
+	if (d==-1) d=image.image[current-image.width+1];
 
-	pixels pxls={a,b,c};
+	pixels pxls={a,b,c,d};
 
 		return pxls;
 }

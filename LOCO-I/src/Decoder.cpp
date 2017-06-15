@@ -59,21 +59,38 @@ int contadorH=1,contadorW=1,contador=0;
 
 				pixels pxls = getPixels(contador);	//trae el vecindario a, b y c de cada pixel a decodificar
 
-				int p = getP(pxls);	//calcula p
+				//int p = getP(pxls);	//calcula p
 
-				grad gradients=setGradients(p,pxls);	//calcula el vector de gradientes
+				//if (contador==0)
+				//cout<<contador<<" "  << pxls.a<<" "<< pxls.b<<" "<< pxls.c<<" "<< pxls.d<<endl;
+
+				grad gradients=setGradients(pxls);	//calcula el vector de gradientes
+
+				//cout<<contador<<" " << gradients.ga<<" "<< gradients.gb<<" "<< gradients.gc<<" "<<endl;
 
 				int contexto = getContext(gradients);	//trae el contexto que corresponde a estte pixel
 
+				//cout<<contexto<<endl;
+
 				int predicted = getPredictedValue(pxls);	//calcula el valor predicho
 
+				//cout<<predicted<<endl;
+
 				predicted=fixPrediction(predicted, contexto);
+
+				//cout<<predicted<<endl;
 
 				int k= getK(contexto);	//calcula k
 
 				int error_=getError(k);	//lee el archivo para tener el valor del error codificado
 
 				int error=unRice(error_);	//deshace el mapeo de rice para recuperar el error real
+
+				//cout<<error<<endl;
+
+				//cout<<k<<endl;
+
+				//cout<<error_<<endl;
 
 				int pixel=predicted+error;	//calcula el pixel como la suma entre el predicho y el error
 
@@ -355,6 +372,7 @@ void Decoder::updateContexto(int contexto, int error){
 
 			/* si el valor de N para ese contexto es igual a Nmax divide N y A entre 2 */
 			contexts[contexto].N=contexts[contexto].N/2;
+			contexts[contexto].N_=contexts[contexto].N_/2;
 			contexts[contexto].A=floor((double)contexts[contexto].A/(double)2);
 
 			contexts[contexto].B=floor((double)contexts[contexto].B/(double)2);
@@ -366,6 +384,8 @@ void Decoder::updateContexto(int contexto, int error){
 		contexts[contexto].A=contexts[contexto].A+abs(error);
 
 		contexts[contexto].N++;	//actualiza N
+
+		if (error<0) contexts[contexto].N_++;
 
 		if (contexts[contexto].B<=-contexts[contexto].N){
 
@@ -402,9 +422,9 @@ void Decoder::updateContexto(int contexto, int error){
 
 int Decoder::getK(int contexto){
 
-	double AdivN=(double)contexts[contexto].A/(double)contexts[contexto].N;
+	double AdivN_=(double)contexts[contexto].A/(double)contexts[contexto].N_;
 
-	return round(log2(AdivN));
+	return round(log2(AdivN_));
 }
 
 int Decoder::getPredictedValue(pixels pxls){
@@ -451,40 +471,51 @@ int Decoder::getContext(grad gradients){
 			else if (gradients.gb<=21) contgb=7;
 			else contgb=8;
 
-		if (gradients.gc<-3) contgc=0;
-			else if (gradients.gc<0) contgc=1;
-			else if (gradients.gc==0) contgc=2;
-			else if (gradients.gc<=3) contgc=3;
-			else contgc=4;
+		if (gradients.gc<-21) contgc=0;
+				else if (gradients.gc<-7) contgc=1;
+				else if (gradients.gc<-3) contgc=2;
+				else if (gradients.gc<0) contgc=3;
+				else if (gradients.gc==0) contgc=4;
+				else if (gradients.gc<=3) contgc=5;
+				else if (gradients.gc<=7) contgc=6;
+				else if (gradients.gc<=21) contgc=7;
+				else contgc=8;
 
-	return (5*9*contga)+(5*contgb)+(contgc);
+			//mapeo elegido para representar los contextos
+
+			return (9*9*contga)+(9*contgb)+(contgc);
 }
 
 void Decoder::setContextsArray(){
 
-	int indice=0;
+	/** Forma el array con todos los contextos posibles */
 
-	for (int k=-4;k<5;k++){
+		int indice=0;
 
-		for (int j=-4;j<5;j++){
+		for (int k=-4;k<5;k++){
 
-			for (int i=-2;i<3;i++){
+			for (int j=-4;j<5;j++){
 
-					Context contexto(k,j,i);
-					contexts[indice]=contexto;
-					indice++;
+				for (int i=-4;i<5;i++){
+
+						Context contexto(k,j,i);
+						contexts[indice]=contexto;
+						indice++;
+
+				}
 
 			}
 
 		}
 
-	}
-
 }
 
-Decoder::grad Decoder::setGradients(int p,pixels pxls){
+Decoder::grad Decoder::setGradients(pixels pxls){
 
-	grad gradients={pxls.a-p,pxls.b-p,pxls.c-p};
+	/** Dado p y los píxeles a, b, c y d de la vecindad,
+	forma el vector de gradientes */
+
+	grad gradients={pxls.d-pxls.b,pxls.b-pxls.c,pxls.c-pxls.a};
 
 	return gradients;
 }
@@ -497,31 +528,51 @@ int Decoder::getP(pixels pxls){
 
 Decoder::pixels Decoder::getPixels(int current){
 
-	int a=-1;
-	int b=-1;
-	int c=-1;
+	/** Devuelve los píxeles de la vecindad: a, b y c */
 
-	if ((current%codedImage.width)==0){
+		int a=-1;
+		int b=-1;
+		int c=-1;
+		int d=-1;
 
-		a=ceil((double)codedImage.white/(double)2);
-		c=ceil((double)codedImage.white/(double)2);
+		if ((current%codedImage.width)==0){
 
-	}
-
-	if (current<codedImage.width){
-
-		if (b==-1) b=ceil((double)codedImage.white/(double)2);
-		if (c==-1) c=ceil((double)codedImage.white/(double)2);
-	}
-
-	if (a==-1) a=image.image[current-1];
-	if (b==-1) b=image.image[current-codedImage.width];
-	if (c==-1) c=image.image[current-codedImage.width-1];
-
-	pixels pxls={a,b,c};
+			/* Si estoy parado en un borde izquierdo, el valor de a y c tienen que ser "128",
+			o la mitad del valor de blanco de la imagen */
+			a=ceil((double)codedImage.white/(double)2);
+			c=ceil((double)codedImage.white/(double)2);
 
 
-		return pxls;
+		}
+
+		if ((current%image.width)==codedImage.width-1){
+
+			/* Si estoy parado en un borde derecho, el valor de d tiene que ser "128",
+			o la mitad del valor de blanco de la imagen */
+			d=ceil((double)codedImage.white/(double)2);
+
+
+		}
+
+		if (current<codedImage.width){
+
+			/* Si estoy en la primer fila, b y c deben ser "128"
+			o la mitad del valor de blanco de la imagen */
+			if (b==-1) b=ceil((double)codedImage.white/(double)2);
+			if (c==-1) c=ceil((double)codedImage.white/(double)2);
+			if (d==-1) d=ceil((double)codedImage.white/(double)2);
+		}
+
+		/* Para cada a, b,c y d, si no se cumple una condición de borde, y por lo tanto no hubo asignación en los if que preceden,
+		se traen los valores de a, b,c y d de la imagen */
+		if (a==-1) a=image.image[current-1];
+		if (b==-1) b=image.image[current-codedImage.width];
+		if (c==-1) c=image.image[current-codedImage.width-1];
+		if (d==-1) d=image.image[current-codedImage.width+1];
+
+		pixels pxls={a,b,c,d};
+
+			return pxls;
 }
 
 
