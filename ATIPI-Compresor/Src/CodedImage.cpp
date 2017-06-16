@@ -33,7 +33,6 @@ CodedImage::CodedImage(string path){
 
 this->path=path;
 this->name="";
-
 loadImage();
 
 }
@@ -54,52 +53,51 @@ CodedImage::~CodedImage() {
 
 void CodedImage::loadImage(){
 
-			/** Carga la imagen codificada con la que trabajará el codificador como un array en memoria.
-			El funcionamiento es similar al método con el mismo nombre de la clase Image
-			salvo que esta vez los elementos de codedImage se guardan en un array de chars, en vez de un array de enteros
-			ya que esta vez cada byte del archivo no tiene una interpretación real, es solo código */
+	/** Carga la imagen codificada con la que trabajará el codificador como un array en memoria.
+	El funcionamiento es similar al método con el mismo nombre de la clase Image
+	salvo que esta vez los elementos de codedImage se guardan en un array de chars, en vez de un array de enteros
+	ya que esta vez cada byte del archivo no tiene una interpretación real, es solo código */
 
-			string absolute_path=path+name;
+	string absolute_path=path+name;
 
-			ifstream in;
-			in.open(absolute_path.c_str(), ios::binary);
+	ifstream in;
+	in.open(absolute_path.c_str(), ios::binary);
 
-			int contador=0;
+	int contador=0;
+	char temp='1';
 
-			char temp='1';
+		// El funcionamiento de estos 5 métodos es igual a los presentes en la clase Image
 
-				// El funcionamiento de estos 5 métodos es igual a los presentes en la clase Image
+	setMagic(in,temp);
+	setWidth(in,temp);
+	setHeigth(in,temp);
+	setWhite(in,temp);
+	setNmax(in, temp);
 
-			setMagic(in,temp);
+	// Si no hubiera ninguna racha, se tendria width*height pixeles, que es un maximo.
+	image=(char*)malloc(this->width*this->heigth*sizeof(char));
 
-			setWidth(in,temp);
+	/*
+	while (true){
 
-			setHeigth(in,temp);
+			in.read(&temp,1);
+			if (in.eof()) break;
 
-			setWhite(in,temp);
+				image[contador]=temp;
 
-			setNmax(in, temp);
+			contador++;
 
-			image=(char*)malloc(this->width*this->heigth*sizeof(char));
+	}
+	*/
 
-			while (true){
+	// Mientras haya datos para leer y no me pase de la memoria reservada.
+	while((!in.eof()) && (contador<this->width*this->heigth)){
+		in.read(&temp,1);
+		image[contador]=temp;
+		contador++;
+	}
 
-					in.read(&temp,1);
-					if (in.eof()) break;
-
-						image[contador]=temp;
-
-					contador++;
-
-
-
-			}
-
-
-
-			in.close();
-
-
+	in.close();
 }
 
 
@@ -178,9 +176,9 @@ void CodedImage::setWidth(ifstream &in,char &temp){
 		resultado=(double)resultado*(double)potencia/10;
 
 		this->width=round(resultado);
+}
 
-
-}void CodedImage::setHeigth(ifstream &in,char &temp){
+void CodedImage::setHeigth(ifstream &in,char &temp){
 
 	int contador=0;
 	double resultado=0.0;
@@ -205,8 +203,6 @@ void CodedImage::setWidth(ifstream &in,char &temp){
 	resultado=(double)resultado*(double)potencia/10;
 
 	this->heigth=round(resultado);
-
-
 }
 
 void CodedImage::setWhite(ifstream &in,char &temp){

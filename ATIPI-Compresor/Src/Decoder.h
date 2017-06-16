@@ -13,8 +13,9 @@
 #include "CodedImage.h"
 #include "Image.h"
 #include "Context.h"
+#include "ContextRun.h"
 
-namespace std {
+using namespace std;
 
 class Decoder {
 public:
@@ -53,10 +54,13 @@ public:
 		void writeMagic(ofstream&);
 		void updateImage(int, int);
 		int unRice(int);
-		void completaArray();
+		void completaArray(void);
+		void completaArrayRun(void);
 		int getBit();
 		int getError(int);
-		void decodeRun(ofstream&);
+		int decodeRun(ofstream&, int);
+		void updateContextoRun(int, int);
+		unsigned char* bool2uchar();
 		virtual ~Decoder();
 
 		/* Este objeto representa la imagen codificada que está decodificando */
@@ -70,6 +74,8 @@ public:
 
 		Context contexts[CANTIDAD_MAXIMA_CONTEXTOS];
 
+		/* Array con los 2 contextos especiales que aparecen en el modo de rachas: (a==b) y (a!=b) */
+		ContextRun contextsRun[2];
 
 	string file;
 
@@ -81,8 +87,10 @@ public:
 
 	/* Puntero que señala el próximo lugar a leer de decode */
 	int fileToBitsPointer=0;
+	
+	// La misma idea, pero con un array+puntero exclusivo para rachas, que no avanza automaticamente el codedImagePointer.
+	bool fileToBitsRun[80];
+	int fileToBitsRunPointer=0;
 };
-
-} /* namespace std */
 
 #endif /* DECODER_H_ */

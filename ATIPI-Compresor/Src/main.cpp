@@ -84,13 +84,13 @@ int main(int nargs, char *args[]){
 		}else if (mode.compare("-R")==0){
 			cout << "Modo DECODE RACHAS" << endl;
 
-			ofstream temp;
 			string aux=args[3];
 			int Nmax=atoi(aux.c_str());
+			
 			CodedImage codedImage(path+"_coded_Nmax_"+aux+"_region_3");
 			Decoder decoder(codedImage);
 			
-			decoder.decodeRun(temp);
+			decoder.decode();
 		}
 		else cout<<"error...! comando no encontrado !"<<endl;
 

@@ -42,54 +42,39 @@ void Decoder::decode(){
 
 	Por una descripción de los métodos en común con la clase Coder, recurrir a las descripciones disponibles en Coder.cpp */
 
-int contadorH=1,contadorW=1,contador=0;
-		ofstream salida;
-		salida.open(file.c_str(), ios::binary);
+	//int contadorH=1,contadorW=1,contador=0;
+	int contador=0, largo_racha;
+	ofstream salida;
+	salida.open(file.c_str(), ios::binary);
 
-		setContextsArray();
+	setContextsArray();
 
-		writeHeader(salida);	//escribe encabezado en el archivo de salida
+	writeHeader(salida);	//escribe encabezado en el archivo de salida
 
-		codedImagePointer=0;
-
-			while (contadorH!=codedImage.heigth+1){
-
-				contadorW=1;
-
-				while (contadorW!=codedImage.width+1){
-
-				pixels pxls = getPixels(contador);	//trae el vecindario a, b y c de cada pixel a decodificar
-
-				int p = getP(pxls);	//calcula p
-
-				grad gradients=setGradients(p,pxls);	//calcula el vector de gradientes
-
-				int contexto = getContext(gradients);	//trae el contexto que corresponde a estte pixel
-
-				int predicted = getPredictedValue(pxls);	//calcula el valor predicho
-
-				int k= getK(contexto);	//calcula k
-
-				int error_=getError(k);	//lee el archivo para tener el valor del error codificado
-
-				int error=unRice(error_);	//deshace el mapeo de rice para recuperar el error real
-
-				int pixel=predicted+error;	//calcula el pixel como la suma entre el predicho y el error
-
-				updateImage(pixel,contador);	//va formando el array que representa la imagen con cada pixel decodificado
-
-				char pixel_ =pixel+'\0';
-
-				salida.write(&pixel_,1);	//escribe el pixel en el archivo
-
-				updateContexto(contexto,error);	//actualiza A y N del contexto
-
-				contadorW++;contador++;
-				}contadorH++;
-
-
-			}
-		salida.close();
+	codedImagePointer=0;
+	while(contador<codedImage.heigth*codedImage.width){   // Bucle principal que recorre la imagen y la va decodificando
+		pixels pxls = getPixels(contador);	              // trae el vecindario a, b y c de cada pixel a decodificar
+		int p = getP(pxls);	                              // calcula p
+		grad gradients=setGradients(p,pxls);	          // calcula el vector de gradientes
+		
+		if(!gradients.ga && !gradients.gb && !gradients.gc){   // Si encuentra una racha...
+			largo_racha=decodeRun(salida, contador);           // ...decodifica la racha (incluye actualizacion de estadisticos)...
+			contador+=1+largo_racha/8;                         // ...saltea los bits decodificados...
+		}else{                                                 // De lo contrario decodifica en modo normal.
+			int contexto = getContext(gradients);	           // trae el contexto que corresponde a este pixel
+			int predicted = getPredictedValue(pxls);           // calcula el valor predicho
+			int k= getK(contexto);	                           // calcula k
+			int error_=getError(k);	                           // lee el archivo para tener el valor del error codificado
+			int error=unRice(error_);	                       // deshace el mapeo de rice para recuperar el error real
+			int pixel=predicted+error;	                       // calcula el pixel como la suma entre el predicho y el error
+			updateImage(pixel,contador);	                   // va formando el array que representa la imagen con cada pixel decodificado
+			char pixel_ =pixel+'\0';                           // convierte el valor numerico a char
+			salida.write(&pixel_,1);	                       // escribe el pixel en el archivo
+			updateContexto(contexto,error);	                   // actualiza A y N del contexto
+			contador++;
+		}
+	}
+	salida.close();
 }
 
 
@@ -131,6 +116,22 @@ void Decoder::completaArray(){
 				}//for j
 
 				contador++;
+	}
+
+}
+
+void Decoder::completaArrayRun(){
+
+	char temp;
+	int contador=0, fileToBitsRunPointer=codedImagePointer;
+	
+	while((contador<10) && (fileToBitsRunPointer<codedImage.heigth*codedImage.width)){ //hasta leer 10 bytes o que se termine la imagen
+		temp=codedImage.image[fileToBitsRunPointer];
+		std::bitset<8> temp_b(temp);
+
+		for(int j=0;j<8;j++) fileToBitsRun[contador*8+j]=temp_b[7-j];
+		fileToBitsRunPointer++;
+		contador++;
 	}
 
 }
@@ -476,50 +477,48 @@ Decoder::pixels Decoder::getPixels(int current){
 		return pxls;
 }
 
-void Decoder::decodeRun(ofstream& salida){
-	int i=0, h_pos, width, px_a, px_b, px_x, ri_type, T_racha, A_racha, N_racha, K_racha, Nn_racha,
-	    prefijo, l_racha=0, l_resto, L_max, Q_max, Q_golomb=0, R_golomb, M_eps, eps_val, eps_sign, map, caso_map;
-	unsigned char racha[10]={0xFF, 0xAB, 0xBF, 0xDA, 0xAA, 0xAF, 0x0F, 0xAA, 0x00, 0xFF};
-//	unsigned char racha[10]={0xFF, 0xAF, 0xFF, 0xFF, 0x8A, 0xF0, 0xAF, 0xAA, 0x00, 0xFF};
+// Actualiza los datos N, A y Nn del contexto para rachas
+void Decoder::updateContextoRun(int contexto, int error){
+	contextsRun[contexto].updateA(error);
+	contextsRun[contexto].updateNn(error);
+	if(contextsRun[contexto].A_racha>RESET) contextsRun[contexto].reset();
+	contextsRun[contexto].updateN();   // N_racha se actualiza siempre despues de un posible RESET.
+}
+
+
+int Decoder::decodeRun(ofstream& salida, int pos){
+	int i=0, px_a, px_b, px_x, ri_type, K_racha, T_racha, map, caso_map,
+	    prefijo, l_racha=0, l_resto, L_max, Q_max, Q_golomb=0, R_golomb, M_eps, eps_val, eps_sign;
 	unsigned char racha_byte=0x00, resto[2]={0x00, 0x00};
+	unsigned char* racha;
+
+	completaArrayRun();
+	racha=bool2uchar();
 	
-	printf(">> Posicion horizontal del pixel inicial (a): ");
-	scanf("%d", &h_pos);
-	printf(">> Ancho de la imagen : ");
-	scanf("%d", &width);
-	printf(">> Valor del pixel superior (a): ");
-	scanf("%d", &px_a);
-	printf(">> Valor del pixel inicial (b): ");
-	scanf("%d", &px_b);
-	printf(">> Estadistico A: ");
-	scanf("%d", &A_racha);
-	printf(">> Estadistico N: ");
-	scanf("%d", &N_racha);
-	printf(">> Estadistico Nn: ");
-	scanf("%d", &Nn_racha);
+	printf(">> Tira de bits leida: ");
+	for(int k=0; k<10; k++) printf(BYTE_TO_BINARY_PATTERN, BYTE_TO_BINARY(racha[k]));
 	printf("\n");
 	
-	printf(">> Tira de bits: ");
-	for(int k=0; k<80; k++){
-		PEEK_BIT(racha, k, racha_byte, 7);
-		printf("%d", (racha_byte==0x01) ? 1 : 0);
-		racha_byte=0x00;
-	}
-	printf("b\n");
+	px_a=getPixels(pos).a;   // Pixel inicial de la racha, que se repite.
 	
+	printf(">> Posicion horizontal del pixel inicial (a) : %d\n", 1+pos%codedImage.width);
+	printf(">> Ancho de la imagen : %d\n", codedImage.width);
+	printf(">> Valor del pixel superior (a): %d\n", px_a);
+		
 	PEEK_BIT(racha, 0, racha_byte, 7);
 	while((racha_byte==0x01) && (i<31)){   // Leo 1's de la tira de bits.
 		racha_byte=0x00;
-		if((h_pos+l_racha+(1<<J[i]))<=width){    // Siempre que haya espacio horizontal...
-			l_racha+=(1<<J[i]);                  // ...aumento el largo de racha...
-			i++;                                 // ...incremento la entrada en J...
-			PEEK_BIT(racha, i, racha_byte, 7);   // ...y vuelvo a leer un bit.
+		if((pos%codedImage.width+l_racha+(1<<J[i]))<codedImage.width){     // Siempre que haya espacio horizontal...
+			l_racha+=(1<<J[i]);                                            // ...aumento el largo de racha...
+			i++;                                                           // ...incremento la entrada en J...
+			PEEK_BIT(racha, i, racha_byte, 7);                             // ...y vuelvo a leer un bit.
 		}
 	}
+		
 	printf(">> Cantidad de 1's para el largo de racha: %d\n", i);
 	printf(">> Parte unaria del largo de racha: %d\n", l_racha);
 	
-	if(h_pos+l_racha<width){
+	if(pos%codedImage.width+l_racha<codedImage.width){
 		printf(">> La racha se interrumpe por un pixel de otro color.\n");
 		prefijo=0;
 	}else{
@@ -531,7 +530,7 @@ void Decoder::decodeRun(ofstream& salida){
 	if(!prefijo){
 		racha_byte=0x00;
 		PEEK_BIT(racha, i, racha_byte, 7);  // Leo el bit de prefijo.
-		if((!racha_byte) && J[i]){          // Leo el resto correspondiente al largo de racha.
+		if(!racha_byte){                    // Leo el resto correspondiente al largo de racha.
 			printf(">> El bit de prefijo (%d) es correcto (0).\n", i+1);
 			
 			if(J[i]>8){  // Obtengo la representacion binaria del resto, que solamente puede tener 2 bytes...
@@ -545,10 +544,14 @@ void Decoder::decodeRun(ofstream& salida){
 			printf(">> Resto del largo de la racha: %d representado con %d bits.\n", l_resto, J[i]);
 			printf(">> Largo total de la racha: %d pixeles.\n\n", l_racha);
 			
+			px_b=getPixels(pos+1+l_racha).b;           // Pixel b, superior al de corte.
+			printf(">> Valor del pixel inicial (b): %d\n", px_b);
+			
 			ri_type=(px_a==px_b ? 1 : 0);  // Run Interrpution Type.
 			
-			T_racha=((ri_type==1) ? A_racha : A_racha + N_racha/2);   // Calculo la variable T para determinar k de Golomb.
-			for(K_racha=0; (N_racha<<K_racha)<T_racha; K_racha++);    // k = min{k' / 2^(k') >= T}
+			// Calculo la variable T para determinar k de Golomb.
+			T_racha=((ri_type==1) ? contextsRun[ri_type].A_racha : contextsRun[ri_type].A_racha + contextsRun[ri_type].N_racha/2);   
+			for(K_racha=0; (contextsRun[ri_type].N_racha<<K_racha)<T_racha; K_racha++);    // k = min{k' / 2^(k') >= T}
 			
 			L_max=32-J[i];    // Largo maximo para el Golomb de largo limitado.                L_max = 32 - (kr + 1)	
 			Q_max=L_max-9;    // Valor de q que decide si estamos leyendo un codigo de escape. q_max = (L_max - 1) - 8
@@ -564,9 +567,9 @@ void Decoder::decodeRun(ofstream& salida){
 			}
 			i--;
 			
-			printf(">> A      = %d\n", A_racha);
-			printf(">> N      = %d\n", N_racha);
-			printf(">> Nn     = %d\n", Nn_racha);
+			printf(">> A      = %d\n", contextsRun[ri_type].A_racha);
+			printf(">> N      = %d\n", contextsRun[ri_type].N_racha);
+			printf(">> Nn     = %d\n", contextsRun[ri_type].Nn_racha);
 			printf(">> RIType = %d\n", ri_type);
 			printf(">> T      = %d\n", T_racha);
 			printf(">> k      = %d\n", K_racha);
@@ -616,14 +619,14 @@ void Decoder::decodeRun(ofstream& salida){
 			eps_val=(M_eps+ri_type+map)>>1;    // Obtengo el valor absoluto del error codificado.					
 			
 			// Decisiones para determinar el signo del error codificado. Invierto la tabla del codificador.
-			if(  K_racha  &&   map  && (2*Nn_racha>=N_racha)) {eps_sign=-1; caso_map=1;}
-			if(  K_racha  &&   map  && (2*Nn_racha <N_racha)) {eps_sign=-1; caso_map=2;}
-			if(  K_racha  && (!map) && (2*Nn_racha>=N_racha)) {eps_sign=(eps_val ? 1 : 0); caso_map=3;}
-			if(  K_racha  && (!map) && (2*Nn_racha <N_racha)) {eps_sign=(eps_val ? 1 : 0); caso_map=4;}
-			if((!K_racha) &&   map  && (2*Nn_racha>=N_racha)) {eps_sign=-1; caso_map=5;}
-			if((!K_racha) &&   map  && (2*Nn_racha <N_racha)) {eps_sign=1; caso_map=6;}
-			if((!K_racha) && (!map) && (2*Nn_racha>=N_racha)) {eps_sign=(eps_val ? 1 : 0); caso_map=7;}
-			if((!K_racha) && (!map) && (2*Nn_racha <N_racha)) {eps_sign=-1; caso_map=8;}
+			if(  K_racha  &&   map  && (2*contextsRun[ri_type].Nn_racha>=contextsRun[ri_type].N_racha)) {eps_sign=-1; caso_map=1;}
+			if(  K_racha  &&   map  && (2*contextsRun[ri_type].Nn_racha <contextsRun[ri_type].N_racha)) {eps_sign=-1; caso_map=2;}
+			if(  K_racha  && (!map) && (2*contextsRun[ri_type].Nn_racha>=contextsRun[ri_type].N_racha)) {eps_sign=(eps_val ? 1 : 0); caso_map=3;}
+			if(  K_racha  && (!map) && (2*contextsRun[ri_type].Nn_racha <contextsRun[ri_type].N_racha)) {eps_sign=(eps_val ? 1 : 0); caso_map=4;}
+			if((!K_racha) &&   map  && (2*contextsRun[ri_type].Nn_racha>=contextsRun[ri_type].N_racha)) {eps_sign=-1; caso_map=5;}
+			if((!K_racha) &&   map  && (2*contextsRun[ri_type].Nn_racha <contextsRun[ri_type].N_racha)) {eps_sign=1; caso_map=6;}
+			if((!K_racha) && (!map) && (2*contextsRun[ri_type].Nn_racha>=contextsRun[ri_type].N_racha)) {eps_sign=(eps_val ? 1 : 0); caso_map=7;}
+			if((!K_racha) && (!map) && (2*contextsRun[ri_type].Nn_racha <contextsRun[ri_type].N_racha)) {eps_sign=-1; caso_map=8;}
 			
 			eps_val*=eps_sign;   // Obtengo el valor numerico del error codificado.
 			
@@ -642,20 +645,28 @@ void Decoder::decodeRun(ofstream& salida){
 			
 			printf(">> El pixel inicial (%03d) se repite %d veces. Valor de pixel de salida: %03d.\n>> Racha decodificada.\n\n", px_b, l_racha, px_x);
 
-			// Actualizacion y reset de estadisticos.
-			A_racha+=abs(eps_val);
-			if(eps_val<0) Nn_racha++;
-			
-			if(A_racha > 64){
-				A_racha/=2;
-				N_racha/=2;
-				Nn_racha/=2;		
-				printf(">> RESET de estadisticos: A=%d - N=%d - Nn=%d\n", A_racha, N_racha+1, Nn_racha);
-			}
-			
-			N_racha++; // N_racha se actualiza siempre despues de un posible reset.
+			updateContextoRun(ri_type, eps_val);   // Actualizacion y reset de estadisticos.
+			printf(">> Valores actualizados de los estadisticos para el contexto [%d]: A = [%d] - N = [%d] - Nn = [%d]\n\n", ri_type, contextsRun[ri_type].A_racha, contextsRun[ri_type].N_racha, contextsRun[ri_type].Nn_racha);
 		}else{
 			printf(">> El bit de prefijo (%d) no coincide con el prefijo esperado (0). Racha invalida\n", i+1);
 		}
 	}
+	
+	fileToBitsPointer+=1+i;      // Avanzo el puntero del array de bools en la cantidad de bits leida.
+	codedImagePointer+=(1+i)/8;  // Aprox?
+	return(1+i);                 // Devuelvo la cantidad total de bits consumidos. Como minimo se lee un bit.
+}
+
+unsigned char* Decoder::bool2uchar(){
+	unsigned char mask;
+	unsigned char* uchar=(unsigned char*)malloc(10*sizeof(unsigned char));
+
+	for(int k=0; k<10; k++) uchar[k]=0x00;
+	
+	for(int k=0; k<80; k++){
+		if(fileToBitsRun[k]) POKE_BIT(uchar, k, 0xFF, 1);
+		else                 POKE_BIT(uchar, k, 0x00, 1);
+	}
+	
+	return uchar;
 }
