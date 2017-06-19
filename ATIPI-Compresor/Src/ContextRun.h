@@ -1,5 +1,4 @@
-#ifndef CONTEXTRUN_H_
-#define CONTEXTRUN_H_
+#pragma once
 
 #include <cstdlib>
 
@@ -21,5 +20,3 @@ public:
 	void updateNn(int);
 	void reset(void);
 };
-
-#endif

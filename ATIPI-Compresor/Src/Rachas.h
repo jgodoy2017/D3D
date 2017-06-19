@@ -1,5 +1,4 @@
-#ifndef RACHAS_H_
-#define RACHAS_H_
+#pragma once
 
 // Defino las 2 macros que siguen para poder visualizar los malditos bits...
 #define BYTE_TO_BINARY_PATTERN "%c%c%c%c%c%c%c%c"
@@ -109,4 +108,3 @@ static const int J[32]={ // Tabla de correspondencia con los kr.
 		12, 13, 14, 15
 	};
 
-#endif
