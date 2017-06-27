@@ -30,8 +30,8 @@ using namespace std;
 
 int main(int nargs, char *args[]){
 
-	string path="/home/felipe/Documents/ATIPI/img_prueba/barbara.pgm";
-	int Nmax=256;
+	string path="/home/felipe/Documents/ATIPI/img_prueba/baloons.pgm";
+	int Nmax=8;
 
 	Image image(path);
 
