@@ -9,6 +9,7 @@
 
 #ifndef DECODER_H_
 #define DECODER_H_
+#define LARGO_ARRAY_BITS 800
 
 #include "CodedImage.h"
 #include "Image.h"
@@ -47,6 +48,7 @@ public:
 		grad setGradients(pixels);
 		void setContextsArray();
 		int getContext(grad);
+		int getContext_(int, int);
 		int getPredictedValue(pixels);
 		int getK(int);
 		void updateContexto(int, int);
@@ -67,8 +69,6 @@ public:
 		void updateImageRacha(Racha&, int, ofstream&);
 		void updateImageInterruption(Racha&, int, ofstream&);
 		int getKPrime(Racha&);
-
-
 		int fixPrediction(int, int);
 
 		/* Este objeto representa la imagen codificada que está decodificando */
@@ -89,7 +89,7 @@ public:
 
 	/* Algún tamaño apropiado
 	Array auxiliar para poder trabajar con los bits individuales de la imagen codificada */
-	bool fileToBits[800];
+	bool fileToBits[LARGO_ARRAY_BITS];
 
 	/* Puntero que señala el próximo lugar a leer de decode */
 	int fileToBitsPointer=0;

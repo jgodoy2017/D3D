@@ -127,7 +127,8 @@ int contadorH=1,contadorW=1,contador=0;
 
 					int largo= getRachaParams(contadorW, interruption);
 
-					int contexto=(pxls.a==pxls.b);
+//					int contexto=(pxls.a==pxls.b);
+					int contexto=getContext_(contador, largo);
 
 					Racha racha(largo, interruption, pxls.a, contexto);
 
@@ -303,7 +304,8 @@ void Decoder::completaArray(){
 
 	int contador=0;
 
-	while ((contador<100)&&((codedImagePointer<(codedImage.heigth*codedImage.width)))){ //hasta leer 100 bytes o que se termine la imagen
+	//hasta leer (LARGO_ARRAY_BITS/8) bytes o que se termine la imagen
+	while ((contador<(LARGO_ARRAY_BITS/8))&&((codedImagePointer<(codedImage.heigth*codedImage.width)))){ 
 
 	temp=codedImage.image[codedImagePointer];
 	codedImagePointer++;
@@ -311,10 +313,8 @@ void Decoder::completaArray(){
 	std::bitset<8> temp_b(temp);
 
 				for(int j=0;j<8;j++){
-
-				fileToBits[contador*8+j]=temp_b[7-j];
-
-				}//for j
+					fileToBits[contador*8+j]=temp_b[7-j];
+				}
 
 				contador++;
 	}
@@ -333,7 +333,7 @@ int Decoder::getBit(){
 
 	}int retorno = fileToBits[fileToBitsPointer];
 	if (debug) cout<<fileToBits[fileToBitsPointer];
-	fileToBitsPointer=((fileToBitsPointer+1)%800);//actualiza el puntero al array de manera circular
+	fileToBitsPointer=((fileToBitsPointer+1)%LARGO_ARRAY_BITS);//actualiza el puntero al array de manera circular
 
 	//if (debug) cout<<retorno;
 	return retorno;
@@ -420,7 +420,6 @@ int Decoder::getError(int k){
 	es la codificación unaria del cociente entre el error y 2^k */
 	while (getBit()!=1){
 		contador++;
-
 	}
 
 	int pot_aux=1;
@@ -718,6 +717,10 @@ int Decoder::getContext(grad gradients){
 			//mapeo elegido para representar los contextos
 
 			return (9*9*contga)+(9*contgb)+(contgc);
+}
+
+int Decoder::getContext_(int pos, int lar){
+	return (getPixels(pos).a==getPixels(pos+lar).b);
 }
 
 void Decoder::setContextsArray(){

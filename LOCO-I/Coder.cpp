@@ -113,7 +113,8 @@ Coder::Coder(Image image, int Nmax) {
 			int interruption=0;
 			int largo=getRachaParams(image, prox, pxls.a, interruption);
 
-			int contexto=(pxls.a==pxls.b);
+//			int contexto=(pxls.a==pxls.b);
+			int contexto=getContext_(prox, largo);
 
 			Racha racha(largo, interruption, pxls.a, contexto);
 
@@ -650,6 +651,10 @@ int Coder::getContext(grad gradients){
 	//mapeo elegido para representar los contextos
 
 	return (9*9*contga)+(9*contgb)+(contgc);
+}
+
+int Coder::getContext_(int pos, int lar){
+	return (getPixels(pos).a==getPixels(pos+lar).b);
 }
 
 void Coder::setContextsArray(){

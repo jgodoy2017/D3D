@@ -8,6 +8,7 @@
 
 #ifndef CODER_H_
 #define CODER_H_
+#define LARGO_ARRAY_BITS 800
 
 #include "Image.h"
 #include "Context.h"
@@ -44,6 +45,7 @@ public:
 	grad setGradients(pixels);
 	void setContextsArray();
 	int getContext(grad);
+	int getContext_(int, int);
 	int getPredictedValue(pixels);
 	int getK(int);
 	int rice(int);
@@ -64,11 +66,8 @@ public:
 	void encodeRacha(Racha&);
 	void encodeMuestraInterrupcion(Racha&, int, ofstream&);
 	int getKPrime(Racha&);
-
 	int fixPrediction(int, int);
-
 	int correctPredictedValue(int, int);
-
 	virtual ~Coder();
 
 	/* Este objeto representa la imagen a ser codificada */
@@ -89,7 +88,7 @@ public:
 	se usa 800 como un tamaño suficiente, este número tiene que ser mayor al error más grande que pueda ser codificado + 7
 	ya que ese sería el tamaño más grande posible del array antes de ser escrito en el archivo
 	800 es mucho más grande que este número, por lo que resulta suficiente */
-	bool bitsToFile[800];
+	bool bitsToFile[LARGO_ARRAY_BITS];
 
 	/* Puntero que señala el próximo lugar a escribir de code */
 	int bitsToFilePointer=0;
