@@ -6,8 +6,7 @@
  */
 
 #pragma once
-#define K_MAX 8
-#define Q_MAX 24
+#define K_MAX 9
 
 namespace std {
 

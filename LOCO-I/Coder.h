@@ -9,6 +9,8 @@
 #ifndef CODER_H_
 #define CODER_H_
 #define LARGO_ARRAY_BITS 800
+#define MAXVAL8BIT 255
+#define MAXVAL16BIT 65535
 
 #include "Image.h"
 #include "Context.h"
@@ -68,6 +70,7 @@ public:
 	int getKPrime(Racha&);
 	int fixPrediction(int, int);
 	int correctPredictedValue(int, int);
+	int rangeReduction(bool, int);
 	virtual ~Coder();
 
 	/* Este objeto representa la imagen a ser codificada */

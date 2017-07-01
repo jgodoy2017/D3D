@@ -10,6 +10,8 @@
 #ifndef DECODER_H_
 #define DECODER_H_
 #define LARGO_ARRAY_BITS 800
+#define MAXVAL8BIT 255
+#define MAXVAL16BIT 65535
 
 #include "CodedImage.h"
 #include "Image.h"
@@ -70,6 +72,7 @@ public:
 		void updateImageInterruption(Racha&, int, ofstream&);
 		int getKPrime(Racha&);
 		int fixPrediction(int, int);
+		int rangeReduction(bool, int);
 
 		/* Este objeto representa la imagen codificada que está decodificando */
 		CodedImage codedImage;

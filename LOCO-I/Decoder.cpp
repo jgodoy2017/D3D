@@ -108,6 +108,7 @@ int contadorH=1,contadorW=1,contador=0;
 				if (debug) cout<<"error_= "<<error_<<endl;
 
 				int pixel=predicted+error;	//calcula el pixel como la suma entre el predicho y el error
+				pixel=rangeReduction(false, pixel);    // Reduccion de rango. Para imagenes en 16 bits poner TRUE.
 
 				updateImage(pixel,contador);	//va formando el array que representa la imagen con cada pixel decodificado
 
@@ -222,7 +223,8 @@ int Decoder::getRachaParams(int contadorW, int &interruption_){
 
 //		if ((bit=getBit())==0) break;
 
-		m_r=pow(2,J[kr]);
+//		m_r=pow(2,J[kr]);
+		m_r=(1<<J[kr]);
 		kr++;
 
 		largo=largo+m_r;
@@ -247,7 +249,8 @@ int Decoder::getRachaParams(int contadorW, int &interruption_){
 
 		for (int j=kr;j>=0;j--){
 
-			pot=(pow(2,j))*getBit();
+//			pot=(pow(2,j))*getBit();
+			pot=((1<<j)*getBit());
 
 			largo=largo+pot;
 
@@ -347,7 +350,8 @@ int Decoder::getError_(int k){
 	int error=0;
 	
 	if(k<=K_MAX){   // Decodificacion normal.
-		int potencia=pow(2,k);
+//		int potencia=pow(2,k);
+		int potencia=(1<<k);
 		int bit=0;
 
 		/* Convierte los siguientes k bits de fileToBits en un entero,
@@ -367,14 +371,16 @@ int Decoder::getError_(int k){
 
 		int pot_aux=1;
 
-		if (k>=0) pot_aux=pow(2,k); //cuando k negativo pow(2,k) es 0, y necesitamos que sea 1
+//		if (k>=0) pot_aux=pow(2,k); //cuando k negativo pow(2,k) es 0, y necesitamos que sea 1
+		if (k>=0) pot_aux=(1<<k);
 
 		/* Sumando los dos valores decodificados (cociente y resto entre 2^k) resulta el mapeo de rice
 		del error codificado */
 		error=error+contador*pot_aux;
 	
 	}else{   // Decodificacion de codigo de escape.
-		int potencia=pow(2,K_MAX);
+//		int potencia=pow(2,K_MAX);
+		int potencia=(1<<K_MAX);
 		int bit=0;
 
 		/* Convierte los siguientes K_MAX bits de fileToBits en un entero,
@@ -400,7 +406,8 @@ int Decoder::getError(int k){
 	/** Devuelve como entero el error codificado */
 
 	int error=0;
-	int potencia=pow(2,k);
+//	int potencia=pow(2,k);
+	int potencia=(1<<k);
 
 	int bit=0;
 
@@ -424,7 +431,8 @@ int Decoder::getError(int k){
 
 	int pot_aux=1;
 
-	if (k>=0) pot_aux=pow(2,k); //cuando k negativo pow(2,k) es 0, y necesitamos que sea 1
+//	if (k>=0) pot_aux=pow(2,k); //cuando k negativo pow(2,k) es 0, y necesitamos que sea 1
+	if (k>=0) pot_aux=(1<<k);
 
 		/* Sumando los dos valores decodificados (cociente y resto entre 2^k) resulta el mapeo de rice
 		del error codificado */
@@ -655,9 +663,17 @@ void Decoder::updateContexto_(int c, int err){
 
 int Decoder::getK(int contexto){
 
+/*
 	double AdivN_=(double)contexts[contexto].A/(double)contexts[contexto].N_;
 
 	return round(log2(AdivN_));
+*/
+	int AdivN_=0, k;
+	
+	if(contexts[contexto].N_) AdivN_=contexts[contexto].A/contexts[contexto].N_;
+	for(k=0; (1<<k)<AdivN_; k++);
+	
+	return k;
 }
 
 int Decoder::getPredictedValue(pixels pxls){
@@ -810,6 +826,20 @@ Decoder::pixels Decoder::getPixels(int current){
 		pixels pxls={a,b,c,d};
 
 			return pxls;
+}
+
+int Decoder::rangeReduction(bool bit16, int valor){
+	int maxVal=(bit16 ? MAXVAL16BIT : MAXVAL8BIT), val=valor;
+	
+	if(val<0)             val+=maxVal+1;
+	else if(val>maxVal+1) val-=(maxVal+1);
+	
+	if(val<0)      val=0;
+	if(val>maxVal) val=maxVal;
+	
+	cout << "RD: " << valor << " --> " << val << endl;
+
+	return val;
 }
 
 

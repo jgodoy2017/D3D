@@ -91,6 +91,7 @@ Coder::Coder(Image image, int Nmax) {
 		if (debug) cout<<predicted<<endl;
 
 		int error_= currentPixel-predicted;	//calcula el error como la resta entre el valor actual y el valor predicho
+		error_=rangeReduction(false, error_);    // Reduccion de rango. Para imagenes en 16 bits poner TRUE.
 
 		if (debug) cout<<"error_= "<<error_<<endl;
 
@@ -189,7 +190,8 @@ void Coder::encodeRacha(Racha &racha){
 	while ((diferencia=diferencia-m_r)>=0){
 
 
-	m_r=pow(2,J[kr]);
+		// m_r=pow(2,J[kr]);
+		m_r=(1<<J[kr]);
 
 	if (debug) cout<<m_r<<endl;
 
@@ -197,7 +199,7 @@ void Coder::encodeRacha(Racha &racha){
 
 	kr++;
 	}kr--;
-
+	
 	if (diferencia<0) {
 		cantidad_unos--;
 		diferencia=diferencia+m_r;
@@ -581,10 +583,18 @@ int Coder::rice_(Racha &r, int K_racha, int eps_val){
 int Coder::getK(int contexto){
 
 	/** Calcula k según la expresión de las diapositivas del curso */
-
+/*
 	double AdivN_=(double)contexts[contexto].A/(double)contexts[contexto].N_;
 
 	return round(log2(AdivN_));
+*/
+	
+	int AdivN_=0, k;
+	
+	if(contexts[contexto].N_) AdivN_=contexts[contexto].A/contexts[contexto].N_;
+	for(k=0; (1<<k)<AdivN_; k++);
+	
+	return k;
 }
 
 int Coder::getPredictedValue(pixels pxls){
@@ -975,6 +985,19 @@ int Coder::correctPredictedValue(int pred, int contexto){
 
 }
 
+int Coder::rangeReduction(bool bit16, int valor){
+	int maxVal=(bit16 ? MAXVAL16BIT : MAXVAL8BIT), val=valor;
+	
+	if(val<0)             val+=maxVal;
+	if(val>=(maxVal+1)/2) val-=maxVal;
+	
+	if(val<-(maxVal/2))  val=-maxVal/2;
+	if(val>(maxVal/2-1)) val=maxVal/2-1;
+	
+	cout << "RC: " << valor << " --> " << val << endl;
+	
+	return val;
+}
 
 
 Coder::~Coder() {
