@@ -22,7 +22,10 @@
 
 #include <math.h>
 
-namespace std {
+#define MAXVAL8BIT  255
+#define MAXVAL16BIT 65535
+
+using namespace std;
 
 class CodedImage {
 public:
@@ -38,6 +41,7 @@ public:
 		void setHeigth(ifstream&,char&);
 		void setWhite(ifstream&,char&);
 		void setNmax(ifstream&,char&);
+		bool is16bit(void);
 
 		string path;
 
@@ -57,7 +61,5 @@ public:
 		int Nmax;
 
 };
-
-} /* namespace std */
 
 #endif /* CODEDIMAGE_H_ */

@@ -8,7 +8,7 @@
 
 #ifndef CODER_H_
 #define CODER_H_
-#define LARGO_ARRAY_BITS 800
+#define LARGO_ARRAY_BITS 8000
 #define MAXVAL8BIT 255
 #define MAXVAL16BIT 65535
 
@@ -66,7 +66,7 @@ public:
 	void writeNmax(ofstream&);
 	int getRachaParams(Image&, int, int, int&);
 	void encodeRacha(Racha&);
-	void encodeMuestraInterrupcion(Racha&, int, ofstream&);
+	void encodeMuestraInterrupcion(Racha&, bool, int, ofstream&);
 	int getKPrime(Racha&);
 	int fixPrediction(int, int);
 	int correctPredictedValue(int, int);

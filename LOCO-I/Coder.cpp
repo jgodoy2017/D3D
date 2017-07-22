@@ -49,6 +49,7 @@ Coder::Coder(Image image, int Nmax) {
 
 	setContextsArray();
 
+	cout << "// START CODER" << endl;
 	for(int prox=0;prox<image.heigth*image.width;prox++){
 
 
@@ -61,7 +62,7 @@ Coder::Coder(Image image, int Nmax) {
 
 		if (debug) cout<<prox<<" " << pxls.a<<" "<< pxls.b<<" "<< pxls.c<<" "<< pxls.d<<endl;
 
-		//cout<<prox<<" " << pxls.a<<" "<< pxls.b<<" "<< pxls.c<<" "<< pxls.d<<endl;
+		cout << "[" << prox << "] "  << pxls.a << " " << pxls.b << " " << pxls.c << " " << pxls.d << endl;
 
 
 		// int p = getP(pxls);	//calcula p
@@ -91,7 +92,7 @@ Coder::Coder(Image image, int Nmax) {
 		if (debug) cout<<predicted<<endl;
 
 		int error_= currentPixel-predicted;	//calcula el error como la resta entre el valor actual y el valor predicho
-		error_=rangeReduction(false, error_);    // Reduccion de rango. Para imagenes en 16 bits poner TRUE.
+		error_=rangeReduction(image.is16bit(), error_);
 
 		if (debug) cout<<"error_= "<<error_<<endl;
 
@@ -124,7 +125,7 @@ Coder::Coder(Image image, int Nmax) {
 			if (debug) cout<<"actual: "<<image.image[prox]<<endl;
 
 			encodeRacha(racha);
-			if(prox+largo<image.width*image.heigth) encodeMuestraInterrupcion(racha, image.image[prox+largo],salida);
+			if(prox+largo<image.width*image.heigth) encodeMuestraInterrupcion(racha, image.is16bit(), image.image[prox+largo], salida);
 
 			prox=prox+largo;
 
@@ -147,18 +148,18 @@ Coder::Coder(Image image, int Nmax) {
 int Coder::getKPrime(Racha &r){
 	int T_racha, K_racha;
 
-	cout<<">> CODE CNTX="<<r.contexto<<" A="<<cntx[r.contexto].A_racha<<" N="<<cntx[r.contexto].N_racha<<" Nn="<<cntx[r.contexto].Nn_racha;
+//	cout<<">> CODE CNTX="<<r.contexto<<" A="<<cntx[r.contexto].A_racha<<" N="<<cntx[r.contexto].N_racha<<" Nn="<<cntx[r.contexto].Nn_racha;
 
 	// Calculo la variable T para determinar k de Golomb.
 	T_racha=((r.contexto==1) ? cntx[r.contexto].A_racha : cntx[r.contexto].A_racha + cntx[r.contexto].N_racha/2);   
 	
 	for(K_racha=0; (cntx[r.contexto].N_racha<<K_racha)<T_racha; K_racha++);    // k = min{k' / 2^(k') >= T}
 
-	cout<<" T="<<T_racha<<" K="<<K_racha<<endl;
+//	cout<<" T="<<T_racha<<" K="<<K_racha<<endl;
 	
 	return K_racha;
 }
-void Coder::encodeMuestraInterrupcion(Racha &racha, int siguiente, ofstream &salida){
+void Coder::encodeMuestraInterrupcion(Racha &racha, bool bit16, int siguiente, ofstream &salida){
 
 
 	int error=0, error_=0, k=1000;
@@ -166,6 +167,8 @@ void Coder::encodeMuestraInterrupcion(Racha &racha, int siguiente, ofstream &sal
 	if (!racha.interruption){
 		k=getKPrime(racha);
 		error_=siguiente-racha.pixel;
+
+		error_=rangeReduction(bit16, error_);    // Reduccion de rango. Para imagenes en 16 bits poner TRUE.
 
 	//	error=rice(error_);
 		error=rice_(racha, k, error_);
@@ -198,7 +201,9 @@ void Coder::encodeRacha(Racha &racha){
 	cantidad_unos++;
 
 	kr++;
-	}kr--;
+	}
+	
+	kr--;
 	
 	if (diferencia<0) {
 		cantidad_unos--;
@@ -207,14 +212,14 @@ void Coder::encodeRacha(Racha &racha){
 
 	if (debug) cout<<"cantidad_unos: "<<cantidad_unos<<endl;
 
-	for (int j=0;j<cantidad_unos;j++){
+		for (int j=0;j<cantidad_unos;j++){
 
 				bitsToFile[bitsToFilePointer]=1;
 				if (debug) cout<<bitsToFile[bitsToFilePointer];
 
 				bitsToFilePointer++;
 
-			}
+	}
 
 	bitsToFile[bitsToFilePointer]=racha.interruption;
 	if (debug) cout<<bitsToFile[bitsToFilePointer]<<endl<<"bitsToFilePointer= "<<bitsToFilePointer<<endl;
@@ -988,13 +993,13 @@ int Coder::correctPredictedValue(int pred, int contexto){
 int Coder::rangeReduction(bool bit16, int valor){
 	int maxVal=(bit16 ? MAXVAL16BIT : MAXVAL8BIT), val=valor;
 	
-	if(val<0)             val+=maxVal;
+	if(val<-(maxVal+1)/2) val+=maxVal;
 	if(val>=(maxVal+1)/2) val-=maxVal;
 	
 	if(val<-(maxVal/2))  val=-maxVal/2;
 	if(val>(maxVal/2-1)) val=maxVal/2-1;
 	
-	cout << "RC: " << valor << " --> " << val << endl;
+//	cout << "(" << valor << " --> " << val << ")" << endl;
 	
 	return val;
 }

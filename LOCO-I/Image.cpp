@@ -12,7 +12,7 @@
 
 #include "Image.h"
 
-namespace std {
+using namespace std;
 
 Image::Image(){
 
@@ -271,8 +271,10 @@ void Image::setWhite(ifstream &in,char &temp){
 
 }
 
+bool Image::is16bit(){
+	return (this->white==MAXVAL16BIT);
+}
+
 Image::~Image() {
 
 }
-
-} /* namespace std */

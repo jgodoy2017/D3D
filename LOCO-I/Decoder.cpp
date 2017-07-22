@@ -52,11 +52,12 @@ int contadorH=1,contadorW=1,contador=0;
 
 		codedImagePointer=0;
 
-			while (contadorH!=codedImage.heigth+1){
+		cout << "// START DECODER" << endl;
+			while (contadorH<codedImage.heigth+1){
 
 				contadorW=1;
 
-				while (contadorW!=codedImage.width+1){
+				while (contadorW<codedImage.width+1){
 
 
 
@@ -64,11 +65,10 @@ int contadorH=1,contadorW=1,contador=0;
 
 				//int p = getP(pxls);	//calcula p
 
-				//if (contador==0)
-				if (debug) cout<<contador<<" "  << pxls.a<<" "<< pxls.b<<" "<< pxls.c<<" "<< pxls.d<<endl;
-
-				//cout<<contador<<" "  << pxls.a<<" "<< pxls.b<<" "<< pxls.c<<" "<< pxls.d<<endl;
-
+				cout << "[" << contador << "] "  << pxls.a << " " << pxls.b << " " << pxls.c << " " << pxls.d << endl;
+				if(contador==0){
+					;
+				}
 
 				grad gradients=setGradients(pxls);	//calcula el vector de gradientes
 
@@ -108,7 +108,7 @@ int contadorH=1,contadorW=1,contador=0;
 				if (debug) cout<<"error_= "<<error_<<endl;
 
 				int pixel=predicted+error;	//calcula el pixel como la suma entre el predicho y el error
-				pixel=rangeReduction(false, pixel);    // Reduccion de rango. Para imagenes en 16 bits poner TRUE.
+				pixel=rangeReduction(codedImage.is16bit(), pixel);
 
 				updateImage(pixel,contador);	//va formando el array que representa la imagen con cada pixel decodificado
 
@@ -136,9 +136,10 @@ int contadorH=1,contadorW=1,contador=0;
 					if (debug) cout<<contador<<" "<<largo<<" "<<interruption<<" "<<pxls.a<<" "<<contexto<<endl;
 
 					updateImageRacha(racha, contador, salida);
-					updateImageInterruption(racha, contador, salida);
+					updateImageInterruption(racha, codedImage.is16bit(), contador, salida);
 
-					contadorW=contadorW+largo;contador=contador+largo; //está bien?
+					contadorW=contadorW+largo;
+					contador=contador+largo;
 
 					if (racha.interruption)	{
 						contadorW--;
@@ -148,12 +149,12 @@ int contadorH=1,contadorW=1,contador=0;
 					if (debug) cout<<contadorW<<" "<<contadorH<<endl;
 
 					if (debug) cout<<endl;
-				}contador++;contadorW++;
-
-				}contadorH++;
-
-
+				}
+				contador++;
+				contadorW++;
 			}
+			contadorH++;
+		}
 			
 		salida.close();
 }
@@ -161,18 +162,20 @@ int contadorH=1,contadorW=1,contador=0;
 int Decoder::getKPrime(Racha &r){
 	int T_racha, K_racha;
 
-	cout<<">> DECO CNTX="<<r.contexto<<" A="<<cntx[r.contexto].A_racha<<" N="<<cntx[r.contexto].N_racha<<" Nn="<<cntx[r.contexto].Nn_racha;
+//	cout<<">> DECO CNTX="<<r.contexto<<" A="<<cntx[r.contexto].A_racha<<" N="<<cntx[r.contexto].N_racha<<" Nn="<<cntx[r.contexto].Nn_racha;
+
 	// Calculo la variable T para determinar k de Golomb.
 	T_racha=((r.contexto==1) ? cntx[r.contexto].A_racha : cntx[r.contexto].A_racha + cntx[r.contexto].N_racha/2);   
 	
 	for(K_racha=0; (cntx[r.contexto].N_racha<<K_racha)<T_racha; K_racha++);    // k = min{k' / 2^(k') >= T}
 
-	cout<<" T="<<T_racha<<" K="<<K_racha<<endl;
+//	cout<<" T="<<T_racha<<" K="<<K_racha<<endl;
 
 	return K_racha;
 }
 
-void Decoder::updateImageInterruption(Racha &racha, int contador, ofstream &salida){
+void Decoder::updateImageInterruption(Racha &racha, bool bit16, int contador, ofstream &salida){
+	int pixel;
 	
 	if (!racha.interruption){
 		int k=getKPrime(racha);
@@ -183,14 +186,16 @@ void Decoder::updateImageInterruption(Racha &racha, int contador, ofstream &sali
 	//	int error = unRice(error_);
 		int error = unRice_(racha, k, error_);
 
-	 	updateContexto_(racha.contexto, error);
+		pixel=racha.pixel+error;
+		pixel=rangeReduction(bit16, racha.pixel+error);
 
-		image.image[contador+racha.largo]=racha.pixel+error;
+		image.image[contador+racha.largo]=pixel;
 
-		char pixel_ =racha.pixel+error+'\0';
+		char pixel_ =pixel+'\0';
 
 		salida.write(&pixel_,1);	//escribe el pixel en el archivo
 
+	 	updateContexto_(racha.contexto, error);
 		if (debug) cout<<"actual: "<<image.image[contador+racha.largo]<<endl;
 	}
 }
@@ -220,21 +225,14 @@ int Decoder::getRachaParams(int contadorW, int &interruption_){
 	bool finDeFila=false;
 
 	while ((!finDeFila)&&(bit=getBit())){
-
-//		if ((bit=getBit())==0) break;
-
 //		m_r=pow(2,J[kr]);
 		m_r=(1<<J[kr]);
+
+		largo+=(1<<J[kr]);
 		kr++;
 
-		largo=largo+m_r;
-
-		if (debug) cout<<"kr= "<<kr<<endl;
-
-		finDeFila=(largo+contadorW-1>image.width); //mayor o mayor o igual?
-		//if (debug) cout<<"largo+contadorW= "<<largo+contadorW<<endl;
-
-	}//cout<<"fileToBitsPointer= "<<fileToBitsPointer<<endl;
+		finDeFila=(largo+contadorW-1>image.width);
+	}
 
 	interruption=bit;
 
@@ -252,8 +250,7 @@ int Decoder::getRachaParams(int contadorW, int &interruption_){
 //			pot=(pow(2,j))*getBit();
 			pot=((1<<j)*getBit());
 
-			largo=largo+pot;
-
+			largo+=pot;
 		}
 
 	}if (debug) cout<<endl;
@@ -348,7 +345,7 @@ int Decoder::getError_(int k){
 	/** Devuelve como entero el error codificado */
 
 	int error=0;
-	
+		
 	if(k<=K_MAX){   // Decodificacion normal.
 //		int potencia=pow(2,k);
 		int potencia=(1<<k);
@@ -361,14 +358,17 @@ int Decoder::getError_(int k){
 			potencia=potencia/2;
 			error=error+bit*potencia;
 		}
-	
+		
 		int contador=0;
 		/* Obtiene la cantidad de ceros que le siguen antes del primer uno,
 		es la codificación unaria del cociente entre el error y 2^k */
-		while (getBit()!=1){
+		int trap=0;
+		while ((!getBit()) && (trap<1000)){
 			contador++;
+			trap++;
 		}
-
+		if(trap==1000) contador-=1001;
+		
 		int pot_aux=1;
 
 //		if (k>=0) pot_aux=pow(2,k); //cuando k negativo pow(2,k) es 0, y necesitamos que sea 1
@@ -377,7 +377,6 @@ int Decoder::getError_(int k){
 		/* Sumando los dos valores decodificados (cociente y resto entre 2^k) resulta el mapeo de rice
 		del error codificado */
 		error=error+contador*pot_aux;
-	
 	}else{   // Decodificacion de codigo de escape.
 //		int potencia=pow(2,K_MAX);
 		int potencia=(1<<K_MAX);
@@ -425,9 +424,12 @@ int Decoder::getError(int k){
 
 	/* Obtiene la cantidad de ceros que le siguen antes del primer uno,
 	es la codificación unaria del cociente entre el error y 2^k */
-	while (getBit()!=1){
+	int trap=0;
+	while ((!getBit()) && (trap<10000)){
 		contador++;
+		trap++;
 	}
+	if(trap==10000) contador-=10001;
 
 	int pot_aux=1;
 
@@ -815,29 +817,29 @@ Decoder::pixels Decoder::getPixels(int current){
 			if (c==-1) c=ceil((double)codedImage.white/(double)2);
 			if (d==-1) d=ceil((double)codedImage.white/(double)2);
 		}
-
+		
 		/* Para cada a, b,c y d, si no se cumple una condición de borde, y por lo tanto no hubo asignación en los if que preceden,
 		se traen los valores de a, b,c y d de la imagen */
 		if (a==-1) a=image.image[current-1];
 		if (b==-1) b=image.image[current-codedImage.width];
 		if (c==-1) c=image.image[current-codedImage.width-1];
 		if (d==-1) d=image.image[current-codedImage.width+1];
-
+		
 		pixels pxls={a,b,c,d};
 
-			return pxls;
+		return pxls;
 }
 
 int Decoder::rangeReduction(bool bit16, int valor){
 	int maxVal=(bit16 ? MAXVAL16BIT : MAXVAL8BIT), val=valor;
 	
-	if(val<0)             val+=maxVal+1;
-	else if(val>maxVal+1) val-=(maxVal+1);
+	if(val<0)             val+=maxVal;
+	else if(val>maxVal+1) val-=maxVal;
 	
 	if(val<0)      val=0;
 	if(val>maxVal) val=maxVal;
 	
-	cout << "RD: " << valor << " --> " << val << endl;
+//	cout << "(" << valor << " --> " << val << ")" << endl;
 
 	return val;
 }

@@ -9,8 +9,8 @@
 
 #ifndef DECODER_H_
 #define DECODER_H_
-#define LARGO_ARRAY_BITS 800
-#define MAXVAL8BIT 255
+#define LARGO_ARRAY_BITS 8000
+#define MAXVAL8BIT  255
 #define MAXVAL16BIT 65535
 
 #include "CodedImage.h"
@@ -69,7 +69,7 @@ public:
 		int getError_(int);
 		int getRachaParams(int, int&);
 		void updateImageRacha(Racha&, int, ofstream&);
-		void updateImageInterruption(Racha&, int, ofstream&);
+		void updateImageInterruption(Racha&, bool, int, ofstream&);
 		int getKPrime(Racha&);
 		int fixPrediction(int, int);
 		int rangeReduction(bool, int);
