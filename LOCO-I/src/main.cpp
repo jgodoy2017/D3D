@@ -30,7 +30,7 @@ using namespace std;
 
 int main(int nargs, char *args[]){
 
-	string path="/home/felipe/Documents/ATIPI/img_prueba/baloons.pgm";
+	string path="/home/felipe/Documents/ATIPI/img_prueba/womanc.pgm";
 	int Nmax=8;
 
 	Image image(path);
@@ -42,7 +42,7 @@ int main(int nargs, char *args[]){
 	ss1 << Nmax;
 	string nmax = ss1.str();
 
-	CodedImage codedImage(path+"_coded_Nmax_"+nmax+"_region_3___");
+	CodedImage codedImage(path+"_coded_Nmax_"+nmax+"_");
 
 	Decoder decoder(codedImage);
 	decoder.decode();

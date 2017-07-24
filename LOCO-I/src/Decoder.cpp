@@ -51,7 +51,7 @@ int contadorH=1,contadorW=1,contador=0;
 
 		codedImagePointer=0;
 
-			while (contadorH!=codedImage.heigth+1){
+			while (contadorH<codedImage.heigth+1){
 
 				contadorW=1;
 

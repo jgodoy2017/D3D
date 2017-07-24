@@ -42,7 +42,7 @@ Coder::Coder(Image image, int Nmax) {
 
 
 
-	string path_salida=image.path+image.name+"_coded_Nmax_"+nmax+"_region_3___";
+	string path_salida=image.path+image.name+"_coded_Nmax_"+nmax+"_";
 	ofstream salida;
 	salida.open(path_salida.c_str(), ios::binary);
 
@@ -185,7 +185,7 @@ void Coder::encodeRacha(Racha &racha){
 
 	m_r=pow(2,J[kr]);
 
-	if (debug) cout<<m_r<<endl;
+	//if (debug) cout<<m_r<<endl;
 
 	cantidad_unos++;
 
@@ -263,7 +263,7 @@ int Coder::getRachaParams(Image &image, int prox, int anterior, int &interruptio
 
 	if ((prox%image.width)!=0){
 
-	while ((igual=(anterior==image.image[prox+largo]))&&((prox+largo)%(image.width)!=0)){
+	while ((igual=(anterior==image.image[prox+largo]))&&((prox+largo+1)%(image.width)!=0)){
 
 		//if (debug) cout<<"anterior= "<<(anterior==image.image[prox+largo])<<endl;
 		//if (debug) cout<<"findefila= "<<((prox+largo)%image.width!=0)<<endl;
@@ -271,7 +271,10 @@ int Coder::getRachaParams(Image &image, int prox, int anterior, int &interruptio
 
 	}
 
-	if ((igual=(anterior==image.image[prox+largo]))&&((prox+largo)%(image.width)==0)) {
+	if (debug) cout<<"(anterior==image.image[prox+largo]) "<<(anterior==image.image[prox+largo])<<endl;
+	if (debug) cout<<"((prox+largo)%(image.width)==0) "<<((prox+largo)%(image.width)==0)<<endl;
+
+	if ((igual=(anterior==image.image[prox+largo]))&&((prox+largo+1)%(image.width)==0)) {
 
 		interruption=1;
 		largo=image.width-(prox%image.width);

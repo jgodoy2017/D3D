@@ -98,7 +98,7 @@ public:
 	int kr=0;
 	int m_r=1;
 
-	bool debug=true;
+	bool debug=false;
 
 };
 
