@@ -37,6 +37,10 @@ public:
 
 	Coder();
 	Coder(Image,int);
+
+	Coder(Image,int,int);
+
+
 	void code();
 	pixels getPixels(int);
 	int getP(pixels);
@@ -61,8 +65,10 @@ public:
 	void encodeRacha(Racha&);
 	void encodeMuestraInterrupcion(Racha&, int, ofstream&);
 	int getKPrime();
-
+	int reduccionDeRango(int);
 	int fixPrediction(int, int);
+
+	int max(int, int);
 
 	int correctPredictedValue(int, int);
 
@@ -91,7 +97,7 @@ public:
 	/* Puntero que señala el próximo lugar a escribir de code */
 	int bitsToFilePointer=0;
 
-	bool racha;
+	bool racha=false;
 
 	int J[32]={0,0,0,0,1,1,1,1,2,2,2,2,3,3,3,3,4,4,5,5,6,6,7,7,8,9,10,11,12,13,14,15};
 
@@ -99,6 +105,21 @@ public:
 	int m_r=1;
 
 	bool debug=false;
+
+	bool aux;
+
+	/**
+	 *
+	 * CAMBIOS !
+	 *
+	 *
+	 */
+
+	int Lmax;	//agregados también al constructor de clase Coder(image, int, int)
+	int beta;
+	int qMax;
+	bool golombLimitado(int);
+
 };
 
 } /* namespace std */

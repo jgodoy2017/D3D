@@ -33,6 +33,27 @@ Coder::Coder(Image image, int Nmax) {
 
 }
 
+Coder::Coder(Image image, int Nmax, int aux) {
+
+		//constructor
+
+	this->Nmax=Nmax;
+
+	this->image=image;
+
+	this->aux=(aux==1);
+
+	/**
+	 *
+	 * CAMBIOS !!
+	 */
+
+	this->beta=8;
+	this->Lmax=4*beta;
+	this->qMax=Lmax-beta-1;
+
+}
+
  void Coder::code(){
 
 	stringstream ss1;
@@ -40,15 +61,20 @@ Coder::Coder(Image image, int Nmax) {
 	ss1 << Nmax;
 	string nmax = ss1.str();
 
+	string aux_="";
 
+	if (aux) aux_="1";
+	else aux_="0";
 
-	string path_salida=image.path+image.name+"_coded_Nmax_"+nmax+"_";
+	string path_salida=image.path+image.name+"_coded_Nmax_"+nmax+"_"+aux_;
 	ofstream salida;
 	salida.open(path_salida.c_str(), ios::binary);
 
 	writeHeader(salida);
 
 	setContextsArray();
+
+	int maximo_=0;
 
 	for(int prox=0;prox<image.heigth*image.width;prox++){
 
@@ -60,7 +86,11 @@ Coder::Coder(Image image, int Nmax) {
 
 		pixels pxls = getPixels(prox); //obtiene los píxeles de la vecindad: a,b y c
 
-		if (debug) cout<<prox<<" " << pxls.a<<" "<< pxls.b<<" "<< pxls.c<<" "<< pxls.d<<endl;
+		//if (prox==267870) debug=true; else debug=false;
+
+		if (debug) cout<<currentPixel<<" "<<prox<<" " << pxls.a<<" "<< pxls.b<<" "<< pxls.c<<" "<< pxls.d<<endl;
+
+
 
 		//cout<<prox<<" " << pxls.a<<" "<< pxls.b<<" "<< pxls.c<<" "<< pxls.d<<endl;
 
@@ -75,13 +105,18 @@ Coder::Coder(Image image, int Nmax) {
 
 		if (debug )cout<<contexto<<endl;
 
+		if (aux){
+
 		if (contexto==364) {
 			racha=true;
 			if (debug) cout<<"RACHA!"<<endl;
 		}
 		else racha =false;
 
+		}
+
 		if (!racha){
+		//if (true){
 
 		int predicted = getPredictedValue(pxls);	//calcula el valor pixel predicho
 
@@ -99,7 +134,17 @@ Coder::Coder(Image image, int Nmax) {
 
 		if (debug) cout<<"k= "<<k<<endl;
 
-		int error =rice(error_);	//devuelve mapeo de rice del error
+		int error__=reduccionDeRango(error_);
+
+		if (debug) cout<<"error con reducción de rango= "<<error_<<endl;
+
+		int error =rice(error__);	//devuelve mapeo de rice del error
+
+		maximo_=max(maximo_,error);
+
+
+
+		//if (maximo_==258) cout<<prox<<endl;
 
 		if (debug) cout<<"error= "<<error<<endl;
 
@@ -144,11 +189,53 @@ Coder::Coder(Image image, int Nmax) {
 
 	salida.close();
 
+	cout<<maximo_<<endl;
+
+	 ifstream in(path_salida.c_str(), std::ifstream::ate | std::ifstream::binary);
+	 cout<<"nmax= "<<nmax<<" rachas: "<<aux<<" tamaño: "<< in.tellg()<<endl;
+
 }
+
+ int Coder::max(int uno, int dos){
+
+	 if (uno<dos) return dos;
+	 else return uno;
+
+ }
+
+ int Coder::reduccionDeRango(int error){
+
+	 int cociente=0;
+
+	 int mod=error%128;
+	 if (error<0)
+		 cociente=error/129;
+	 else
+		 cociente=error/128;
+
+
+	 if (cociente*cociente==1){
+
+		 if (cociente==1){
+
+			 error=-255+error-1;
+
+		 }else{
+			 error=-error;
+			 error=255-error+1;
+
+		 }
+
+	 }
+
+ 	return error;
+ }
+
+
 
 int Coder::getKPrime(){
 
-	return 9;
+	return 3;
 }
 void Coder::encodeMuestraInterrupcion(Racha &racha, int siguiente, ofstream &salida){
 
@@ -159,6 +246,8 @@ void Coder::encodeMuestraInterrupcion(Racha &racha, int siguiente, ofstream &sal
 
 	error_=siguiente-racha.pixel;
 
+	error_=reduccionDeRango(error_);
+
 	error=rice(error_);
 
 	kPrime=getKPrime();
@@ -167,7 +256,9 @@ void Coder::encodeMuestraInterrupcion(Racha &racha, int siguiente, ofstream &sal
 
 	if (debug) cout<<"error: "<<error<<" "<<error_<<endl;
 
-	encode_(error, kPrime, salida);
+
+
+	encode(error, kPrime, salida);
 }
 
 void Coder::encodeRacha(Racha &racha){
@@ -442,18 +533,51 @@ void Coder::encode(int error, int k, ofstream &salida){
 
 	if (k!=1000){
 
-	int potencia = 1;
-
-	for (int j=0;j<k;j++){
-
-		potencia=potencia*2;
-	}
+	int potencia = floor(pow(2,k));
+	if (potencia==0)	potencia=1;
 
 	int cociente=error/potencia;
 	int resto=error%potencia;
 
 	potencia=potencia/2;
 
+	if (cociente>=qMax)	cociente=qMax;
+	if (debug) cout<<"cociente=qMax: "<<(cociente==qMax)<<endl;
+
+	for (int j=0;j<cociente;j++){
+
+			bitsToFile[bitsToFilePointer]=0;
+			if (debug) cout<<0;
+
+			bitsToFilePointer++;
+
+		}
+		/*	para indicar el fin del código de la parte unaria escribe un 1 al final */
+		bitsToFile[bitsToFilePointer]=1;
+		if (debug)cout<<1;
+
+		bitsToFilePointer++;
+
+	if (cociente==qMax)	{
+
+		cociente=qMax;
+
+		potencia=pow(2,beta-1);
+
+		for (int j=0;j<8;j++){
+
+					bitsToFile[bitsToFilePointer]=error/potencia;
+					if (debug) cout<<error/potencia;
+
+					bitsToFilePointer++;
+
+					error=error%potencia;
+
+					potencia=potencia/2;
+
+				}
+	}
+	else{
 	/*	Este loop calcula la expresión binaria del resto expresada con k bits, y lo guarda en array auxiliar bitsToFile */
 	for (int j=0;j<k;j++){
 
@@ -469,19 +593,10 @@ void Coder::encode(int error, int k, ofstream &salida){
 		}
 	/* Este loop calcula la expresión unaria del cociente, con tantos ceros como la variable "cociente"
 	y lo guarda en array auxiliar bitsToFile */
-	for (int j=0;j<cociente;j++){
-
-		bitsToFile[bitsToFilePointer]=0;
-		if (debug) cout<<0;
-
-		bitsToFilePointer++;
 
 	}
-	/*	para indicar el fin del código de la parte unaria escribe un 1 al final */
-	bitsToFile[bitsToFilePointer]=1;
-	if (debug)cout<<1;
 
-	bitsToFilePointer++;
+
 
 	}if (debug)	cout<<endl;
 

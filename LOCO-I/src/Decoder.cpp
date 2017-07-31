@@ -29,6 +29,16 @@ Decoder::Decoder(CodedImage codedImage) {
 		Nmax=codedImage.Nmax;
 
 
+		/**
+		 *
+		 * CAMBIOS !!
+		 */
+
+		this->beta=8;
+		this->Lmax=4*beta;
+		this->qMax=Lmax-beta-1;
+
+
 }
 
 Decoder::~Decoder() {
@@ -85,6 +95,7 @@ int contadorH=1,contadorW=1,contador=0;
 				else racha=false;
 
 				if (!racha){
+				//if (true){
 
 				int predicted = getPredictedValue(pxls);	//calcula el valor predicho
 
@@ -98,7 +109,11 @@ int contadorH=1,contadorW=1,contador=0;
 
 				int error_=getError(k);	//lee el archivo para tener el valor del error codificado
 
+
+
 				int error=unRice(error_);	//deshace el mapeo de rice para recuperar el error real
+
+				error=reduccionDeRango(error,predicted);
 
 				if (debug) cout<<"error= "<<error<<endl;
 
@@ -157,9 +172,53 @@ int contadorH=1,contadorW=1,contador=0;
 		salida.close();
 }
 
+int Decoder::reduccionDeRango(int error,int predicted){
+
+	if (error+predicted>255){
+
+		error=-255+error-1;
+		if (debug) cout<<"error + predicted>255"<<endl;
+
+	}else if (error+predicted<0){
+		error=-error;
+		error=255-error+1;
+		if (debug) cout<<"error + predicted<0"<<endl;
+
+	}else {
+		if (debug) cout<<"return error"<<endl;
+		return error;
+	}
+
+	/*
+	 int cociente=0;
+
+	 int mod=error%128;
+	 if (error<0)
+		 cociente=error/129;
+	 else
+		 cociente=error/128;
+
+
+	 if (cociente*cociente==1){
+
+		 if (cociente==1){
+
+			 error=-255+error-1;
+
+		 }else{
+			 error=-error;
+			 error=255-error+1;
+
+		 }
+
+	 }
+*/
+	return error;
+}
+
 int Decoder::getKPrime(){
 
-	return 9;
+	return 3;
 }
 
 void Decoder::updateImageInterruption(Racha &racha, int contador, ofstream &salida){
@@ -168,9 +227,13 @@ void Decoder::updateImageInterruption(Racha &racha, int contador, ofstream &sali
 
 	int kPrime=getKPrime();
 
-	int error_=getError_(kPrime);
+	int error_=getError(kPrime);
+
+
 
 	int error = unRice(error_);
+
+	error=reduccionDeRango(error,racha.pixel);
 
 	if (debug) cout<<"error: "<<error_<<" "<<error<<endl;
 
@@ -344,9 +407,22 @@ int Decoder::getError(int k){
 	/** Devuelve como entero el error codificado */
 
 	int error=0;
-	int potencia=pow(2,k);
+	int potencia=floor(pow(2,k));
+	//if (potencia==0) potencia=1;
 
 	int bit=0;
+
+	int contador=0;
+
+	/* Obtiene la cantidad de ceros que le siguen antes del primer uno,
+		es la codificación unaria del cociente entre el error y 2^k */
+	while (getBit()!=1){
+			contador++;
+
+		}
+	if (debug) cout<<"contador=qMax: "<<(contador==qMax)<<endl;
+
+	if (contador!=qMax){
 
 	/* Convierte los siguientes k bits de fileToBits en un entero,
 	que corresponden a la parte binaria del error */
@@ -358,12 +434,20 @@ int Decoder::getError(int k){
 			error=error+bit*potencia;
 
 	}
-	int contador=0;
+	}
+	else{
 
-	/* Obtiene la cantidad de ceros que le siguen antes del primer uno,
-	es la codificación unaria del cociente entre el error y 2^k */
-	while (getBit()!=1){
-		contador++;
+		potencia=pow(2,8);
+
+		for (int j=0;j<8;j++){
+
+				bit=getBit();
+
+				potencia=potencia/2;
+					error=error+bit*potencia;
+
+			}
+
 
 	}
 
@@ -371,11 +455,14 @@ int Decoder::getError(int k){
 
 	if (k>=0) pot_aux=pow(2,k); //cuando k negativo pow(2,k) es 0, y necesitamos que sea 1
 
+
 		/* Sumando los dos valores decodificados (cociente y resto entre 2^k) resulta el mapeo de rice
 		del error codificado */
-		error=error+contador*pot_aux;
+		if (contador!=qMax) error=error+contador*pot_aux;
 
 		if (debug) cout<<endl;
+
+
 
 		return error;
 }

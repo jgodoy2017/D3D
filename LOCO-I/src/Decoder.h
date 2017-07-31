@@ -64,7 +64,7 @@ public:
 		void updateImageRacha(Racha&, int, ofstream&);
 		void updateImageInterruption(Racha&, int, ofstream&);
 		int getKPrime();
-
+		int reduccionDeRango(int, int);
 
 		int fixPrediction(int, int);
 
@@ -99,6 +99,18 @@ public:
 	int m_r=1;
 
 	bool debug=false;
+
+	/**
+	 *
+	 * CAMBIOS !
+	 *
+	 *
+	 */
+
+	int Lmax;	//agregados también al constructor de clase Decoder(codedImage)
+	int beta;
+	int qMax;
+	bool golombLimitado(int);
 
 };
 
