@@ -12,7 +12,7 @@
 
 #include "Image.h"
 
-using namespace std;
+namespace std {
 
 Image::Image(){
 
@@ -89,36 +89,38 @@ void Image::loadImage(){
 
 			image=(int*)malloc(this->width*this->heigth*sizeof(int)); //reserva memoria para guardar toda la imagen
 
-			if(image){
-				while (contadorH!=this->heigth+1){
-					contadorW=1;
-					while (contadorW!=this->width+1){
-						in.read(&temp,1);
+			while (contadorH!=this->heigth+1){
 
-						string ascii="P3";
+				contadorW=1;
 
-						if (this->magic.compare("P3")==0){ //comprobación innecesaria, ya se nos dice por letra
-															//que todas las imágenes tendrán magic P5
-							int temp_=(int)temp;
-							image[contador]=temp_;
+				while (contadorW!=this->width+1){
 
-						}else{
 
-							int temp_ =binaryToInt(temp);	//convierte a entero el valor binario de cada pixel leido
-							image[contador]=temp_;	//guarda valor entero de pixel, en la correspondiente entrada del array que representa la imagen
-						}
+					in.read(&temp,1);
 
-						contadorW++;
-						contador++;
+					string ascii="P3";
 
+					if (this->magic.compare("P3")==0){ //comprobación innecesaria, ya se nos dice por letra
+														//que todas las imágenes tendrán magic P5
+
+						int temp_=(int)temp;
+
+						image[contador]=temp_;
+
+					}else{
+
+						int temp_ =binaryToInt(temp);	//convierte a entero el valor binario de cada pixel leido
+
+						image[contador]=temp_;	//guarda valor entero de pixel, en la correspondiente entrada del array que representa la imagen
 					}
 
-					contadorH++;
+					contadorW++;
+					contador++;
 
 				}
-			}else{
-				cout<<">> ERROR: No se pudo cargar la imagen en memoria."<<endl;
-				cout<<">> Cantidad de memoria necesaria: "<<this->width*this->heigth*sizeof(int)<<" = "<<this->width<<"x"<<this->heigth<<"x"<<sizeof(int)<<" bytes."<<endl;
+
+				contadorH++;
+
 			}
 
 
@@ -271,10 +273,8 @@ void Image::setWhite(ifstream &in,char &temp){
 
 }
 
-bool Image::is16bit(){
-	return (this->white==MAXVAL16BIT);
-}
-
 Image::~Image() {
 
 }
+
+} /* namespace std */

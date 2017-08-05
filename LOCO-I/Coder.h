@@ -8,9 +8,6 @@
 
 #ifndef CODER_H_
 #define CODER_H_
-#define LARGO_ARRAY_BITS 8000
-#define MAXVAL8BIT 255
-#define MAXVAL16BIT 65535
 
 #include "Image.h"
 #include "Context.h"
@@ -41,6 +38,10 @@ public:
 
 	Coder();
 	Coder(Image,int);
+
+	Coder(Image,int,int);
+
+
 	void code();
 	pixels getPixels(int);
 	int getP(pixels);
@@ -50,8 +51,8 @@ public:
 	int getContext_(int, int);
 	int getPredictedValue(pixels);
 	int getK(int);
+	int getKPrime(Racha&);
 	int rice(int);
-	int rice_(Racha&, int, int);
 	void encode(int, int, ofstream&);
 	void encode_(int, int, ofstream&);
 	void updateContexto(int, int);
@@ -66,11 +67,14 @@ public:
 	void writeNmax(ofstream&);
 	int getRachaParams(Image&, int, int, int&);
 	void encodeRacha(Racha&);
-	void encodeMuestraInterrupcion(Racha&, bool, int, ofstream&);
-	int getKPrime(Racha&);
+	void encodeMuestraInterrupcion(Racha&, int, ofstream&);
+	int reduccionDeRango(int);
 	int fixPrediction(int, int);
+
+	int max(int, int);
+
 	int correctPredictedValue(int, int);
-	int rangeReduction(bool, int);
+
 	virtual ~Coder();
 
 	/* Este objeto representa la imagen a ser codificada */
@@ -91,14 +95,12 @@ public:
 	se usa 800 como un tamaño suficiente, este número tiene que ser mayor al error más grande que pueda ser codificado + 7
 	ya que ese sería el tamaño más grande posible del array antes de ser escrito en el archivo
 	800 es mucho más grande que este número, por lo que resulta suficiente */
-	bool bitsToFile[LARGO_ARRAY_BITS];
+	bool bitsToFile[800];
 
 	/* Puntero que señala el próximo lugar a escribir de code */
 	int bitsToFilePointer=0;
 
-	ContextRun cntx[2];    // Contextos especiales para rachas.
-	
-	bool racha;
+	bool racha=false;
 
 	int J[32]={0,0,0,0,1,1,1,1,2,2,2,2,3,3,3,3,4,4,5,5,6,6,7,7,8,9,10,11,12,13,14,15};
 
@@ -106,6 +108,22 @@ public:
 	int m_r=1;
 
 	bool debug=false;
+
+	bool aux;
+
+	/**
+	 *
+	 * CAMBIOS !
+	 *
+	 *
+	 */
+
+	int Lmax;	//agregados también al constructor de clase Coder(image, int, int)
+	int beta;
+	int qMax;
+	bool golombLimitado(int);
+
+	ContextRun cntx[2];    // Contextos especiales para rachas.
 };
 
 } /* namespace std */

@@ -9,15 +9,12 @@
 
 #ifndef DECODER_H_
 #define DECODER_H_
-#define LARGO_ARRAY_BITS 8000
-#define MAXVAL8BIT  255
-#define MAXVAL16BIT 65535
 
 #include "CodedImage.h"
 #include "Image.h"
 #include "Context.h"
-#include "Racha.h"
 #include "ContextRun.h"
+#include "Racha.h"
 
 namespace std {
 
@@ -53,6 +50,7 @@ public:
 		int getContext_(int, int);
 		int getPredictedValue(pixels);
 		int getK(int);
+		int getKPrime(Racha&);
 		void updateContexto(int, int);
 		void updateContexto_(int, int);
 		void writeHeader(ofstream&);
@@ -62,17 +60,17 @@ public:
 		void writeMagic(ofstream&);
 		void updateImage(int, int);
 		int unRice(int);
-		int unRice_(Racha&, int, int);
 		void completaArray();
 		int getBit();
 		int getError(int);
 		int getError_(int);
 		int getRachaParams(int, int&);
 		void updateImageRacha(Racha&, int, ofstream&);
-		void updateImageInterruption(Racha&, bool, int, ofstream&);
-		int getKPrime(Racha&);
+		void updateImageInterruption(Racha&, int, ofstream&);
+		int reduccionDeRango(int, int);
+		int clipErrorEstadisticos(int);
+
 		int fixPrediction(int, int);
-		int rangeReduction(bool, int);
 
 		/* Este objeto representa la imagen codificada que está decodificando */
 		CodedImage codedImage;
@@ -92,12 +90,10 @@ public:
 
 	/* Algún tamaño apropiado
 	Array auxiliar para poder trabajar con los bits individuales de la imagen codificada */
-	bool fileToBits[LARGO_ARRAY_BITS];
+	bool fileToBits[800];
 
 	/* Puntero que señala el próximo lugar a leer de decode */
 	int fileToBitsPointer=0;
-
-	ContextRun cntx[2];    // Contextos especiales para rachas.
 
 	bool racha;
 
@@ -108,6 +104,19 @@ public:
 
 	bool debug=false;
 
+	/**
+	 *
+	 * CAMBIOS !
+	 *
+	 *
+	 */
+
+	int Lmax;	//agregados también al constructor de clase Decoder(codedImage)
+	int beta;
+	int qMax;
+	bool golombLimitado(int);
+
+	ContextRun cntx[2];    // Contextos especiales para rachas.
 };
 
 } /* namespace std */

@@ -12,7 +12,7 @@
 
 #include "CodedImage.h"
 
-using namespace std;
+namespace std {
 
 CodedImage::CodedImage() {
 
@@ -238,6 +238,5 @@ void CodedImage::setWhite(ifstream &in,char &temp){
 
 }
 
-bool CodedImage::is16bit(){
-	return (this->white==MAXVAL16BIT);
-}
+
+} /* namespace std */

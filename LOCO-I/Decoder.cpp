@@ -8,8 +8,8 @@
 */
 
 #include "Decoder.h"
-#include "math.h"
 #include "ContextRun.h"
+#include "math.h"
 
 namespace std {
 
@@ -28,6 +28,16 @@ Decoder::Decoder(CodedImage codedImage) {
 		image.setImage();
 
 		Nmax=codedImage.Nmax;
+
+
+		/**
+		 *
+		 * CAMBIOS !!
+		 */
+
+		this->beta=8;
+		this->Lmax=4*beta;
+		this->qMax=Lmax-beta-1;
 
 
 }
@@ -53,22 +63,25 @@ int contadorH=1,contadorW=1,contador=0;
 		codedImagePointer=0;
 
 		cout << "// START DECODER" << endl;
+		cout << "Tam: " << codedImage.heigth*codedImage.width << endl;
 			while (contadorH<codedImage.heigth+1){
-
 				contadorW=1;
-
-				while (contadorW<codedImage.width+1){
-
+				while (contadorW!=codedImage.width+1){
+					if(contador==69749){
+						;
+					}
 
 
 				pixels pxls = getPixels(contador);	//trae el vecindario a, b y c de cada pixel a decodificar
 
 				//int p = getP(pxls);	//calcula p
 
-				cout << "[" << contador << "] "  << pxls.a << " " << pxls.b << " " << pxls.c << " " << pxls.d << endl;
-				if(contador==0){
-					;
-				}
+				//if (contador==0)
+				if (debug) cout<<contador<<" "  << pxls.a<<" "<< pxls.b<<" "<< pxls.c<<" "<< pxls.d<<endl;
+				cout<<"[" << contador << "] " << pxls.a << " " << pxls.b << " " << pxls.c << " " << pxls.d << endl;
+
+				//cout<<contador<<" "  << pxls.a<<" "<< pxls.b<<" "<< pxls.c<<" "<< pxls.d<<endl;
+
 
 				grad gradients=setGradients(pxls);	//calcula el vector de gradientes
 
@@ -86,6 +99,7 @@ int contadorH=1,contadorW=1,contador=0;
 				else racha=false;
 
 				if (!racha){
+				//if (true){
 
 				int predicted = getPredictedValue(pxls);	//calcula el valor predicho
 
@@ -99,7 +113,11 @@ int contadorH=1,contadorW=1,contador=0;
 
 				int error_=getError(k);	//lee el archivo para tener el valor del error codificado
 
+
+
 				int error=unRice(error_);	//deshace el mapeo de rice para recuperar el error real
+
+				error=reduccionDeRango(error,predicted);
 
 				if (debug) cout<<"error= "<<error<<endl;
 
@@ -108,7 +126,6 @@ int contadorH=1,contadorW=1,contador=0;
 				if (debug) cout<<"error_= "<<error_<<endl;
 
 				int pixel=predicted+error;	//calcula el pixel como la suma entre el predicho y el error
-				pixel=rangeReduction(codedImage.is16bit(), pixel);
 
 				updateImage(pixel,contador);	//va formando el array que representa la imagen con cada pixel decodificado
 
@@ -124,80 +141,124 @@ int contadorH=1,contadorW=1,contador=0;
 
 				else {
 
-					int interruption=0;
+				int interruption=0;
 
-					int largo= getRachaParams(contadorW, interruption);
+				int largo= getRachaParams(contadorW, interruption);
 
-//					int contexto=(pxls.a==pxls.b);
-					int contexto=getContext_(contador, largo);
+		//		int contexto=(pxls.a==pxls.b);
+				int contexto=getContext_(contador, largo);
 
-					Racha racha(largo, interruption, pxls.a, contexto);
+				Racha racha(largo, interruption, pxls.a,contexto);
 
-					if (debug) cout<<contador<<" "<<largo<<" "<<interruption<<" "<<pxls.a<<" "<<contexto<<endl;
+				if (debug) cout<<contador<<" "<<largo<<" "<<interruption<<" "<<pxls.a<<" "<<contexto<<endl;
 
-					updateImageRacha(racha, contador, salida);
-					updateImageInterruption(racha, codedImage.is16bit(), contador, salida);
+				updateImageRacha(racha, contador, salida);
+				if(contador+largo<codedImage.heigth*codedImage.width) updateImageInterruption(racha, contador, salida);
 
-					contadorW=contadorW+largo;
-					contador=contador+largo;
+				racha.updateContexto();
 
-					if (racha.interruption)	{
-						contadorW--;
-						contador--;
-					}
+				contadorW=contadorW+largo;contador=contador+largo; //está bien?
 
-					if (debug) cout<<contadorW<<" "<<contadorH<<endl;
-
-					if (debug) cout<<endl;
+				if (racha.interruption)	{
+					contadorW--;
+					contador--;
 				}
-				contador++;
-				contadorW++;
+
+				if (debug) cout<<contadorW<<" "<<contadorH<<endl;
+
+				if (debug) cout<<endl;
+				}contador++;contadorW++;
+
+				}contadorH++;
+
+
 			}
-			contadorH++;
-		}
-			
 		salida.close();
+}
+
+int Decoder::reduccionDeRango(int error,int predicted){
+
+	if (error+predicted>255){
+
+		error=-255+error-1;
+		if (debug) cout<<"error + predicted>255"<<endl;
+
+	}else if (error+predicted<0){
+		error=-error;
+		error=255-error+1;
+		if (debug) cout<<"error + predicted<0"<<endl;
+
+	}else {
+		if (debug) cout<<"return error"<<endl;
+		return error;
+	}
+
+	/*
+	 int cociente=0;
+
+	 int mod=error%128;
+	 if (error<0)
+		 cociente=error/129;
+	 else
+		 cociente=error/128;
+
+
+	 if (cociente*cociente==1){
+
+		 if (cociente==1){
+
+			 error=-255+error-1;
+
+		 }else{
+			 error=-error;
+			 error=255-error+1;
+
+		 }
+
+	 }
+*/
+	return error;
 }
 
 int Decoder::getKPrime(Racha &r){
 	int T_racha, K_racha;
 
-//	cout<<">> DECO CNTX="<<r.contexto<<" A="<<cntx[r.contexto].A_racha<<" N="<<cntx[r.contexto].N_racha<<" Nn="<<cntx[r.contexto].Nn_racha;
+	cout<<">> RACHA CNTX="<<r.contexto<<" A="<<cntx[r.contexto].A_racha<<" N="<<cntx[r.contexto].N_racha<<" Nn="<<cntx[r.contexto].Nn_racha;
 
 	// Calculo la variable T para determinar k de Golomb.
 	T_racha=((r.contexto==1) ? cntx[r.contexto].A_racha : cntx[r.contexto].A_racha + cntx[r.contexto].N_racha/2);   
 	
-	for(K_racha=0; (cntx[r.contexto].N_racha<<K_racha)<T_racha; K_racha++);    // k = min{k' / 2^(k') >= T}
+	for(K_racha=0; (cntx[r.contexto].N_racha<<K_racha)<T_racha; K_racha++);    // k = min{k' / 2^(k')*N >= T}
 
-//	cout<<" T="<<T_racha<<" K="<<K_racha<<endl;
-
+	cout<<" T="<<T_racha<<" K="<<K_racha<<endl;
+	
 	return K_racha;
 }
 
-void Decoder::updateImageInterruption(Racha &racha, bool bit16, int contador, ofstream &salida){
-	int pixel;
-	
+void Decoder::updateImageInterruption(Racha &racha, int contador, ofstream &salida){
+
 	if (!racha.interruption){
-		int k=getKPrime(racha);
 
-	//	int error_=getError(k);
-		int error_=getError_(k);
-	
-	//	int error = unRice(error_);
-		int error = unRice_(racha, k, error_);
+	int kPrime=getKPrime(racha);
+	int error_=getError(kPrime);
+	int error = unRice(error_);
 
-		pixel=racha.pixel+error;
-		pixel=rangeReduction(bit16, racha.pixel+error);
+	error=reduccionDeRango(error,racha.pixel);
+	int errorEstadisticos=clipErrorEstadisticos(error);
 
-		image.image[contador+racha.largo]=pixel;
+	if (debug) cout<<"error: "<<error_<<" "<<error<<endl;
 
-		char pixel_ =pixel+'\0';
+	image.image[contador+racha.largo]=racha.pixel+error;
 
-		salida.write(&pixel_,1);	//escribe el pixel en el archivo
+	char pixel_ =racha.pixel+error+'\0';
 
-	 	updateContexto_(racha.contexto, error);
-		if (debug) cout<<"actual: "<<image.image[contador+racha.largo]<<endl;
+	salida.write(&pixel_,1);	//escribe el pixel en el archivo
+	updateContexto_(racha.contexto, errorEstadisticos);
+
+	if (debug) cout<<"actual: "<<image.image[contador+racha.largo]<<endl;
+
 	}
+
 }
 
 void Decoder::updateImageRacha(Racha &racha, int contador, ofstream &salida){
@@ -220,19 +281,26 @@ int Decoder::getRachaParams(int contadorW, int &interruption_){
 	int bit=1;
 
 	int largo=0, interruption;
-	
+
 
 	bool finDeFila=false;
 
 	while ((!finDeFila)&&(bit=getBit())){
-//		m_r=pow(2,J[kr]);
-		m_r=(1<<J[kr]);
 
-		largo+=(1<<J[kr]);
+//		if ((bit=getBit())==0) break;
+
+		m_r=pow(2,J[kr]);
 		kr++;
 
-		finDeFila=(largo+contadorW-1>image.width);
-	}
+		largo=largo+m_r;
+
+		if (debug) cout<<"kr= "<<kr<<endl;
+
+		finDeFila=(largo+contadorW-1>image.width); //mayor o mayor o igual?
+
+		//if (debug) cout<<"largo+contadorW= "<<largo+contadorW<<endl;
+
+	}//cout<<"fileToBitsPointer= "<<fileToBitsPointer<<endl;
 
 	interruption=bit;
 
@@ -247,10 +315,10 @@ int Decoder::getRachaParams(int contadorW, int &interruption_){
 
 		for (int j=kr;j>=0;j--){
 
-//			pot=(pow(2,j))*getBit();
-			pot=((1<<j)*getBit());
+			pot=(pow(2,j))*getBit();
 
-			largo+=pot;
+			largo=largo+pot;
+
 		}
 
 	}if (debug) cout<<endl;
@@ -276,26 +344,6 @@ int Decoder::unRice(int error){
 
 }
 
-int Decoder::unRice_(Racha &r, int K_racha, int M_eps){
-	int map, caso_map, eps_val, eps_sign;
-	
-	map=((M_eps+r.contexto)%2 ? 1 : 0);   // Deduzco la variable "map", que solo puede ser 0 o 1.
-	eps_val=(M_eps+r.contexto+map)>>1;    // Obtengo el valor absoluto del error codificado.					
-	
-	// Decisiones para determinar el signo del error codificado. Invierto la tabla del codificador.
-	if(  K_racha  &&   map  && (2*cntx[r.contexto].Nn_racha>=cntx[r.contexto].N_racha)) {eps_sign=-1; caso_map=1;}
-	if(  K_racha  &&   map  && (2*cntx[r.contexto].Nn_racha <cntx[r.contexto].N_racha)) {eps_sign=-1; caso_map=2;}
-	if(  K_racha  && (!map) && (2*cntx[r.contexto].Nn_racha>=cntx[r.contexto].N_racha)) {eps_sign=(eps_val ? 1 : 0); caso_map=3;}
-	if(  K_racha  && (!map) && (2*cntx[r.contexto].Nn_racha <cntx[r.contexto].N_racha)) {eps_sign=(eps_val ? 1 : 0); caso_map=4;}
-	if((!K_racha) &&   map  && (2*cntx[r.contexto].Nn_racha>=cntx[r.contexto].N_racha)) {eps_sign=-1; caso_map=5;}
-	if((!K_racha) &&   map  && (2*cntx[r.contexto].Nn_racha <cntx[r.contexto].N_racha)) {eps_sign=1; caso_map=6;}
-	if((!K_racha) && (!map) && (2*cntx[r.contexto].Nn_racha>=cntx[r.contexto].N_racha)) {eps_sign=(eps_val ? 1 : 0); caso_map=7;}
-	if((!K_racha) && (!map) && (2*cntx[r.contexto].Nn_racha <cntx[r.contexto].N_racha)) {eps_sign=-1; caso_map=8;}
-	
-//	cout<<"CASO MAP: "<<caso_map<<endl;
-	return eps_val*eps_sign;   // Obtengo el valor numerico del error codificado.
-}
-
 void Decoder::completaArray(){
 
 	/** Cuando se lee el último bit disponible del array, este método vuelve a completarlo. */
@@ -304,8 +352,7 @@ void Decoder::completaArray(){
 
 	int contador=0;
 
-	//hasta leer (LARGO_ARRAY_BITS/8) bytes o que se termine la imagen
-	while ((contador<(LARGO_ARRAY_BITS/8))&&((codedImagePointer<(codedImage.heigth*codedImage.width)))){ 
+	while ((contador<100)&&((codedImagePointer<(codedImage.heigth*codedImage.width)))){ //hasta leer 100 bytes o que se termine la imagen
 
 	temp=codedImage.image[codedImagePointer];
 	codedImagePointer++;
@@ -313,8 +360,10 @@ void Decoder::completaArray(){
 	std::bitset<8> temp_b(temp);
 
 				for(int j=0;j<8;j++){
-					fileToBits[contador*8+j]=temp_b[7-j];
-				}
+
+				fileToBits[contador*8+j]=temp_b[7-j];
+
+				}//for j
 
 				contador++;
 	}
@@ -333,7 +382,7 @@ int Decoder::getBit(){
 
 	}int retorno = fileToBits[fileToBitsPointer];
 	if (debug) cout<<fileToBits[fileToBitsPointer];
-	fileToBitsPointer=((fileToBitsPointer+1)%LARGO_ARRAY_BITS);//actualiza el puntero al array de manera circular
+	fileToBitsPointer=((fileToBitsPointer+1)%800);//actualiza el puntero al array de manera circular
 
 	//if (debug) cout<<retorno;
 	return retorno;
@@ -345,68 +394,7 @@ int Decoder::getError_(int k){
 	/** Devuelve como entero el error codificado */
 
 	int error=0;
-		
-	if(k<=K_MAX){   // Decodificacion normal.
-//		int potencia=pow(2,k);
-		int potencia=(1<<k);
-		int bit=0;
-
-		/* Convierte los siguientes k bits de fileToBits en un entero,
-		que corresponden a la parte binaria del error */
-		for (int j=0;j<k;j++){
-			bit=getBit();
-			potencia=potencia/2;
-			error=error+bit*potencia;
-		}
-		
-		int contador=0;
-		/* Obtiene la cantidad de ceros que le siguen antes del primer uno,
-		es la codificación unaria del cociente entre el error y 2^k */
-		int trap=0;
-		while ((!getBit()) && (trap<1000)){
-			contador++;
-			trap++;
-		}
-		if(trap==1000) contador-=1001;
-		
-		int pot_aux=1;
-
-//		if (k>=0) pot_aux=pow(2,k); //cuando k negativo pow(2,k) es 0, y necesitamos que sea 1
-		if (k>=0) pot_aux=(1<<k);
-
-		/* Sumando los dos valores decodificados (cociente y resto entre 2^k) resulta el mapeo de rice
-		del error codificado */
-		error=error+contador*pot_aux;
-	}else{   // Decodificacion de codigo de escape.
-//		int potencia=pow(2,K_MAX);
-		int potencia=(1<<K_MAX);
-		int bit=0;
-
-		/* Convierte los siguientes K_MAX bits de fileToBits en un entero,
-		que corresponden a la parte binaria de (error-1) */
-		for (int j=0;j<k;j++){
-			bit=getBit();
-			potencia=potencia/2;
-			error=error+bit*potencia;
-		}
-		
-		error++;  // Obtengo el error codificado.
-		
-		// Lee Q_MAX ceros.
-//		for(int i=0; i<Q_MAX; i++) (void)getBit();
-		
-	}
-	
-	return error;
-}
-
-int Decoder::getError(int k){
-
-	/** Devuelve como entero el error codificado */
-
-	int error=0;
-//	int potencia=pow(2,k);
-	int potencia=(1<<k);
+	int potencia=pow(2,k);
 
 	int bit=0;
 
@@ -420,27 +408,72 @@ int Decoder::getError(int k){
 			error=error+bit*potencia;
 
 	}
+
+
+		return error;
+}
+
+int Decoder::getError(int k){
+
+	/** Devuelve como entero el error codificado */
+
+	int error=0;
+	int potencia=floor(pow(2,k));
+	//if (potencia==0) potencia=1;
+
+	int bit=0;
+
 	int contador=0;
 
 	/* Obtiene la cantidad de ceros que le siguen antes del primer uno,
-	es la codificación unaria del cociente entre el error y 2^k */
-	int trap=0;
-	while ((!getBit()) && (trap<10000)){
-		contador++;
-		trap++;
+		es la codificación unaria del cociente entre el error y 2^k */
+	while (getBit()!=1){
+			contador++;
+
+		}
+	if (debug) cout<<"contador=qMax: "<<(contador==qMax)<<endl;
+
+	if (contador!=qMax){
+
+	/* Convierte los siguientes k bits de fileToBits en un entero,
+	que corresponden a la parte binaria del error */
+	for (int j=0;j<k;j++){
+
+		bit=getBit();
+
+		potencia=potencia/2;
+			error=error+bit*potencia;
+
 	}
-	if(trap==10000) contador-=10001;
+	}
+	else{
+
+		potencia=pow(2,8);
+
+		for (int j=0;j<8;j++){
+
+				bit=getBit();
+
+				potencia=potencia/2;
+					error=error+bit*potencia;
+
+			}
+
+
+	}
 
 	int pot_aux=1;
 
-//	if (k>=0) pot_aux=pow(2,k); //cuando k negativo pow(2,k) es 0, y necesitamos que sea 1
-	if (k>=0) pot_aux=(1<<k);
+	if (k>=0) pot_aux=pow(2,k); //cuando k negativo pow(2,k) es 0, y necesitamos que sea 1
+
 
 		/* Sumando los dos valores decodificados (cociente y resto entre 2^k) resulta el mapeo de rice
 		del error codificado */
-		error=error+contador*pot_aux;
+		if (contador!=qMax) error=error+contador*pot_aux;
 
 		if (debug) cout<<endl;
+
+
 
 		return error;
 }
@@ -656,26 +689,12 @@ void Decoder::updateContexto(int contexto, int error){
 		*/
 }
 
-void Decoder::updateContexto_(int c, int err){
-	cntx[c].updateA(err);
-	cntx[c].updateNn(err);
-	if(cntx[c].A_racha>RESET) cntx[c].reset();
-	cntx[c].updateN();
-}
 
 int Decoder::getK(int contexto){
 
-/*
 	double AdivN_=(double)contexts[contexto].A/(double)contexts[contexto].N_;
 
 	return round(log2(AdivN_));
-*/
-	int AdivN_=0, k;
-	
-	if(contexts[contexto].N_) AdivN_=contexts[contexto].A/contexts[contexto].N_;
-	for(k=0; (1<<k)<AdivN_; k++);
-	
-	return k;
 }
 
 int Decoder::getPredictedValue(pixels pxls){
@@ -732,13 +751,15 @@ int Decoder::getContext(grad gradients){
 				else if (gradients.gc<=21) contgc=7;
 				else contgc=8;
 
+
+	if(contga<4){
+		contga=8-contga;
+		contgb=8-contgb;
+		contgc=8-contgc;
+	}
+
 			//mapeo elegido para representar los contextos
-
 			return (9*9*contga)+(9*contgb)+(contgc);
-}
-
-int Decoder::getContext_(int pos, int lar){
-	return (getPixels(pos).a==getPixels(pos+lar).b);
 }
 
 void Decoder::setContextsArray(){
@@ -817,32 +838,36 @@ Decoder::pixels Decoder::getPixels(int current){
 			if (c==-1) c=ceil((double)codedImage.white/(double)2);
 			if (d==-1) d=ceil((double)codedImage.white/(double)2);
 		}
-		
+
 		/* Para cada a, b,c y d, si no se cumple una condición de borde, y por lo tanto no hubo asignación en los if que preceden,
 		se traen los valores de a, b,c y d de la imagen */
 		if (a==-1) a=image.image[current-1];
 		if (b==-1) b=image.image[current-codedImage.width];
 		if (c==-1) c=image.image[current-codedImage.width-1];
 		if (d==-1) d=image.image[current-codedImage.width+1];
-		
+
 		pixels pxls={a,b,c,d};
 
-		return pxls;
+			return pxls;
 }
 
-int Decoder::rangeReduction(bool bit16, int valor){
-	int maxVal=(bit16 ? MAXVAL16BIT : MAXVAL8BIT), val=valor;
-	
-	if(val<0)             val+=maxVal;
-	else if(val>maxVal+1) val-=maxVal;
-	
-	if(val<0)      val=0;
-	if(val>maxVal) val=maxVal;
-	
-//	cout << "(" << valor << " --> " << val << ")" << endl;
-
-	return val;
+int Decoder::getContext_(int pos, int lar){
+	return (getPixels(pos).a==getPixels(pos+lar).b);
 }
 
+void Decoder::updateContexto_(int c, int err){
+	cntx[c].updateA(err);
+	cntx[c].updateNn(err);
+	if(cntx[c].A_racha>RESET) {cntx[c].reset(); cout << "RESET" << endl;}
+	cntx[c].updateN();
+}
+
+int Decoder::clipErrorEstadisticos(int error){
+	int errorEstadisticos=error;
+	if(error>128) errorEstadisticos-=256;
+	else if(error<-128) errorEstadisticos+=256;
+	
+	return errorEstadisticos;
+}
 
 } /* namespace std */

@@ -22,10 +22,7 @@
 
 #include <math.h>
 
-#define MAXVAL8BIT  255
-#define MAXVAL16BIT 65535
-
-using namespace std;
+namespace std {
 
 class Image {
 public:
@@ -41,7 +38,6 @@ public:
 	void setHeigth(ifstream&,char&);
 	void setWhite(ifstream&,char&);
 	int binaryToInt(char);
-	bool is16bit(void);
 
 	string path;
 
@@ -60,5 +56,7 @@ public:
 	int *image;
 
 	};
+
+} /* namespace std */
 
 #endif /* IMAGE_H_ */

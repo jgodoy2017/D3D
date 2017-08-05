@@ -5,8 +5,8 @@
  *      Author: felipe
  */
 
-#pragma once
-#define K_MAX 9
+#ifndef RACHA_H_
+#define RACHA_H_
 
 namespace std {
 
@@ -14,9 +14,13 @@ class Racha {
 public:
 	Racha();
 	Racha(int, int, int, int);
+	void updateContexto();
 	virtual ~Racha();
 
-	int largo, interruption, contexto, pixel;
+	int largo,interruption, contexto, pixel;
+
 };
 
 } /* namespace std */
+
+#endif /* RACHA_H_ */

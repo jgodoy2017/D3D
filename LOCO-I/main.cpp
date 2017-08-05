@@ -30,27 +30,60 @@ using namespace std;
 
 int main(int nargs, char *args[]){
 
-//	string path="/home/felipe/Documents/ATIPI/img_prueba/baloons.pgm";
-	string path=args[1];
+
+// string path="/home/felipe/Documents/ATIPI/img_prueba/womanc.pgm";
+ string path=args[1];
 	int Nmax=64;
 
 	Image image(path);
 
-	Coder coder(image,Nmax);
-	coder.code();
+	Coder coder1(image,Nmax,1);
+	coder1.code();
 
 	stringstream ss1;
 	ss1 << Nmax;
 	string nmax = ss1.str();
 
-	CodedImage codedImage(path+"_coded_Nmax_"+nmax+"_region_3___");
+	CodedImage codedImage(path+"_coded_Nmax_"+nmax+"_"+"1");
 
 	Decoder decoder(codedImage);
 	decoder.decode();
 
+	/*
+
+	Coder coder2(image,8,0);
+	coder2.code();
+
+	Coder coder3(image,64,0);
+	coder3.code();
+
+	Coder coder4(image,256,0);
+	coder4.code();
+
+	Coder coder5(image,4,1);
+	coder5.code();
+
+	Coder coder6(image,8,1);
+	coder6.code();
+
+	Coder coder7(image,64,1);
+	coder7.code();
+
+	Coder coder8(image,256,1);
+	coder8.code();
+
+	//stringstream ss1;
+	//ss1 << Nmax;
+	//string nmax = ss1.str();
+
+	//CodedImage codedImage(path+"_coded_Nmax_"+nmax+"_");
+
+	//Decoder decoder(codedImage);
+	//decoder.decode();
 
 
-	/***
+
+	//
 	if (nargs<3)	{
 		cout<<"error...! parámetros insuficientes !"<<endl;
 	}
