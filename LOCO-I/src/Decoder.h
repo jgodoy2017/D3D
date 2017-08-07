@@ -13,6 +13,7 @@
 #include "CodedImage.h"
 #include "Image.h"
 #include "Context.h"
+#include "ContextRun.h"
 #include "Racha.h"
 
 namespace std {
@@ -46,16 +47,19 @@ public:
 		grad setGradients(pixels);
 		void setContextsArray();
 		int getContext(grad);
+		int getContext_(int, int);
 		int getPredictedValue(pixels);
 		int getK(int);
+		int getKPrime(Racha&);
 		void updateContexto(int, int);
+		void updateContexto_(int, int);
 		void writeHeader(ofstream&);
 		void writeWidth(ofstream&);
 		void writeHeigth(ofstream&);
 		void writeWhite(ofstream&);
 		void writeMagic(ofstream&);
 		void updateImage(int, int);
-		int unRice(int);
+		int unRice(int,float,int);
 		void completaArray();
 		int getBit();
 		int getError(int);
@@ -63,10 +67,12 @@ public:
 		int getRachaParams(int, int&);
 		void updateImageRacha(Racha&, int, ofstream&);
 		void updateImageInterruption(Racha&, int, ofstream&);
-		int getKPrime();
 		int reduccionDeRango(int, int);
+		int clipErrorEstadisticos(int);
 
 		int fixPrediction(int, int);
+
+		float get_s(int);
 
 		/* Este objeto representa la imagen codificada que está decodificando */
 		CodedImage codedImage;
@@ -112,6 +118,7 @@ public:
 	int qMax;
 	bool golombLimitado(int);
 
+	ContextRun cntx[2];    // Contextos especiales para rachas.
 };
 
 } /* namespace std */

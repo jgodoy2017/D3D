@@ -8,6 +8,7 @@
 */
 
 #include "Coder.h"
+#include "ContextRun.h"
 #include <sstream>
 #include <math.h>
 
@@ -76,6 +77,8 @@ Coder::Coder(Image image, int Nmax, int aux) {
 
 	int maximo_=0;
 
+	cout << "// START CODER" << endl;
+	//cout << "Tam: " << image.heigth*image.width << endl;
 	for(int prox=0;prox<image.heigth*image.width;prox++){
 
 
@@ -89,6 +92,7 @@ Coder::Coder(Image image, int Nmax, int aux) {
 		//if (prox==267870) debug=true; else debug=false;
 
 		if (debug) cout<<currentPixel<<" "<<prox<<" " << pxls.a<<" "<< pxls.b<<" "<< pxls.c<<" "<< pxls.d<<endl;
+		if (debug) cout<<"[" << prox << "] " << pxls.a << " " << pxls.b << " " << pxls.c << " " << pxls.d << endl;
 
 
 
@@ -135,10 +139,11 @@ Coder::Coder(Image image, int Nmax, int aux) {
 		if (debug) cout<<"k= "<<k<<endl;
 
 		int error__=reduccionDeRango(error_);
+	//	int error__=error_;
 
 		if (debug) cout<<"error con reducción de rango= "<<error_<<endl;
 
-		int error =rice(error__);	//devuelve mapeo de rice del error
+		int error =rice(error__, get_s(contexto),k);	//devuelve mapeo de rice del error
 
 		maximo_=max(maximo_,error);
 
@@ -159,7 +164,8 @@ Coder::Coder(Image image, int Nmax, int aux) {
 			int interruption=0;
 			int largo= getRachaParams(image, prox, pxls.a, interruption);
 
-			int contexto=(pxls.a==pxls.b);
+//			int contexto=(pxls.a==pxls.b);
+			int contexto=getContext_(prox, largo);
 
 			Racha racha(largo, interruption, pxls.a,contexto);
 
@@ -168,7 +174,6 @@ Coder::Coder(Image image, int Nmax, int aux) {
 			if (debug) cout<<"actual: "<<image.image[prox]<<endl;
 
 			encodeRacha(racha);
-
 			encodeMuestraInterrupcion(racha, image.image[prox+largo],salida);
 
 			racha.updateContexto();
@@ -191,8 +196,13 @@ Coder::Coder(Image image, int Nmax, int aux) {
 
 	cout<<maximo_<<endl;
 
-	 ifstream in(path_salida.c_str(), std::ifstream::ate | std::ifstream::binary);
-	 cout<<"nmax= "<<nmax<<" rachas: "<<aux<<" tamaño: "<< in.tellg()<<endl;
+	 ifstream in1(path_salida.c_str(), std::ifstream::ate | std::ifstream::binary);
+	 ifstream in2(image.path.c_str(), std::ifstream::ate | std::ifstream::binary);
+
+	 cout<<"nmax= "<<nmax<<" entrada: "<< in2.tellg()<<" salida: "<< in1.tellg()<<" ratio: "<< float(in1.tellg())/float(in2.tellg())<<endl;
+
+	 in1.close();
+	 in2.close();
 
 }
 
@@ -201,7 +211,10 @@ Coder::Coder(Image image, int Nmax, int aux) {
 	 if (uno<dos) return dos;
 	 else return uno;
 
- }
+ }float Coder::get_s(int contexto){
+
+		return float(float(contexts[contexto].B)/float(contexts[contexto].N)); //es N o N_?
+	}
 
  int Coder::reduccionDeRango(int error){
 
@@ -233,9 +246,19 @@ Coder::Coder(Image image, int Nmax, int aux) {
 
 
 
-int Coder::getKPrime(){
+int Coder::getKPrime(Racha &r){
+	int T_racha, K_racha;
 
-	return 3;
+	//cout<<">> RACHA CNTX="<<r.contexto<<" A="<<cntx[r.contexto].A_racha<<" N="<<cntx[r.contexto].N_racha<<" Nn="<<cntx[r.contexto].Nn_racha;
+
+	// Calculo la variable T para determinar k de Golomb.
+	T_racha=((r.contexto==1) ? cntx[r.contexto].A_racha : cntx[r.contexto].A_racha + cntx[r.contexto].N_racha/2);   
+	
+	for(K_racha=0; (cntx[r.contexto].N_racha<<K_racha)<T_racha; K_racha++);    // k = min{k' / 2^(k')*N >= T}
+
+	//cout<<" T="<<T_racha<<" K="<<K_racha<<endl;
+	
+	return K_racha;
 }
 void Coder::encodeMuestraInterrupcion(Racha &racha, int siguiente, ofstream &salida){
 
@@ -246,19 +269,20 @@ void Coder::encodeMuestraInterrupcion(Racha &racha, int siguiente, ofstream &sal
 
 	error_=siguiente-racha.pixel;
 
+	kPrime=getKPrime(racha);
+
 	error_=reduccionDeRango(error_);
 
-	error=rice(error_);
+	error=rice(error_,0,1);
 
-	kPrime=getKPrime();
 
+	updateContexto_(racha.contexto, error_);
+	encode(error, kPrime, salida);
 	}
 
 	if (debug) cout<<"error: "<<error<<" "<<error_<<endl;
 
 
-
-	encode(error, kPrime, salida);
 }
 
 void Coder::encodeRacha(Racha &racha){
@@ -384,6 +408,7 @@ int Coder::getRachaParams(Image &image, int prox, int anterior, int &interruptio
 
 	interruption_=interruption;
 
+	if(prox+largo>=image.heigth*image.width) largo=image.heigth*image.width-prox-1; //Me protejo de las rachas al final de la imagen.
 	return largo;
 }
 
@@ -647,17 +672,24 @@ void Coder::writeCode(ofstream &salida){
 }
 
 
-int Coder::rice(int error){
+int Coder::rice(int error, float s, int k){
 
 	/** Mapeo de rice del error */
 
 	/** falta reducción de rango para el error ***/
+
+	if ((k<=0)and(s>0.5)){
+
+		return rice(-error-1,0,1);	//en este caso llama al mapeo común de rice, con otro parámetro
+	}
+	else{
 
 	int uno =1;
 
 	if (error>=0)uno=0;
 
 	return (2*abs(error)-uno);
+	}
 }
 
 int Coder::getK(int contexto){
@@ -730,8 +762,13 @@ int Coder::getContext(grad gradients){
 		else if (gradients.gc<=21) contgc=7;
 		else contgc=8;
 
-	//mapeo elegido para representar los contextos
+		if(contga<4){
+			contga=8-contga;
+			contgb=8-contgb;
+			contgc=8-contgc;
+		}
 
+	//mapeo elegido para representar los contextos
 	return (9*9*contga)+(9*contgb)+(contgc);
 }
 
@@ -771,7 +808,7 @@ Coder::grad Coder::setGradients(pixels pxls){
 /**
 int Coder::getP(pixels pxls){
 
-	/** Devuelve el valor de p, según expresión de las diapositivas del curso
+	// Devuelve el valor de p, según expresión de las diapositivas del curso
 
 	return floor((double)(2*pxls.a+2*pxls.b+2*pxls.c+3)/(double)6);
 
@@ -1053,7 +1090,19 @@ int Coder::correctPredictedValue(int pred, int contexto){
 
 }
 
+int Coder::getContext_(int pos, int lar){
+	return (getPixels(pos).a==getPixels(pos+lar).b);
+}
 
+void Coder::updateContexto_(int c, int err){
+	cntx[c].updateA(err);
+	cntx[c].updateNn(err);
+	if(cntx[c].A_racha>RESET) {
+		cntx[c].reset();
+		//cout << "RESET" << endl;
+	}
+	cntx[c].updateN();
+}
 
 Coder::~Coder() {
 

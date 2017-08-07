@@ -8,6 +8,7 @@
 */
 
 #include "Decoder.h"
+#include "ContextRun.h"
 #include "math.h"
 
 namespace std {
@@ -61,12 +62,14 @@ int contadorH=1,contadorW=1,contador=0;
 
 		codedImagePointer=0;
 
+		cout << "// START DECODER" << endl;
+		//cout << "Tam: " << codedImage.heigth*codedImage.width << endl;
 			while (contadorH<codedImage.heigth+1){
-
 				contadorW=1;
-
 				while (contadorW!=codedImage.width+1){
-
+					if(contador==69749){
+						;
+					}
 
 
 				pixels pxls = getPixels(contador);	//trae el vecindario a, b y c de cada pixel a decodificar
@@ -75,6 +78,7 @@ int contadorH=1,contadorW=1,contador=0;
 
 				//if (contador==0)
 				if (debug) cout<<contador<<" "  << pxls.a<<" "<< pxls.b<<" "<< pxls.c<<" "<< pxls.d<<endl;
+				//cout<<"[" << contador << "] " << pxls.a << " " << pxls.b << " " << pxls.c << " " << pxls.d << endl;
 
 				//cout<<contador<<" "  << pxls.a<<" "<< pxls.b<<" "<< pxls.c<<" "<< pxls.d<<endl;
 
@@ -111,7 +115,7 @@ int contadorH=1,contadorW=1,contador=0;
 
 
 
-				int error=unRice(error_);	//deshace el mapeo de rice para recuperar el error real
+				int error=unRice(error_,get_s(contexto),k);	//deshace el mapeo de rice para recuperar el error real
 
 				error=reduccionDeRango(error,predicted);
 
@@ -141,15 +145,15 @@ int contadorH=1,contadorW=1,contador=0;
 
 				int largo= getRachaParams(contadorW, interruption);
 
-				int contexto=(pxls.a==pxls.b);
+		//		int contexto=(pxls.a==pxls.b);
+				int contexto=getContext_(contador, largo);
 
 				Racha racha(largo, interruption, pxls.a,contexto);
 
 				if (debug) cout<<contador<<" "<<largo<<" "<<interruption<<" "<<pxls.a<<" "<<contexto<<endl;
 
 				updateImageRacha(racha, contador, salida);
-
-				updateImageInterruption(racha, contador, salida);
+				if(contador+largo<codedImage.heigth*codedImage.width) updateImageInterruption(racha, contador, salida);
 
 				racha.updateContexto();
 
@@ -170,6 +174,10 @@ int contadorH=1,contadorW=1,contador=0;
 
 			}
 		salida.close();
+}float Decoder::get_s(int contexto){
+
+
+	return float(float(contexts[contexto].B)/float(contexts[contexto].N)); //es N o N_?
 }
 
 int Decoder::reduccionDeRango(int error,int predicted){
@@ -216,33 +224,40 @@ int Decoder::reduccionDeRango(int error,int predicted){
 	return error;
 }
 
-int Decoder::getKPrime(){
+int Decoder::getKPrime(Racha &r){
+	int T_racha, K_racha;
 
-	return 3;
+	//cout<<">> RACHA CNTX="<<r.contexto<<" A="<<cntx[r.contexto].A_racha<<" N="<<cntx[r.contexto].N_racha<<" Nn="<<cntx[r.contexto].Nn_racha;
+
+	// Calculo la variable T para determinar k de Golomb.
+	T_racha=((r.contexto==1) ? cntx[r.contexto].A_racha : cntx[r.contexto].A_racha + cntx[r.contexto].N_racha/2);   
+	
+	for(K_racha=0; (cntx[r.contexto].N_racha<<K_racha)<T_racha; K_racha++);    // k = min{k' / 2^(k')*N >= T}
+
+	//cout<<" T="<<T_racha<<" K="<<K_racha<<endl;
+	
+	return K_racha;
 }
 
 void Decoder::updateImageInterruption(Racha &racha, int contador, ofstream &salida){
 
 	if (!racha.interruption){
 
-	int kPrime=getKPrime();
-
+	int kPrime=getKPrime(racha);
 	int error_=getError(kPrime);
-
-
-
-	int error = unRice(error_);
+	int error = unRice(error_,0,1);
 
 	error=reduccionDeRango(error,racha.pixel);
+	int errorEstadisticos=clipErrorEstadisticos(error);
 
 	if (debug) cout<<"error: "<<error_<<" "<<error<<endl;
-
 
 	image.image[contador+racha.largo]=racha.pixel+error;
 
 	char pixel_ =racha.pixel+error+'\0';
 
 	salida.write(&pixel_,1);	//escribe el pixel en el archivo
+	updateContexto_(racha.contexto, errorEstadisticos);
 
 	if (debug) cout<<"actual: "<<image.image[contador+racha.largo]<<endl;
 
@@ -324,13 +339,28 @@ void Decoder::updateImage(int pixel, int contador){
 	image.image[contador]=pixel;
 
 }
-int Decoder::unRice(int error){
+int Decoder::unRice(int error,float s, int k){
 
 	/** Inverso de mapeo de rice */
 
+	if ((k<=0)and(s>0.5)){
+
+			if (error%2==0)	{
+				int aux=error/2;
+				return -aux-1;
+			}
+			else{
+
+				int aux=((error+1)/(-2));
+				return -aux-1;
+			}
+		}
+
+	else{
+
 	if (error%2==0)	return error/2;
 	else	return ((error+1)/(-2));
-
+	}
 }
 
 void Decoder::completaArray(){
@@ -740,8 +770,14 @@ int Decoder::getContext(grad gradients){
 				else if (gradients.gc<=21) contgc=7;
 				else contgc=8;
 
-			//mapeo elegido para representar los contextos
 
+	if(contga<4){
+		contga=8-contga;
+		contgb=8-contgb;
+		contgc=8-contgc;
+	}
+
+			//mapeo elegido para representar los contextos
 			return (9*9*contga)+(9*contgb)+(contgc);
 }
 
@@ -834,5 +870,26 @@ Decoder::pixels Decoder::getPixels(int current){
 			return pxls;
 }
 
+int Decoder::getContext_(int pos, int lar){
+	return (getPixels(pos).a==getPixels(pos+lar).b);
+}
+
+void Decoder::updateContexto_(int c, int err){
+	cntx[c].updateA(err);
+	cntx[c].updateNn(err);
+	if(cntx[c].A_racha>RESET) {
+		cntx[c].reset();
+		//cout << "RESET" << endl;
+	}
+	cntx[c].updateN();
+}
+
+int Decoder::clipErrorEstadisticos(int error){
+	int errorEstadisticos=error;
+	if(error>128) errorEstadisticos-=256;
+	else if(error<-128) errorEstadisticos+=256;
+	
+	return errorEstadisticos;
+}
 
 } /* namespace std */

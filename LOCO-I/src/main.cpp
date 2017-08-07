@@ -31,7 +31,8 @@ using namespace std;
 int main(int nargs, char *args[]){
 
 
-string path="/home/felipe/Documents/ATIPI/img_prueba/womanc.pgm";
+ string path="/home/felipe/Documents/ATIPI/img_prueba/womanc.pgm";
+// string path=args[1];
 	int Nmax=64;
 
 	Image image(path);
@@ -82,7 +83,7 @@ string path="/home/felipe/Documents/ATIPI/img_prueba/womanc.pgm";
 
 
 
-	/***
+	//
 	if (nargs<3)	{
 		cout<<"error...! parámetros insuficientes !"<<endl;
 	}

@@ -12,6 +12,7 @@
 #include "Image.h"
 #include "Context.h"
 #include "Racha.h"
+#include "ContextRun.h"
 
 namespace std {
 
@@ -47,12 +48,15 @@ public:
 	grad setGradients(pixels);
 	void setContextsArray();
 	int getContext(grad);
+	int getContext_(int, int);
 	int getPredictedValue(pixels);
 	int getK(int);
-	int rice(int);
+	int getKPrime(Racha&);
+	int rice(int,float,int);
 	void encode(int, int, ofstream&);
 	void encode_(int, int, ofstream&);
 	void updateContexto(int, int);
+	void updateContexto_(int, int);
 	void writeCode(ofstream&);	/* writecode() y flushEncoder() son métodos reciclados de la (propia) tarea del curso de Compresión de Datos Sin Pérdida*/
 	void flushEncoder(ofstream&);
 	void writeHeader(ofstream&);
@@ -64,7 +68,6 @@ public:
 	int getRachaParams(Image&, int, int, int&);
 	void encodeRacha(Racha&);
 	void encodeMuestraInterrupcion(Racha&, int, ofstream&);
-	int getKPrime();
 	int reduccionDeRango(int);
 	int fixPrediction(int, int);
 
@@ -120,6 +123,8 @@ public:
 	int qMax;
 	bool golombLimitado(int);
 
+	ContextRun cntx[2];    // Contextos especiales para rachas.
+	float get_s(int);
 };
 
 } /* namespace std */
