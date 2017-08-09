@@ -87,8 +87,13 @@ int contadorH=1,contadorW=1,contador=0;
 
 				//cout<<contador<<" " << gradients.ga<<" "<< gradients.gb<<" "<< gradients.gc<<" "<<endl;
 
+				int signo;
 
-				int contexto = getContext(gradients);	//trae el contexto que corresponde a estte pixel
+				int contexto = getContext(gradients,signo);	//trae el contexto que corresponde a estte pixel
+
+				//signo=1;
+
+				if (debug) cout<<"signo: "<<signo<<endl;
 
 				if (debug) cout<<contexto<<endl;
 
@@ -105,7 +110,7 @@ int contadorH=1,contadorW=1,contador=0;
 
 				if (debug) cout<<predicted<<endl;
 
-				predicted=fixPrediction(predicted, contexto);
+				predicted=fixPrediction(predicted,signo, contexto);
 
 				if (debug) cout<<predicted<<endl;
 
@@ -114,16 +119,17 @@ int contadorH=1,contadorW=1,contador=0;
 				int error_=getError(k);	//lee el archivo para tener el valor del error codificado
 
 
-
 				int error=unRice(error_,get_s(contexto),k);	//deshace el mapeo de rice para recuperar el error real
 
-				error=reduccionDeRango(error,predicted);
+				error=reduccionDeRango(error,signo,predicted);
 
 				if (debug) cout<<"error= "<<error<<endl;
 
 				if (debug) cout<<"k= "<<k<<endl;
 
 				if (debug) cout<<"error_= "<<error_<<endl;
+
+				//int error_s=error*signo;
 
 				int pixel=predicted+error;	//calcula el pixel como la suma entre el predicho y el error
 
@@ -133,7 +139,7 @@ int contadorH=1,contadorW=1,contador=0;
 
 				salida.write(&pixel_,1);	//escribe el pixel en el archivo
 
-				updateContexto(contexto,error);	//actualiza A y N del contexto
+				updateContexto(contexto,error*signo);	//actualiza A y N del contexto
 
 
 
@@ -180,22 +186,24 @@ int contadorH=1,contadorW=1,contador=0;
 	return float(float(contexts[contexto].B)/float(contexts[contexto].N)); //es N o N_?
 }
 
-int Decoder::reduccionDeRango(int error,int predicted){
+int Decoder::reduccionDeRango(int error, int signo,int predicted){
 
-	if (error+predicted>255){
+	//IF(J3<0,J3+$A$3,IF(J3>$A$3,J3-$A$3,J3))
+	error=error*signo;
 
-		error=-255+error-1;
-		if (debug) cout<<"error + predicted>255"<<endl;
+	if ((error+predicted)<0){
 
-	}else if (error+predicted<0){
-		error=-error;
-		error=255-error+1;
-		if (debug) cout<<"error + predicted<0"<<endl;
+		error=error+256;
+	}else if ((error+predicted)>255){
 
-	}else {
-		if (debug) cout<<"return error"<<endl;
-		return error;
+		error=error-256;
 	}
+
+
+	if (debug) cout<<"return error"<<endl;
+
+	return error;
+
 
 	/*
 	 int cociente=0;
@@ -247,7 +255,7 @@ void Decoder::updateImageInterruption(Racha &racha, int contador, ofstream &sali
 	int error_=getError(kPrime);
 	int error = unRice(error_,0,1);
 
-	error=reduccionDeRango(error,racha.pixel);
+	error=reduccionDeRango(error,1,racha.pixel);
 	int errorEstadisticos=clipErrorEstadisticos(error);
 
 	if (debug) cout<<"error: "<<error_<<" "<<error<<endl;
@@ -643,10 +651,12 @@ void Decoder::writeWhite(ofstream &salida){
 
 }
 
-int Decoder::fixPrediction(int predicted, int contexto){
+int Decoder::fixPrediction(int predicted,int signo, int contexto){
 
-	predicted=predicted+contexts[contexto].C;
+	predicted=predicted+(contexts[contexto].C*signo);
 
+	if (predicted< 0) predicted=0;
+	if (predicted >255) predicted=255;
 
 	return predicted;
 }
@@ -736,7 +746,9 @@ int Decoder::getPredictedValue(pixels pxls){
 
 }
 
-int Decoder::getContext(grad gradients){
+int Decoder::getContext(grad gradients, int &signo){
+
+	signo=1;
 
 	int contga, contgb,contgc;
 
@@ -775,6 +787,9 @@ int Decoder::getContext(grad gradients){
 		contga=8-contga;
 		contgb=8-contgb;
 		contgc=8-contgc;
+
+		signo=-1;
+
 	}
 
 			//mapeo elegido para representar los contextos
@@ -875,12 +890,15 @@ int Decoder::getContext_(int pos, int lar){
 }
 
 void Decoder::updateContexto_(int c, int err){
-	cntx[c].updateA(err);
-	cntx[c].updateNn(err);
+
 	if(cntx[c].A_racha>RESET) {
 		cntx[c].reset();
 		//cout << "RESET" << endl;
 	}
+
+	cntx[c].updateA(err);
+	cntx[c].updateNn(err);
+
 	cntx[c].updateN();
 }
 

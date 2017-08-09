@@ -105,7 +105,11 @@ Coder::Coder(Image image, int Nmax, int aux) {
 
 		//cout<<prox<<" " << gradients.ga<<" "<< gradients.gb<<" "<< gradients.gc<<" "<<endl;
 
-		int contexto = getContext(gradients);	//trae el contexto asociado a ese gradiente
+		int signo;
+
+		int contexto = getContext(gradients, signo);	//trae el contexto asociado a ese gradiente
+
+		//signo=1;
 
 		if (debug )cout<<contexto<<endl;
 
@@ -126,11 +130,13 @@ Coder::Coder(Image image, int Nmax, int aux) {
 
 		if (debug) cout<<predicted<<endl;
 
-		predicted=fixPrediction(predicted, contexto);
+		predicted=fixPrediction(predicted,signo, contexto);
 
 		if (debug) cout<<predicted<<endl;
 
-		int error_= currentPixel-predicted;	//calcula el error como la resta entre el valor actual y el valor predicho
+		int error_s= currentPixel-predicted;	//calcula el error como la resta entre el valor actual y el valor predicho
+
+		int error_=error_s*signo;
 
 		if (debug) cout<<"error_= "<<error_<<endl;
 
@@ -138,10 +144,15 @@ Coder::Coder(Image image, int Nmax, int aux) {
 
 		if (debug) cout<<"k= "<<k<<endl;
 
+
+
 		int error__=reduccionDeRango(error_);
+
+		if (debug) cout<<"signo: "<<signo<<" reduccion: "<<(error__==error_)<<endl;
+
 	//	int error__=error_;
 
-		if (debug) cout<<"error con reducción de rango= "<<error_<<endl;
+		if (debug) cout<<"error con reducción de rango= "<<error__<<endl;
 
 		int error =rice(error__, get_s(contexto),k);	//devuelve mapeo de rice del error
 
@@ -218,28 +229,20 @@ Coder::Coder(Image image, int Nmax, int aux) {
 
  int Coder::reduccionDeRango(int error){
 
-	 int cociente=0;
+	 if (error>127){
 
-	 int mod=error%128;
-	 if (error<0)
-		 cociente=error/129;
-	 else
-		 cociente=error/128;
+		 		error=error -256;
+		 		if (debug) cout<<"error + predicted>255"<<endl;
 
+		 	}else if (error<-128){
 
-	 if (cociente*cociente==1){
+		 		error=256+error;
+		 		if (debug) cout<<"error + predicted<0"<<endl;
 
-		 if (cociente==1){
-
-			 error=-255+error-1;
-
-		 }else{
-			 error=-error;
-			 error=255-error+1;
-
-		 }
-
-	 }
+		 	}else {
+		 		if (debug) cout<<"return error"<<endl;
+		 		return error;
+		 	}
 
  	return error;
  }
@@ -412,10 +415,12 @@ int Coder::getRachaParams(Image &image, int prox, int anterior, int &interruptio
 	return largo;
 }
 
-int Coder::fixPrediction(int predicted, int contexto){
+int Coder::fixPrediction(int predicted,int signo, int contexto){
 
-	predicted=predicted+contexts[contexto].C;
+	predicted=predicted+(contexts[contexto].C*signo);
 
+	if (predicted< 0) predicted=0;
+	if (predicted >255) predicted=255;
 
 	return predicted;
 }
@@ -723,12 +728,14 @@ int Coder::getPredictedValue(pixels pxls){
 
 }
 
-int Coder::getContext(grad gradients){
+int Coder::getContext(grad gradients, int &signo){
 
 	/** Determina el contexto
 	Todos los contextos posibles se organizan en un array, donde cada elemento del array representa un contexto,
 	es posible definir un mapeo entre el espacio de todos los contextos posibles y los enteros,
 	para que dado un contexto haya una relación biunívoca con un elemento del array */
+
+	signo=1;
 
 	int contga, contgb,contgc;
 
@@ -766,6 +773,8 @@ int Coder::getContext(grad gradients){
 			contga=8-contga;
 			contgb=8-contgb;
 			contgc=8-contgc;
+
+			signo=-1;
 		}
 
 	//mapeo elegido para representar los contextos
@@ -1095,12 +1104,15 @@ int Coder::getContext_(int pos, int lar){
 }
 
 void Coder::updateContexto_(int c, int err){
+
+	if(cntx[c].A_racha>RESET) {
+			cntx[c].reset();
+			//cout << "RESET" << endl;
+		}
+
 	cntx[c].updateA(err);
 	cntx[c].updateNn(err);
-	if(cntx[c].A_racha>RESET) {
-		cntx[c].reset();
-		//cout << "RESET" << endl;
-	}
+
 	cntx[c].updateN();
 }
 

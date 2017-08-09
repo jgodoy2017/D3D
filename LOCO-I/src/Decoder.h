@@ -46,7 +46,7 @@ public:
 		int getP(pixels);
 		grad setGradients(pixels);
 		void setContextsArray();
-		int getContext(grad);
+		int getContext(grad, int&);
 		int getContext_(int, int);
 		int getPredictedValue(pixels);
 		int getK(int);
@@ -67,10 +67,10 @@ public:
 		int getRachaParams(int, int&);
 		void updateImageRacha(Racha&, int, ofstream&);
 		void updateImageInterruption(Racha&, int, ofstream&);
-		int reduccionDeRango(int, int);
+		int reduccionDeRango(int, int,int);
 		int clipErrorEstadisticos(int);
 
-		int fixPrediction(int, int);
+		int fixPrediction(int,int, int);
 
 		float get_s(int);
 

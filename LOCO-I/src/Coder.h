@@ -47,7 +47,7 @@ public:
 	int getP(pixels);
 	grad setGradients(pixels);
 	void setContextsArray();
-	int getContext(grad);
+	int getContext(grad, int&);
 	int getContext_(int, int);
 	int getPredictedValue(pixels);
 	int getK(int);
@@ -69,7 +69,7 @@ public:
 	void encodeRacha(Racha&);
 	void encodeMuestraInterrupcion(Racha&, int, ofstream&);
 	int reduccionDeRango(int);
-	int fixPrediction(int, int);
+	int fixPrediction(int,int, int);
 
 	int max(int, int);
 
