@@ -20,6 +20,7 @@ public:
 
 	int A;
 	int N;
+	int N_;
 
 	int B;
 	int C;

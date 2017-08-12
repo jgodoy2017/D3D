@@ -11,6 +11,7 @@
 
 #include "Image.h"
 #include "Context.h"
+#include "Racha.h"
 
 namespace std {
 
@@ -22,6 +23,7 @@ public:
 		int a;
 		int b;
 		int c;
+		int d;
 
 	} pixels;	//se define esta estructura para agrupar los píxeles a, b y c
 
@@ -38,13 +40,14 @@ public:
 	void code();
 	pixels getPixels(int);
 	int getP(pixels);
-	grad setGradients(int, pixels);
+	grad setGradients(pixels);
 	void setContextsArray();
 	int getContext(grad);
 	int getPredictedValue(pixels);
 	int getK(int);
 	int rice(int);
 	void encode(int, int, ofstream&);
+	void encode_(int, int, ofstream&);
 	void updateContexto(int, int);
 	void writeCode(ofstream&);	/* writecode() y flushEncoder() son métodos reciclados de la (propia) tarea del curso de Compresión de Datos Sin Pérdida*/
 	void flushEncoder(ofstream&);
@@ -54,6 +57,10 @@ public:
 	void writeWhite(ofstream&);
 	void writeMagic(ofstream&);
 	void writeNmax(ofstream&);
+	int getRachaParams(Image&, int, int, int&);
+	void encodeRacha(Racha&);
+	void encodeMuestraInterrupcion(Racha&, int, ofstream&);
+	int getKPrime();
 
 	int fixPrediction(int, int);
 
@@ -70,7 +77,7 @@ public:
 
 
 
-	static const int CANTIDAD_MAXIMA_CONTEXTOS=9*9*5;
+	static const int CANTIDAD_MAXIMA_CONTEXTOS=9*9*9;
 
 	/* Array de contextos, cada entrada representa un contexto posible */
 	Context contexts[CANTIDAD_MAXIMA_CONTEXTOS];
@@ -83,6 +90,15 @@ public:
 
 	/* Puntero que señala el próximo lugar a escribir de code */
 	int bitsToFilePointer=0;
+
+	bool racha;
+
+	int J[32]={0,0,0,0,1,1,1,1,2,2,2,2,3,3,3,3,4,4,5,5,6,6,7,7,8,9,10,11,12,13,14,15};
+
+	int kr=0;
+	int m_r=1;
+
+	bool debug=false;
 };
 
 } /* namespace std */

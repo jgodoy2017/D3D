@@ -25,27 +25,22 @@
 
 #include "Coder.h"
 #include "Decoder.h"
+#include "TempImg.h"
 
 using namespace std;
 
 int main(int nargs, char *args[]){
 
-	string path="/home/felipe/Documents/ATIPI/img_prueba/kodim20.pgm";
-	int Nmax=256;
+	string path="D:\\Mauro\\Documents\\Facultad\\Proyecto\\img\\1.pgm";
+	string path2="D:\\Mauro\\Documents\\Facultad\\Proyecto\\img\\2.pgm";
+	int Nmax=20;
 
 	Image image(path);
+	Image image2(path2);
 
-	Coder coder(image,Nmax);
-	coder.code();
+	TempImg imageT(image, image2);
 
-	stringstream ss1;
-	ss1 << Nmax;
-	string nmax = ss1.str();
-
-	CodedImage codedImage(path+"_coded_Nmax_"+nmax+"_region_3___");
-
-	Decoder decoder(codedImage);
-	decoder.decode();
+	imageT.makeImg();
 
 
 

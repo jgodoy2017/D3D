@@ -13,6 +13,7 @@
 #include "CodedImage.h"
 #include "Image.h"
 #include "Context.h"
+#include "Racha.h"
 
 namespace std {
 
@@ -25,6 +26,7 @@ public:
 			int a;
 			int b;
 			int c;
+			int d;
 
 		} pixels;
 
@@ -41,7 +43,7 @@ public:
 			void decode();
 		pixels getPixels(int);
 		int getP(pixels);
-		grad setGradients(int, pixels);
+		grad setGradients(pixels);
 		void setContextsArray();
 		int getContext(grad);
 		int getPredictedValue(pixels);
@@ -57,6 +59,12 @@ public:
 		void completaArray();
 		int getBit();
 		int getError(int);
+		int getError_(int);
+		int getRachaParams(int, int&);
+		void updateImageRacha(Racha&, int, ofstream&);
+		void updateImageInterruption(Racha&, int, ofstream&);
+		int getKPrime();
+
 
 		int fixPrediction(int, int);
 
@@ -67,7 +75,7 @@ public:
 		int Nmax;
 		int i;
 
-		static const int CANTIDAD_MAXIMA_CONTEXTOS=9*9*5;
+		static const int CANTIDAD_MAXIMA_CONTEXTOS=9*9*9;
 
 		Context contexts[CANTIDAD_MAXIMA_CONTEXTOS];
 
@@ -82,6 +90,16 @@ public:
 
 	/* Puntero que señala el próximo lugar a leer de decode */
 	int fileToBitsPointer=0;
+
+	bool racha;
+
+	int J[32]={0,0,0,0,1,1,1,1,2,2,2,2,3,3,3,3,4,4,5,5,6,6,7,7,8,9,10,11,12,13,14,15};
+
+	int kr=0;
+	int m_r=1;
+
+	bool debug=false;
+
 };
 
 } /* namespace std */

@@ -31,6 +31,7 @@ Context::Context(int q1,int q2,int q3) {
 	/* Se inicializan A y N según los valores que se indican en la letra del proyecto */
 	this->A=8;
 	this->N=1;
+	this->N_=1;
 
 	this->B=0; //inicializado en cero??
 	this->C=0; //inicializado en cero??
