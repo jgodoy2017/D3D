@@ -104,15 +104,18 @@ TempImg::TempImg(Image image, Image image2) {
 			//cout<<endl;
 		}
 	}
+	int conta=0;
 	for(int pix=0;pix<image.width*image.heigth;pix++){
 		int temp=image.image[pix]; //valor del pixel actual
 		char temp_=(char)temp;
 
-		if((218<pix%image.width) && (pix%image.width<(218+17))){
-			//cout<<pix<<endl;
+		if((218<pix%image.width) && (pix%image.width<(236))){
 
-			if ((418*image.width<pix) && (pix< (418+17)*image.width)){
-				cout<<"entro"<<endl;
+
+			if ((301*image.width<pix) && (pix< (318)*image.width)){
+				conta++;
+				cout<<conta<<endl;
+				//cout<<"entro"<<endl;
 				salida.write(&temp_,1);
 			}
 		}

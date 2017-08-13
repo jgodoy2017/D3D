@@ -31,7 +31,7 @@ using namespace std;
 
 int main(int nargs, char *args[]){
 
-	string path="D:\\Mauro\\Documents\\Facultad\\Proyecto\\img\\faxballsL.pgm";
+	string path="D:\\Mauro\\Documents\\Facultad\\Proyecto\\img\\baloons.pgm";
 	string path2="D:\\Mauro\\Documents\\Facultad\\Proyecto\\img\\2.pgm";
 	int Nmax=20;
 
