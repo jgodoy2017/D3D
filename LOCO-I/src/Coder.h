@@ -53,6 +53,7 @@ public:
 	int getK(int);
 	int getKPrime(Racha&);
 	int rice(int,float,int);
+	int rice_rachas(int,int,int);
 	void encode(int, int, ofstream&);
 	void encode_(int, int, ofstream&);
 	void updateContexto(int, int);
@@ -67,7 +68,7 @@ public:
 	void writeNmax(ofstream&);
 	int getRachaParams(Image&, int, int, int&);
 	void encodeRacha(Racha&);
-	void encodeMuestraInterrupcion(Racha&, int, ofstream&);
+	void encodeMuestraInterrupcion(Racha&, int,int, ofstream&);
 	int reduccionDeRango(int);
 	int fixPrediction(int,int, int);
 

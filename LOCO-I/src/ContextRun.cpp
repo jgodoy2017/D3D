@@ -5,9 +5,9 @@ using namespace std;
 	//esta clase modela los contextos especiales que aparecen en el modo de rachas. 
 
 ContextRun::ContextRun(){
-	this->A_racha=0;
-	this->N_racha=0;
-	this->Nn_racha=0;
+	this->A_racha=4;
+	this->N_racha=1;
+	this->Nn_racha=1;
 }
 
 void ContextRun::updateA(int eps){

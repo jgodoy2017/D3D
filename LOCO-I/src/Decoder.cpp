@@ -159,7 +159,7 @@ int contadorH=1,contadorW=1,contador=0;
 				if (debug) cout<<contador<<" "<<largo<<" "<<interruption<<" "<<pxls.a<<" "<<contexto<<endl;
 
 				updateImageRacha(racha, contador, salida);
-				if(contador+largo<codedImage.heigth*codedImage.width) updateImageInterruption(racha, contador, salida);
+				if(contador+largo<codedImage.heigth*codedImage.width) updateImageInterruption(racha, contador,contador+largo, salida);
 
 				racha.updateContexto();
 
@@ -240,29 +240,59 @@ int Decoder::getKPrime(Racha &r){
 	// Calculo la variable T para determinar k de Golomb.
 	T_racha=((r.contexto==1) ? cntx[r.contexto].A_racha : cntx[r.contexto].A_racha + cntx[r.contexto].N_racha/2);   
 	
-	for(K_racha=0; (cntx[r.contexto].N_racha<<K_racha)<T_racha; K_racha++);    // k = min{k' / 2^(k')*N >= T}
+	for(K_racha=0; (cntx[r.contexto].N_racha*pow(2,K_racha))<T_racha; K_racha++);
 
 	//cout<<" T="<<T_racha<<" K="<<K_racha<<endl;
 	
 	return K_racha;
 }
+int Decoder::unrice_rachas(int error,int contexto, int k){
 
-void Decoder::updateImageInterruption(Racha &racha, int contador, ofstream &salida){
+	int map=0;
+
+	int retorno=error+contexto+1>> 1;
+
+	if ((error+contexto+1)%2==0) map=1;
+
+	if ((k==0)and(map==1)and(2*cntx[contexto].Nn_racha<cntx[contexto].N_racha)){
+
+	}else if ((map==1)and(2*cntx[contexto].Nn_racha>=cntx[contexto].N_racha)){
+
+		retorno=-retorno;
+	}else if ((map==1)and(k!=0)){
+
+		retorno=-retorno;
+	}else{
+
+		if ((k!=0)or(2*cntx[contexto].Nn_racha>=cntx[contexto].N_racha)){
+
+
+		}else retorno=-retorno;
+
+
+	}
+
+	 return retorno;
+
+}
+void Decoder::updateImageInterruption(Racha &racha, int contador,int prox_, ofstream &salida){
 
 	if (!racha.interruption){
 
 	int kPrime=getKPrime(racha);
 	int error_=getError(kPrime);
-	int error = unRice(error_,0,1);
+	//int error = unRice(error_,0,1);
 
-	error=reduccionDeRango(error,1,racha.pixel);
+	int error = unrice_rachas(error_,racha.contexto,kPrime);
+
+	error=reduccionDeRango(error,1,getPixels(prox_).b);
 	int errorEstadisticos=clipErrorEstadisticos(error);
 
 	if (debug) cout<<"error: "<<error_<<" "<<error<<endl;
 
-	image.image[contador+racha.largo]=racha.pixel+error;
+	image.image[contador+racha.largo]=getPixels(prox_).b+error;
 
-	char pixel_ =racha.pixel+error+'\0';
+	char pixel_ =getPixels(prox_).b+error+'\0';
 
 	salida.write(&pixel_,1);	//escribe el pixel en el archivo
 	updateContexto_(racha.contexto, errorEstadisticos);
@@ -308,7 +338,7 @@ int Decoder::getRachaParams(int contadorW, int &interruption_){
 
 		if (debug) cout<<"kr= "<<kr<<endl;
 
-		finDeFila=(largo+contadorW-1>image.width); //mayor o mayor o igual?
+		finDeFila=(largo+contadorW-1>=image.width); //mayor o mayor o igual?
 
 		//if (debug) cout<<"largo+contadorW= "<<largo+contadorW<<endl;
 
@@ -454,7 +484,8 @@ int Decoder::getError(int k){
 
 	/* Obtiene la cantidad de ceros que le siguen antes del primer uno,
 		es la codificación unaria del cociente entre el error y 2^k */
-	while (getBit()!=1){
+	while ((contador!=qMax)&&getBit()!=1){
+	//while (getBit()!=1){
 			contador++;
 
 		}
@@ -721,7 +752,7 @@ void Decoder::updateContexto(int contexto, int error){
 
 int Decoder::getK(int contexto){
 
-	double AdivN_=(double)contexts[contexto].A/(double)contexts[contexto].N_;
+	double AdivN_=(double)contexts[contexto].A/(double)contexts[contexto].N;
 
 	return round(log2(AdivN_));
 }
@@ -891,7 +922,7 @@ int Decoder::getContext_(int pos, int lar){
 
 void Decoder::updateContexto_(int c, int err){
 
-	if(cntx[c].A_racha>RESET) {
+	if(cntx[c].N_racha>RESET) {
 		cntx[c].reset();
 		//cout << "RESET" << endl;
 	}

@@ -60,13 +60,14 @@ public:
 		void writeMagic(ofstream&);
 		void updateImage(int, int);
 		int unRice(int,float,int);
+		int unrice_rachas(int,int,int);
 		void completaArray();
 		int getBit();
 		int getError(int);
 		int getError_(int);
 		int getRachaParams(int, int&);
 		void updateImageRacha(Racha&, int, ofstream&);
-		void updateImageInterruption(Racha&, int, ofstream&);
+		void updateImageInterruption(Racha&, int,int, ofstream&);
 		int reduccionDeRango(int, int,int);
 		int clipErrorEstadisticos(int);
 

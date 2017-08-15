@@ -29,7 +29,7 @@ Context::Context(int q1,int q2,int q3) {
 	this->q3=q3;
 
 	/* Se inicializan A y N según los valores que se indican en la letra del proyecto */
-	this->A=8;
+	this->A=4;
 	this->N=1;
 	this->N_=1;
 

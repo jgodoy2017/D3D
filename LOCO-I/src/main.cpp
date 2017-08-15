@@ -31,7 +31,10 @@ using namespace std;
 int main(int nargs, char *args[]){
 
 
- string path="/home/felipe/Documents/ATIPI/img_prueba/baloons.pgm";
+	//chequear mapeo de rice variable map
+
+
+ string path="/home/felipe/Documents/ATIPI/img_prueba/bike.pgm";
 // string path=args[1];
 	int Nmax=64;
 
