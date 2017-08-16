@@ -865,6 +865,66 @@ int Decoder::getP(pixels pxls){
 
 	return floor((double)(2*pxls.a+2*pxls.b+2*pxls.c+3)/(double)6);
 
+}Decoder::pixels Decoder::getPixels_(int current){
+
+	/** Devuelve los píxeles de la vecindad: a, b y c */
+
+	int a=-1;
+	int b=-1;
+	int c=-1;
+	int d=-1;
+
+	if (current==0){
+
+		//primer píxel
+
+		a=0;
+		b=0;
+		c=0;
+		d=0;
+
+	}	else if ((current%image.width)==0){
+
+		/* columna izquierda */
+
+		a=image.image[current-image.width];
+		c=getPixels_(current-image.width).a;
+
+
+	}
+
+	if (current<image.width){
+
+			//primer fila
+
+			if (b==-1) b=0;
+			if (c==-1) c=0;
+			if (d==-1) d=0;
+		}
+
+
+
+
+	else if ((current%image.width)==image.width-1){
+
+		/* columna derecha */
+
+		d=image.image[current-image.width];
+
+
+	}
+
+
+	/* Para cada a, b,c y d, si no se cumple una condición de borde, y por lo tanto no hubo asignación en los if que preceden,
+	se traen los valores de a, b,c y d de la imagen */
+	if (a==-1) a=image.image[current-1];
+	if (b==-1) b=image.image[current-image.width];
+	if (c==-1) c=image.image[current-image.width-1];
+	if (d==-1) d=image.image[current-image.width+1];
+
+	pixels pxls={a,b,c,d};
+
+		return pxls;
 }
 
 Decoder::pixels Decoder::getPixels(int current){

@@ -81,9 +81,10 @@ Coder::Coder(Image image, int Nmax, int aux) {
 	//cout << "Tam: " << image.heigth*image.width << endl;
 	for(int prox=0;prox<image.heigth*image.width;prox++){
 
-		if ((prox>17)&&(prox<19)) debug=true;
-		else debug=false;
+		//if ((prox>17)&&(prox<19)) debug=true;
+		//else debug=false;
 
+		//if (prox==328724) debug=true;
 
 
 		if (debug){
@@ -219,7 +220,8 @@ Coder::Coder(Image image, int Nmax, int aux) {
 
 			if (debug) cout<<"prox= "<<prox<<endl;
 
-			if (racha.interruption)	prox--;
+			if ((racha.interruption)and(largo!=0))	prox--;	//@felipe - agregué esta linea para el caso de racha de largo 0  en el último pixel
+																		// verificar !
 
 
 		}
@@ -964,6 +966,69 @@ Coder::pixels Coder::getPixels(int current){
 
 		return pxls;
 }
+
+Coder::pixels Coder::getPixels_(int current){
+
+	/** Devuelve los píxeles de la vecindad: a, b y c */
+
+	int a=-1;
+	int b=-1;
+	int c=-1;
+	int d=-1;
+
+	if (current==0){
+
+		//primer píxel
+
+		a=0;
+		b=0;
+		c=0;
+		d=0;
+
+	}	else if ((current%image.width)==0){
+
+		/* columna izquierda */
+
+		a=image.image[current-image.width];
+		c=getPixels_(current-image.width).a;
+
+
+	}
+
+	if (current<image.width){
+
+			//primer fila
+
+			if (b==-1) b=0;
+			if (c==-1) c=0;
+			if (d==-1) d=0;
+		}
+
+
+
+
+	else if ((current%image.width)==image.width-1){
+
+		/* columna derecha */
+
+		d=image.image[current-image.width];
+
+
+	}
+
+
+	/* Para cada a, b,c y d, si no se cumple una condición de borde, y por lo tanto no hubo asignación en los if que preceden,
+	se traen los valores de a, b,c y d de la imagen */
+	if (a==-1) a=image.image[current-1];
+	if (b==-1) b=image.image[current-image.width];
+	if (c==-1) c=image.image[current-image.width-1];
+	if (d==-1) d=image.image[current-image.width+1];
+
+	pixels pxls={a,b,c,d};
+
+		return pxls;
+}
+
 
 void Coder::writeHeader(ofstream &salida){
 

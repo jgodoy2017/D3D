@@ -43,6 +43,7 @@ public:
 			virtual ~Decoder();
 			void decode();
 		pixels getPixels(int);
+		pixels getPixels_(int);
 		int getP(pixels);
 		grad setGradients(pixels);
 		void setContextsArray();

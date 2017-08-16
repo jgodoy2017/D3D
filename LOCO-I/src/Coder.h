@@ -44,6 +44,7 @@ public:
 
 	void code();
 	pixels getPixels(int);
+	pixels getPixels_(int);
 	int getP(pixels);
 	grad setGradients(pixels);
 	void setContextsArray();
