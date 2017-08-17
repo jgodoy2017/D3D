@@ -64,11 +64,11 @@ public:
 		int unrice_rachas(int,int,int);
 		void completaArray();
 		int getBit();
-		int getError(int);
+		int getError(int,int,int);
 		int getError_(int);
-		int getRachaParams(int, int&);
+		int getRachaParams(int, int&,int&);
 		void updateImageRacha(Racha&, int, ofstream&);
-		void updateImageInterruption(Racha&, int,int, ofstream&);
+		void updateImageInterruption(Racha&, int,int, ofstream&, int);
 		int reduccionDeRango(int, int,int);
 		int clipErrorEstadisticos(int);
 
@@ -118,6 +118,7 @@ public:
 	int Lmax;	//agregados también al constructor de clase Decoder(codedImage)
 	int beta;
 	int qMax;
+	int qMax_;
 	bool golombLimitado(int);
 
 	ContextRun cntx[2];    // Contextos especiales para rachas.

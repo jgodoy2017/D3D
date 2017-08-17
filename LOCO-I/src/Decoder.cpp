@@ -37,7 +37,9 @@ Decoder::Decoder(CodedImage codedImage) {
 
 		this->beta=8;
 		this->Lmax=4*beta;
+
 		this->qMax=Lmax-beta-1;
+		this->qMax_=Lmax-beta-1;
 
 
 }
@@ -67,12 +69,19 @@ int contadorH=1,contadorW=1,contador=0;
 			while (contadorH<codedImage.heigth+1){
 				contadorW=1;
 				while (contadorW!=codedImage.width+1){
-					if(contador==69749){
-						;
-					}
 
+					//if (contador>22000) debug=true;
 
-				pixels pxls = getPixels(contador);	//trae el vecindario a, b y c de cada pixel a decodificar
+/*
+							if (contador==1350) {
+								cout <<"imagen: ";
+								for (int aux_cont=0;aux_cont<2025;aux_cont++)
+										cout <<image.image[aux_cont]<<" ";
+								cout <<endl;
+							}
+*/
+
+				pixels pxls = getPixels_(contador);	//trae el vecindario a, b y c de cada pixel a decodificar
 
 				//int p = getP(pxls);	//calcula p
 
@@ -116,7 +125,7 @@ int contadorH=1,contadorW=1,contador=0;
 
 				int k= getK(contexto);	//calcula k
 
-				int error_=getError(k);	//lee el archivo para tener el valor del error codificado
+				int error_=getError(k,0,0);	//lee el archivo para tener el valor del error codificado
 
 
 				int error=unRice(error_,get_s(contexto),k);	//deshace el mapeo de rice para recuperar el error real
@@ -148,8 +157,9 @@ int contadorH=1,contadorW=1,contador=0;
 				else {
 
 				int interruption=0;
+				int cantidad_unos=0;
 
-				int largo= getRachaParams(contadorW, interruption);
+				int largo= getRachaParams(contadorW, interruption,cantidad_unos);
 
 		//		int contexto=(pxls.a==pxls.b);
 				int contexto=getContext_(contador, largo);
@@ -159,7 +169,7 @@ int contadorH=1,contadorW=1,contador=0;
 				if (debug) cout<<contador<<" "<<largo<<" "<<interruption<<" "<<pxls.a<<" "<<contexto<<endl;
 
 				updateImageRacha(racha, contador, salida);
-				if(contador+largo<codedImage.heigth*codedImage.width) updateImageInterruption(racha, contador,contador+largo, salida);
+				if(contador+largo<codedImage.heigth*codedImage.width) updateImageInterruption(racha, contador,contador+largo, salida,cantidad_unos);
 
 				racha.updateContexto();
 
@@ -275,24 +285,24 @@ int Decoder::unrice_rachas(int error,int contexto, int k){
 	 return retorno;
 
 }
-void Decoder::updateImageInterruption(Racha &racha, int contador,int prox_, ofstream &salida){
+void Decoder::updateImageInterruption(Racha &racha, int contador,int prox_, ofstream &salida,int cantidad_unos){
 
 	if (!racha.interruption){
 
 	int kPrime=getKPrime(racha);
-	int error_=getError(kPrime);
+	int error_=getError(kPrime,1,cantidad_unos);
 	//int error = unRice(error_,0,1);
 
 	int error = unrice_rachas(error_,racha.contexto,kPrime);
 
-	error=reduccionDeRango(error,1,getPixels(prox_).b);
+	error=reduccionDeRango(error,1,getPixels_(prox_).b);
 	int errorEstadisticos=clipErrorEstadisticos(error);
 
 	if (debug) cout<<"error: "<<error_<<" "<<error<<endl;
 
-	image.image[contador+racha.largo]=getPixels(prox_).b+error;
+	image.image[contador+racha.largo]=getPixels_(prox_).b+error;
 
-	char pixel_ =getPixels(prox_).b+error+'\0';
+	char pixel_ =getPixels_(prox_).b+error+'\0';
 
 	salida.write(&pixel_,1);	//escribe el pixel en el archivo
 	updateContexto_(racha.contexto, errorEstadisticos);
@@ -316,7 +326,7 @@ void Decoder::updateImageRacha(Racha &racha, int contador, ofstream &salida){
 
 
 }
-int Decoder::getRachaParams(int contadorW, int &interruption_){
+int Decoder::getRachaParams(int contadorW, int &interruption_, int &cantidad_unos){
 
 	kr=0;
 
@@ -327,9 +337,13 @@ int Decoder::getRachaParams(int contadorW, int &interruption_){
 
 	bool finDeFila=false;
 
+	cantidad_unos=0;
+
 	while ((!finDeFila)&&(bit=getBit())){
 
 //		if ((bit=getBit())==0) break;
+
+		cantidad_unos++;
 
 		m_r=pow(2,J[kr]);
 		kr++;
@@ -346,7 +360,13 @@ int Decoder::getRachaParams(int contadorW, int &interruption_){
 
 	interruption=bit;
 
+	if ((largo+contadorW-1>image.width)) cantidad_unos--;
+
 	kr--;
+
+
+
+
 
 	if (bit)	largo=image.width-contadorW+1;
 	else {
@@ -365,6 +385,11 @@ int Decoder::getRachaParams(int contadorW, int &interruption_){
 
 	}if (debug) cout<<endl;
 
+	kr++;
+
+	cantidad_unos=J[kr]+1;
+	if (debug) cout<<"J[kr]+1= "<<cantidad_unos<<endl;
+
 	interruption_=interruption;
 
 	return largo;
@@ -381,7 +406,7 @@ int Decoder::unRice(int error,float s, int k){
 
 	/** Inverso de mapeo de rice */
 
-	if ((k<=0)and(s>0.5)){
+	if ((k<=0)and(s<=-0.5)){
 
 			if (error%2==0)	{
 				int aux=error/2;
@@ -470,9 +495,22 @@ int Decoder::getError_(int k){
 		return error;
 }
 
-int Decoder::getError(int k){
+int Decoder::getError(int k, int racha, int ajuste){
 
 	/** Devuelve como entero el error codificado */
+
+	int qMax;
+
+	if (racha) {
+
+		qMax=this->qMax_;
+		qMax=qMax-ajuste;
+
+	}
+	else {
+
+		qMax=this->qMax;
+	}
 
 	int error=0;
 	int potencia=floor(pow(2,k));
@@ -977,7 +1015,7 @@ Decoder::pixels Decoder::getPixels(int current){
 }
 
 int Decoder::getContext_(int pos, int lar){
-	return (getPixels(pos).a==getPixels(pos+lar).b);
+	return (getPixels_(pos).a==getPixels_(pos+lar).b);
 }
 
 void Decoder::updateContexto_(int c, int err){

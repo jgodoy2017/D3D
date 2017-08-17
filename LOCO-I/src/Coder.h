@@ -55,7 +55,7 @@ public:
 	int getKPrime(Racha&);
 	int rice(int,float,int);
 	int rice_rachas(int,int,int);
-	void encode(int, int, ofstream&);
+	void encode(int, int, ofstream&, int,int);
 	void encode_(int, int, ofstream&);
 	void updateContexto(int, int);
 	void updateContexto_(int, int);
@@ -68,8 +68,8 @@ public:
 	void writeMagic(ofstream&);
 	void writeNmax(ofstream&);
 	int getRachaParams(Image&, int, int, int&);
-	void encodeRacha(Racha&);
-	void encodeMuestraInterrupcion(Racha&, int,int, ofstream&);
+	int encodeRacha(Racha&);
+	void encodeMuestraInterrupcion(Racha&, int,int, ofstream&, int);
 	int reduccionDeRango(int);
 	int fixPrediction(int,int, int);
 
@@ -123,7 +123,10 @@ public:
 	int Lmax;	//agregados también al constructor de clase Coder(image, int, int)
 	int beta;
 	int qMax;
+	int qMax_;
 	bool golombLimitado(int);
+
+	int acum=0;
 
 	ContextRun cntx[2];    // Contextos especiales para rachas.
 	float get_s(int);
