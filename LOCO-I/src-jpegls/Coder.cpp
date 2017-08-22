@@ -374,14 +374,12 @@ int Coder::rice_rachas(int error,int contexto, int k){
 }
 
 int Coder::encodeRacha2(Racha &racha){
-	int cantidad_unos=0;
 	int diferencia=racha.largo;
 	int ajuste=RUNindex;
 
 	if (debug2) cout<<" Codificacion de la racha: ";
 	while (diferencia >= (1 << J[RUNindex])) {
 	   //Agregar un 1 al tream
-		cantidad_unos++;
 		if (debug2) cout<<"1";
 		bitsToFile[bitsToFilePointer]=1;
 		bitsToFilePointer++;
@@ -397,7 +395,6 @@ int Coder::encodeRacha2(Racha &racha){
 		bitsToFile[bitsToFilePointer]=1;
 		bitsToFilePointer++;
 		if (debug2) cout<<"-1-";
-		cantidad_unos++;
 	} else {
 		bitsToFile[bitsToFilePointer]=0;
 		if (debug2) cout<<"-0-";
