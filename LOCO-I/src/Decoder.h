@@ -53,7 +53,7 @@ public:
 		int getK(int);
 		int getKPrime(Racha&);
 		void updateContexto(int, int);
-		void updateContexto_(int, int);
+		void updateContexto_(int, int,int);
 		void writeHeader(ofstream&);
 		void writeWidth(ofstream&);
 		void writeHeigth(ofstream&);
@@ -67,6 +67,7 @@ public:
 		int getError(int,int,int);
 		int getError_(int);
 		int getRachaParams(int, int&,int&);
+		int getRachaParams2(int, int&,int&);
 		void updateImageRacha(Racha&, int, ofstream&);
 		void updateImageInterruption(Racha&, int,int, ofstream&, int);
 		int reduccionDeRango(int, int,int);
@@ -107,6 +108,7 @@ public:
 	int m_r=1;
 
 	bool debug=false;
+	bool debug4=false;
 
 	/**
 	 *
@@ -115,10 +117,14 @@ public:
 	 *
 	 */
 
-	int Lmax;	//agregados también al constructor de clase Decoder(codedImage)
+	int range;
+
+	int Lmax;	//agregados también al constructor de clase Coder(image, int, int)
 	int beta;
 	int qMax;
 	int qMax_;
+	int RUNcnt;
+	int RUNindex = 0;
 	bool golombLimitado(int);
 
 	ContextRun cntx[2];    // Contextos especiales para rachas.

@@ -54,11 +54,11 @@ public:
 	int getK(int);
 	int getKPrime(Racha&);
 	int rice(int,float,int);
-	int rice_rachas(int,int,int);
+	int rice_rachas(int,int,int,int&);
 	void encode(int, int, ofstream&, int,int);
 	void encode_(int, int, ofstream&);
 	void updateContexto(int, int);
-	void updateContexto_(int, int);
+	void updateContexto_(int, int,int,int,int);
 	void writeCode(ofstream&);	/* writecode() y flushEncoder() son métodos reciclados de la (propia) tarea del curso de Compresión de Datos Sin Pérdida*/
 	void flushEncoder(ofstream&);
 	void writeHeader(ofstream&);
@@ -68,7 +68,9 @@ public:
 	void writeMagic(ofstream&);
 	void writeNmax(ofstream&);
 	int getRachaParams(Image&, int, int, int&);
+	int getRachaParams2(Image&, int, int, int&);
 	int encodeRacha(Racha&);
+	int encodeRacha2(Racha&);
 	void encodeMuestraInterrupcion(Racha&, int,int, ofstream&, int);
 	int reduccionDeRango(int);
 	int fixPrediction(int,int, int);
@@ -110,6 +112,11 @@ public:
 	int m_r=1;
 
 	bool debug=false;
+	bool debug2=false;
+	bool debug3=false;
+	bool debug4=false;
+
+	int range;
 
 	bool aux;
 
@@ -124,6 +131,8 @@ public:
 	int beta;
 	int qMax;
 	int qMax_;
+	int RUNcnt;
+	int RUNindex = 0;
 	bool golombLimitado(int);
 
 	int acum=0;

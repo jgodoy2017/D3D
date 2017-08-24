@@ -51,11 +51,13 @@ Coder::Coder(Image image, int Nmax, int aux) {
 	 * CAMBIOS !!
 	 */
 
-	this->beta=8;
-	this->Lmax=4*beta;
+	this->beta=max(2, ceil(log2(image.white+1)));
+	this->Lmax=2*(max(2, ceil(log2(image.white+1)) )+max(8, max(2, ceil(log2(image.white+1)) )));
 
 	this->qMax=Lmax-beta-1;
 	this->qMax_=Lmax-beta-1;
+
+	range=image.white+1;
 
 }
 
@@ -81,11 +83,26 @@ Coder::Coder(Image image, int Nmax, int aux) {
 
 	int maximo_=0;
 
+
+
 	cout << "// START CODER" << endl;
 	//cout << "Tam: " << image.heigth*image.width << endl;
 	for(int prox=0;prox<image.heigth*image.width;prox++){
 
-		//if ((prox>17)&&(prox<19)) debug=true;
+		if (debug4)cout<<"prox: "<<prox<<endl;
+
+		//if (debug3)
+			//cout<<endl<<"fila: ["<<prox/image.width<<"]";
+		//if (debug3)
+			//cout<<"x: ["<<prox%image.width<<"]"<<endl;
+
+		/*if ((prox<100)) {
+			debug=true;
+			if (debug3) cout<<endl<<"fila: ["<<prox/image.width<<"]";
+					if (debug3) cout<<"x: ["<<prox%image.width<<"]"<<endl;
+		}
+		else debug=false;
+		*/
 		//else debug=false;
 
 		//if (prox>22000) debug=true;
@@ -97,7 +114,7 @@ Coder::Coder(Image image, int Nmax, int aux) {
 			cout <<endl;
 		}
 
-*/
+
 		if (debug){
 			cout<<"bitsToFilePointer: "<<bitsToFilePointer<<endl;
 			cout<<"bitsToFile: ";
@@ -106,7 +123,7 @@ Coder::Coder(Image image, int Nmax, int aux) {
 			cout<<bitsToFile[contador];
 			contador++;
 		}cout<<endl;}
-
+*/
 
 							//bucle principal que recorre la imagen y va codificando cada pixel
 
@@ -137,7 +154,7 @@ Coder::Coder(Image image, int Nmax, int aux) {
 		if (debug) cout<<"signo: "<<signo<<endl;
 		//signo=1;
 
-		if (debug )cout<<contexto<<endl;
+		if (debug )cout<<"contexto: "<<contexto<<endl;
 
 		if (aux){
 
@@ -182,7 +199,7 @@ Coder::Coder(Image image, int Nmax, int aux) {
 
 		int error =rice(error__, get_s(contexto),k);	//devuelve mapeo de rice del error
 
-		maximo_=max(maximo_,error);
+		//maximo_=max(maximo_,error);
 
 
 
@@ -199,7 +216,8 @@ Coder::Coder(Image image, int Nmax, int aux) {
 		else {
 
 			int interruption=0;
-			int largo= getRachaParams(image, prox, pxls.a, interruption);
+			//int largo= getRachaParams(image, prox, pxls.a, interruption);
+			int largo= getRachaParams2(image, prox, pxls.a, interruption);
 
 //			int contexto=(pxls.a==pxls.b);
 			int contexto=getContext_(prox, largo);
@@ -208,10 +226,13 @@ Coder::Coder(Image image, int Nmax, int aux) {
 
 			if (debug) cout<<prox<<" "<<largo<<" "<<interruption<<" "<<pxls.a<<" "<<contexto<<endl;
 
+			if (debug) cout<<prox<<" "<<largo<<" "<<interruption<<" "<<pxls.a<<" "<<contexto<<endl;
+
 			if (debug) cout<<"actual: "<<image.image[prox]<<endl;
 
-			int cantidad_unos=encodeRacha(racha);
-
+			//int cantidad_unos=encodeRacha(racha);
+			int cantidad_unos=encodeRacha2(racha);
+/*
 			if (debug){
 				cout<<"bitsToFilePointer: "<<bitsToFilePointer<<endl;
 				cout<<"bitsToFile: ";
@@ -220,7 +241,7 @@ Coder::Coder(Image image, int Nmax, int aux) {
 				cout<<bitsToFile[contador];
 				contador++;
 			}cout<<endl;}
-
+*/
 			encodeMuestraInterrupcion(racha, image.image[prox+largo], prox+largo,salida,cantidad_unos);
 
 
@@ -233,6 +254,10 @@ Coder::Coder(Image image, int Nmax, int aux) {
 
 			if ((racha.interruption))	prox--;	//
 
+			//if ((!racha.interruption))
+				//			cout<<contexto<<" "<<racha.contexto<<" "<<cntx[contexto].A_racha<<" "<<cntx[contexto].N_racha<<" "<<cntx[contexto].Nn_racha<<endl;
+
+
 
 		}
 
@@ -243,7 +268,7 @@ Coder::Coder(Image image, int Nmax, int aux) {
 
 	salida.close();
 
-	cout<<maximo_<<endl;
+	//cout<<maximo_<<endl;
 
 	 ifstream in1(path_salida.c_str(), std::ifstream::ate | std::ifstream::binary);
 	 ifstream in2(image.path.c_str(), std::ifstream::ate | std::ifstream::binary);
@@ -265,16 +290,29 @@ Coder::Coder(Image image, int Nmax, int aux) {
 		return float(float(contexts[contexto].B)/float(contexts[contexto].N)); //es N o N_?
 	}
 
+ int Coder::getRachaParams2(Image &image, int prox, int anterior, int &interruption_){
+ 	int largo=0;
+ 	interruption_=0;
+ 	while(anterior==image.image[prox+largo]){
+ 		largo++;
+ 		if((prox+largo)%(image.width)==0) {
+ 			interruption_=1;
+ 			break;
+ 		}
+ 	}
+ 	return largo;
+ }
+
  int Coder::reduccionDeRango(int error){
 
-	 if (error>127){
+	 if (error>=(range+1)/2){
 
-		 		error=error -256;
+		 		error=error -range;
 		 		if (debug) cout<<"error + predicted>255"<<endl;
 
-		 	}else if (error<-128){
+		 	}else if (error<-((range)/2)){
 
-		 		error=256+error;
+		 		error=range+error;
 		 		if (debug) cout<<"error + predicted<0"<<endl;
 
 		 	}else {
@@ -290,15 +328,19 @@ Coder::Coder(Image image, int Nmax, int aux) {
 int Coder::getKPrime(Racha &r){
 	int T_racha, K_racha;
 
+	T_racha=cntx[r.contexto].A_racha+(cntx[r.contexto].N_racha>>1)*r.contexto;
+	if (debug) cout<<"T_racha: "<<T_racha<<endl;
+	for(K_racha=0; (cntx[r.contexto].N_racha<<K_racha)<T_racha; K_racha++);
+
 	//cout<<">> RACHA CNTX="<<r.contexto<<" A="<<cntx[r.contexto].A_racha<<" N="<<cntx[r.contexto].N_racha<<" Nn="<<cntx[r.contexto].Nn_racha;
 
 	// Calculo la variable T para determinar k de Golomb.
-	T_racha=((r.contexto==1) ? cntx[r.contexto].A_racha : cntx[r.contexto].A_racha + cntx[r.contexto].N_racha/2);   
-	
-	if (debug) cout<<"T_racha: "<<T_racha<<endl;
+	//T_racha=((r.contexto==1) ? cntx[r.contexto].A_racha : cntx[r.contexto].A_racha + cntx[r.contexto].N_racha/2);
 
-	//for(K_racha=0; (cntx[r.contexto].N_racha<<K_racha)<T_racha; K_racha++){
-	for(K_racha=0; (cntx[r.contexto].N_racha*pow(2,K_racha))<T_racha; K_racha++){
+
+
+	//{
+	//for(K_racha=0; (cntx[r.contexto].N_racha*pow(2,K_racha))<T_racha; K_racha++){
 /*
 		if (debug){
 
@@ -312,10 +354,10 @@ int Coder::getKPrime(Racha &r){
 		}
 */
 		// k = min{k' / 2^(k')*N >= T}
-	}//if (debug)		cout<<"K_racha_sale: "<<K_racha<<endl;
+	//}//if (debug)		cout<<"K_racha_sale: "<<K_racha<<endl;
 
 
-	//cout<<" T="<<T_racha<<" K="<<K_racha<<endl;
+	//cout<<" T="<<T_racha<<" N="<<cntx[r.contexto].N_racha<<" A="<<cntx[r.contexto].A_racha<< "contexto="<<r.contexto<<endl;
 	
 	return K_racha;
 }
@@ -323,11 +365,17 @@ void Coder::encodeMuestraInterrupcion(Racha &racha, int siguiente, int prox_, of
 
 
 	int error=0, error_=0, kPrime=1000;
-
+int test;
 
 	if (!racha.interruption){
 
-	error_=siguiente-getPixels_(prox_).b;
+	if (racha.contexto==0){
+		error_=(siguiente-getPixels_(prox_).b)*(-1);
+	test=(siguiente-getPixels_(prox_).b)*(-1);
+	}else{
+		error_=(siguiente-getPixels_(prox_).b);
+	test=(siguiente-getPixels_(prox_).b);
+	}//cout<<"error: "<<error_<<endl;
 
 	kPrime=getKPrime(racha);
 
@@ -335,11 +383,16 @@ void Coder::encodeMuestraInterrupcion(Racha &racha, int siguiente, int prox_, of
 
 	error_=reduccionDeRango(error_);
 
-	error=rice_rachas(error_,racha.contexto,kPrime);
+	int map=0;
 
+	error=rice_rachas(error_,racha.contexto,kPrime,map);
 
+	//cout<<"error: "<<error_<<endl;
 
-	updateContexto_(racha.contexto, error_);
+	updateContexto_(racha.contexto, error_,error,map,kPrime);
+
+	//cout<<error<<endl;
+
 	encode(error, kPrime, salida,1,cantidad_unos);
 	//encode(error, kPrime, salida,0,cantidad_unos);
 	}
@@ -348,16 +401,17 @@ void Coder::encodeMuestraInterrupcion(Racha &racha, int siguiente, int prox_, of
 		writeCode(salida);
 	}
 
-	if (debug) cout<<"error: "<<error<<" "<<error_<<endl;
+	if (debug) cout<<"error: "<<error<<" "<<error_<<" "<<test<<endl;
 
 
 }
 
-int Coder::rice_rachas(int error,int contexto, int k){
+int Coder::rice_rachas(int error,int contexto, int k, int &map){
 
 //cntx[contexto]
 
-	int map=0;
+	//int map=0;
+	map=0;
 
 	if ((k!=0)and(error<0))	map=1;
 
@@ -370,6 +424,98 @@ int Coder::rice_rachas(int error,int contexto, int k){
 	 return retorno;
 
 }
+
+int Coder::encodeRacha2(Racha &racha){
+
+	int aux;
+	int diferencia=racha.largo;
+	int ajuste;
+
+	if (debug4) cout<<" Codificación de la racha: "<<endl;
+
+	if (debug2) cout<<" Codificacion de la racha: ";
+	while (diferencia >= (1 << J[RUNindex])) {
+	   //Agregar un 1 al tream
+		if (debug2) cout<<"1";
+		if (debug4) cout<<"1";
+		bitsToFile[bitsToFilePointer]=1;
+		bitsToFilePointer++;
+	   //RUNcnt = RUNcnt - 2^J[RUNIndex]
+
+		if (debug){
+
+					cout<<"diferencia: "<<diferencia<<endl;
+					aux=(1 << J[RUNindex]);
+					cout<<"1 << J[RUNindex]: "<<aux<<endl;
+
+				}
+
+		diferencia = diferencia - (1 << J[RUNindex]);
+
+
+	   //Si RUNindex < 31, RUNindex++
+		if (RUNindex < 31) {
+			RUNindex++;
+			if (debug) cout << "inc"<<endl;
+		}
+
+		if (debug){
+
+					cout<<"diferencia: "<<diferencia<<endl;
+					aux=(1 << J[RUNindex]);
+					cout<<"1 << J[RUNindex]: "<<aux<<endl;
+
+				}
+
+	}
+
+	if (debug4) cout<<endl;
+
+	if (debug4) cout<<" Codificación de interrupción: "<<endl;
+
+	if ((diferencia!=0)and(racha.interruption)) {
+		bitsToFile[bitsToFilePointer]=1;
+		bitsToFilePointer++;
+		if (debug2) cout<<"-1-";
+		if (debug4) cout<<"1"<<endl;
+	} else if (!racha.interruption) {
+		bitsToFile[bitsToFilePointer]=0;
+		if (debug2) cout<<"-0-";
+		if (debug4) cout<<"0"<<endl;
+		bitsToFilePointer++;
+
+		if (debug4) cout<<" Codificación largo faltante: "<<endl;
+
+		int potencia = 1;
+		for (int j=0;j<J[RUNindex];j++){
+			potencia=potencia*2;
+		}
+		int cociente=diferencia/potencia;
+		int resto=diferencia%potencia;
+		if (debug)	cout<<diferencia<<" "<<cociente<<" "<<resto<<endl;
+		potencia=potencia/2;
+		for (int j=0;j<J[RUNindex];j++){
+			bitsToFile[bitsToFilePointer]=resto/potencia;
+			if (debug4) cout<<resto/potencia;
+			if (debug2) cout<<resto/potencia;
+			if (debug) cout<<resto/potencia;
+			bitsToFilePointer++;
+			resto=resto%potencia;
+			potencia=potencia/2;
+		}
+		ajuste = J[RUNindex];
+		if (RUNindex > 0) RUNindex--;
+		if (debug) cout << "dec"<<endl;
+	}
+
+	if (debug4) cout<<endl;
+
+	if (debug2) cout<<" Valores finales para la racha: kr:   "<<RUNindex<<" J[kr]:   "<<J[RUNindex]<<endl;
+
+	if (debug) cout<<"RUNindex: "<<RUNindex<<endl;
+	return (ajuste+1);
+}
+
 int Coder::encodeRacha(Racha &racha){
 
 	m_r=0;
@@ -511,7 +657,7 @@ int Coder::fixPrediction(int predicted,int signo, int contexto){
 	predicted=predicted+(contexts[contexto].C*signo);
 
 	if (predicted< 0) predicted=0;
-	if (predicted >255) predicted=255;
+	if (predicted >range-1) predicted=range-1;
 
 	return predicted;
 }
@@ -523,6 +669,14 @@ void Coder::updateContexto(int contexto, int error){
 
 	/** Actualiza B y C */
 
+	contexts[contexto].B=contexts[contexto].B+error;
+
+	contexts[contexto].A=contexts[contexto].A+abs(error);
+
+
+
+
+
 	if (contexts[contexto].N==Nmax){
 
 		/* si el valor de N para ese contexto es igual a Nmax divide N y A entre 2 */
@@ -533,14 +687,12 @@ void Coder::updateContexto(int contexto, int error){
 		contexts[contexto].B=floor((double)contexts[contexto].B/(double)2);
 
 	}
-	/* Actualiza A sumándole el valor absoluto de este error */
-	contexts[contexto].B=contexts[contexto].B+error;
-
-	contexts[contexto].A=contexts[contexto].A+abs(error);
 
 	contexts[contexto].N++;	//actualiza N
 
 	if (error<0) contexts[contexto].N_++;
+
+	/* Actualiza A sumándole el valor absoluto de este error */
 
 	if (contexts[contexto].B<=-contexts[contexto].N){
 
@@ -564,6 +716,8 @@ void Coder::updateContexto(int contexto, int error){
 
 
 	}
+	 //printf("> A: %3d B: %3d C: %3d N: %3d\n", contexts[contexto].A, contexts[contexto].B, contexts[contexto].C, contexts[contexto].N);
+	//cout<<"N: "<<contexts[contexto].N<<"Nn: "<<contexts[contexto].N_<<"A: "<<contexts[contexto].A<<"B: "<<contexts[contexto].B<<"C: "<<contexts[contexto].C<<endl;
 /*
 	if (!(contexts[contexto].C==0)){
 
@@ -652,14 +806,16 @@ void Coder::encode(int error, int k, ofstream &salida, int racha,int ajuste){
 		Calcula la parte entera del cociente entre el error y 2^k y lo guarda en "cociente" para codificación binaria
 		Calcula el resto de la división entera entre el error y 2^k y lo guarda en "resto" para codificación unaria */
 
-
+	if ((debug4)and(racha)) cout<<" Codificación muestra de interupción: "<<endl;
 
 	int qMax;
 
 	if (racha) {
 
 		qMax=this->qMax_;
+		if ((debug4)and(racha)) cout<<" qMax: "<<qMax<<endl;
 		qMax=qMax-ajuste;
+		if ((debug4)and(racha)) cout<<" qMax: "<<qMax<<endl;
 
 
 
@@ -687,34 +843,49 @@ void Coder::encode(int error, int k, ofstream &salida, int racha,int ajuste){
 	}
 	if (debug) cout<<"cociente=qMax: "<<(cociente==qMax)<<endl;
 
+	if ((debug4)and(racha)) cout<<" Parte unaria: "<<endl;
+
 	for (int j=0;j<cociente;j++){
 
 			bitsToFile[bitsToFilePointer]=0;
-			if (debug) cout<<0;
+			if ((debug4)and(racha)) cout<<0;
 
 			bitsToFilePointer++;
 
 		}
+
+	if ((debug4)and(racha)) cout<<endl;
+
 		/*	para indicar el fin del código de la parte unaria escribe un 1 al final */
+	//if (debug3) cout<<"cociente: "<<cociente<<endl;
+	//if (debug3) cout<<"qMax: "<<qMax<<endl;
+
 	if(cociente==qMax){
 
 	}else{
+
+		if ((debug4)and(racha)) cout<<" Fin de parte unaria: "<<endl;
 	//}
 			bitsToFile[bitsToFilePointer]=1;
-		if (debug)cout<<1;
+			if ((debug4)and(racha))cout<<1;
 
 		bitsToFilePointer++;
+
 	}
+
+	if ((debug4)and(racha)) cout<<endl;
 	if (cociente==qMax)	{
+
+		if ((debug4)and(racha)) cout<<" Byte por código de escape: "<<endl;
 
 		cociente=qMax;
 
 		potencia=pow(2,beta-1);
 
-		for (int j=0;j<8;j++){
+		for (int j=0;j<beta;j++){
 
 					bitsToFile[bitsToFilePointer]=error/potencia;
-					if (debug) cout<<error/potencia;
+					if ((debug4)and(racha))cout<<error/potencia;
 
 					bitsToFilePointer++;
 
@@ -723,13 +894,17 @@ void Coder::encode(int error, int k, ofstream &salida, int racha,int ajuste){
 					potencia=potencia/2;
 
 				}
+
+		if ((debug4)and(racha)) cout<<endl;
 	}
+
 	else{
+		if ((debug4)and(racha)) cout<<" Parte binaria: "<<endl;
 	/*	Este loop calcula la expresión binaria del resto expresada con k bits, y lo guarda en array auxiliar bitsToFile */
 	for (int j=0;j<k;j++){
 
 			bitsToFile[bitsToFilePointer]=resto/potencia;
-			if (debug) cout<<resto/potencia;
+			if ((debug4)and(racha))cout<<resto/potencia;
 
 			bitsToFilePointer++;
 
@@ -745,8 +920,8 @@ void Coder::encode(int error, int k, ofstream &salida, int racha,int ajuste){
 
 
 
-	}if (debug)	cout<<endl;
-
+	}if ((debug4)and(racha))	cout<<endl;
+/*
 	if (debug){
 		cout<<"bitsToFilePointer: "<<bitsToFilePointer<<endl;
 		cout<<"bitsToFile: ";
@@ -755,9 +930,9 @@ void Coder::encode(int error, int k, ofstream &salida, int racha,int ajuste){
 		cout<<bitsToFile[contador];
 		contador++;
 	}cout<<endl;}
-
+*/
 	writeCode(salida);
-
+/*
 	if (debug){
 		cout<<"bitsToFilePointer: "<<bitsToFilePointer<<endl;
 		cout<<"bitsToFile: ";
@@ -766,7 +941,7 @@ void Coder::encode(int error, int k, ofstream &salida, int racha,int ajuste){
 		cout<<bitsToFile[contador];
 		contador++;
 	}cout<<endl;}
-
+*/
 }
 
 void Coder::writeCode(ofstream &salida){
@@ -875,34 +1050,34 @@ int Coder::getContext(grad gradients, int &signo){
 
 	int contga, contgb,contgc;
 
-	if (gradients.ga<-21) contga=0;
-	else if (gradients.ga<-7) contga=1;
-	else if (gradients.ga<-3) contga=2;
+	if (gradients.ga<=-21) contga=0;
+	else if (gradients.ga<=-7) contga=1;
+	else if (gradients.ga<=-3) contga=2;
 	else if (gradients.ga<0) contga=3;
 	else if (gradients.ga==0) contga=4;
-	else if (gradients.ga<=3) contga=5;
-	else if (gradients.ga<=7) contga=6;
-	else if (gradients.ga<=21) contga=7;
+	else if (gradients.ga<3) contga=5;
+	else if (gradients.ga<7) contga=6;
+	else if (gradients.ga<21) contga=7;
 	else contga=8;
 
-	if (gradients.gb<-21) contgb=0;
-		else if (gradients.gb<-7) contgb=1;
-		else if (gradients.gb<-3) contgb=2;
+	if (gradients.gb<=-21) contgb=0;
+		else if (gradients.gb<=-7) contgb=1;
+		else if (gradients.gb<=-3) contgb=2;
 		else if (gradients.gb<0) contgb=3;
 		else if (gradients.gb==0) contgb=4;
-		else if (gradients.gb<=3) contgb=5;
-		else if (gradients.gb<=7) contgb=6;
-		else if (gradients.gb<=21) contgb=7;
+		else if (gradients.gb<3) contgb=5;
+		else if (gradients.gb<7) contgb=6;
+		else if (gradients.gb<21) contgb=7;
 		else contgb=8;
 
-	if (gradients.gc<-21) contgc=0;
-		else if (gradients.gc<-7) contgc=1;
-		else if (gradients.gc<-3) contgc=2;
+	if (gradients.gc<=-21) contgc=0;
+		else if (gradients.gc<=-7) contgc=1;
+		else if (gradients.gc<=-3) contgc=2;
 		else if (gradients.gc<0) contgc=3;
 		else if (gradients.gc==0) contgc=4;
-		else if (gradients.gc<=3) contgc=5;
-		else if (gradients.gc<=7) contgc=6;
-		else if (gradients.gc<=21) contgc=7;
+		else if (gradients.gc<3) contgc=5;
+		else if (gradients.gc<7) contgc=6;
+		else if (gradients.gc<21) contgc=7;
 		else contgc=8;
 
 		if(contga<4){
@@ -911,7 +1086,20 @@ int Coder::getContext(grad gradients, int &signo){
 			contgc=8-contgc;
 
 			signo=-1;
+		}else if((contga==4)and(contgb<4)) {
+			contga=8-contga;
+			contgb=8-contgb;
+			contgc=8-contgc;
+
+			signo=-1;
 		}
+		else if((contga==4)and(contgb==4)and(contgc<4)) {
+					contga=8-contga;
+					contgb=8-contgb;
+					contgc=8-contgc;
+
+					signo=-1;
+				}
 
 	//mapeo elegido para representar los contextos
 	return (9*9*contga)+(9*contgb)+(contgc);
@@ -929,7 +1117,7 @@ void Coder::setContextsArray(){
 
 			for (int i=-4;i<5;i++){
 
-					Context contexto(k,j,i);
+					Context contexto(k,j,i,image.white);
 					contexts[indice]=contexto;
 					indice++;
 
@@ -1302,17 +1490,22 @@ int Coder::getContext_(int pos, int lar){
 	return (getPixels_(pos).a==getPixels_(pos+lar).b);
 }
 
-void Coder::updateContexto_(int c, int err){
+void Coder::updateContexto_(int c, int err,int err_,int map,int k){
 
-	if(cntx[c].N_racha>RESET) {
+	cntx[c].updateA(err_+1-c>>1);
+	cntx[c].updateNn(err);
+
+	if(cntx[c].N_racha==RESET) {
 			cntx[c].reset();
 			//cout << "RESET" << endl;
 		}
 
-	cntx[c].updateA(err);
-	cntx[c].updateNn(err);
+
 
 	cntx[c].updateN();
+
+	//cout << "map: "<<map<< " k: "<<k<< " A: "<<cntx[c].A_racha<< " N: "<<cntx[c].N_racha<< " Nn: "<<cntx[c].Nn_racha << " error: "<< err<< " mapeo de Rice: "<< err_<< " contexto: "<< c<<endl;
+
 }
 
 Coder::~Coder() {
