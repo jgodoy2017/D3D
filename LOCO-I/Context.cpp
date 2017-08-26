@@ -11,6 +11,7 @@
 
 #include "Context.h"
 
+
 namespace std {
 
 	//esta clase modela un contexto
@@ -20,7 +21,7 @@ Context::Context() {
 
 }
 
-Context::Context(int q1,int q2,int q3) {
+Context::Context(int q1,int q2,int q3,int white) {
 
 	//constructor
 
@@ -29,9 +30,13 @@ Context::Context(int q1,int q2,int q3) {
 	this->q3=q3;
 
 	/* Se inicializan A y N según los valores que se indican en la letra del proyecto */
-	this->A=8;
+
+	if (2>((white +1+32)/64)) this->A=2;
+	else this->A=((white +1+32)/64);
+
+
 	this->N=1;
-	this->N_=1;
+	this->N_=0;
 
 	this->B=0; //inicializado en cero??
 	this->C=0; //inicializado en cero??

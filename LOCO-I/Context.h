@@ -9,12 +9,14 @@
 #ifndef CONTEXT_H_
 #define CONTEXT_H_
 
+
+
 namespace std {
 
 class Context {
 public:
 	Context();
-	Context(int, int, int);
+	Context(int, int, int, int);
 	void updateC();
 	virtual ~Context();
 

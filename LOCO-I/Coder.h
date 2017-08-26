@@ -9,6 +9,19 @@
 #ifndef CODER_H_
 #define CODER_H_
 
+#ifndef T1
+#define T1 3
+#endif
+
+#ifndef T2
+#define T2 7
+#endif
+
+#ifndef T3
+#define T3 21
+#endif
+
+
 #include "Image.h"
 #include "Context.h"
 #include "Racha.h"
@@ -44,19 +57,21 @@ public:
 
 	void code();
 	pixels getPixels(int);
+	pixels getPixels_(int);
 	int getP(pixels);
 	grad setGradients(pixels);
 	void setContextsArray();
-	int getContext(grad);
+	int getContext(grad, int&);
 	int getContext_(int, int);
 	int getPredictedValue(pixels);
 	int getK(int);
 	int getKPrime(Racha&);
-	int rice(int);
-	void encode(int, int, ofstream&);
+	int rice(int,float,int);
+	int rice_rachas(int,int,int,int&);
+	void encode(int, int, ofstream&, int,int);
 	void encode_(int, int, ofstream&);
 	void updateContexto(int, int);
-	void updateContexto_(int, int);
+	void updateContexto_(int, int,int,int,int);
 	void writeCode(ofstream&);	/* writecode() y flushEncoder() son métodos reciclados de la (propia) tarea del curso de Compresión de Datos Sin Pérdida*/
 	void flushEncoder(ofstream&);
 	void writeHeader(ofstream&);
@@ -66,10 +81,12 @@ public:
 	void writeMagic(ofstream&);
 	void writeNmax(ofstream&);
 	int getRachaParams(Image&, int, int, int&);
-	void encodeRacha(Racha&);
-	void encodeMuestraInterrupcion(Racha&, int, ofstream&);
+	int getRachaParams2(Image&, int, int, int&);
+	int encodeRacha(Racha&);
+	int encodeRacha2(Racha&);
+	void encodeMuestraInterrupcion(Racha&, int,int, ofstream&, int);
 	int reduccionDeRango(int);
-	int fixPrediction(int, int);
+	int fixPrediction(int,int, int);
 
 	int max(int, int);
 
@@ -108,6 +125,11 @@ public:
 	int m_r=1;
 
 	bool debug=false;
+	bool debug2=false;
+	bool debug3=false;
+	bool debug4=false;
+
+	int range;
 
 	bool aux;
 
@@ -121,9 +143,15 @@ public:
 	int Lmax;	//agregados también al constructor de clase Coder(image, int, int)
 	int beta;
 	int qMax;
+	int qMax_;
+	int RUNcnt;
+	int RUNindex = 0;
 	bool golombLimitado(int);
 
+	int acum=0;
+
 	ContextRun cntx[2];    // Contextos especiales para rachas.
+	float get_s(int);
 };
 
 } /* namespace std */

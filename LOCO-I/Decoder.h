@@ -10,6 +10,18 @@
 #ifndef DECODER_H_
 #define DECODER_H_
 
+#ifndef T1
+#define T1 3
+#endif
+
+#ifndef T2
+#define T2 7
+#endif
+
+#ifndef T3
+#define T3 21
+#endif
+
 #include "CodedImage.h"
 #include "Image.h"
 #include "Context.h"
@@ -43,34 +55,39 @@ public:
 			virtual ~Decoder();
 			void decode();
 		pixels getPixels(int);
+		pixels getPixels_(int);
 		int getP(pixels);
 		grad setGradients(pixels);
 		void setContextsArray();
-		int getContext(grad);
+		int getContext(grad, int&);
 		int getContext_(int, int);
 		int getPredictedValue(pixels);
 		int getK(int);
 		int getKPrime(Racha&);
 		void updateContexto(int, int);
-		void updateContexto_(int, int);
+		void updateContexto_(int, int,int);
 		void writeHeader(ofstream&);
 		void writeWidth(ofstream&);
 		void writeHeigth(ofstream&);
 		void writeWhite(ofstream&);
 		void writeMagic(ofstream&);
 		void updateImage(int, int);
-		int unRice(int);
+		int unRice(int,float,int);
+		int unrice_rachas(int,int,int);
 		void completaArray();
 		int getBit();
-		int getError(int);
+		int getError(int,int,int);
 		int getError_(int);
-		int getRachaParams(int, int&);
+		int getRachaParams(int, int&,int&);
+		int getRachaParams2(int, int&,int&);
 		void updateImageRacha(Racha&, int, ofstream&);
-		void updateImageInterruption(Racha&, int, ofstream&);
-		int reduccionDeRango(int, int);
+		void updateImageInterruption(Racha&, int,int, ofstream&, int);
+		int reduccionDeRango(int, int,int);
 		int clipErrorEstadisticos(int);
 
-		int fixPrediction(int, int);
+		int fixPrediction(int,int, int);
+
+		float get_s(int);
 
 		/* Este objeto representa la imagen codificada que está decodificando */
 		CodedImage codedImage;
@@ -103,6 +120,7 @@ public:
 	int m_r=1;
 
 	bool debug=false;
+	bool debug4=false;
 
 	/**
 	 *
@@ -111,9 +129,14 @@ public:
 	 *
 	 */
 
-	int Lmax;	//agregados también al constructor de clase Decoder(codedImage)
+	int range;
+
+	int Lmax;	//agregados también al constructor de clase Coder(image, int, int)
 	int beta;
 	int qMax;
+	int qMax_;
+	int RUNcnt;
+	int RUNindex = 0;
 	bool golombLimitado(int);
 
 	ContextRun cntx[2];    // Contextos especiales para rachas.

@@ -30,10 +30,16 @@ using namespace std;
 
 int main(int nargs, char *args[]){
 
+	//bug en contextos de rachas
+
+	//chequear mapeo de rice variable map
+
 
 // string path="/home/felipe/Documents/ATIPI/img_prueba/womanc.pgm";
- string path=args[1];
-	int Nmax=64;
+// int Nmax=64;
+
+   string path=args[1];
+   int Nmax=atoi(args[2]);  // Tomo el Nmax por parametro. Como son chars, lo convierto a int.
 
 	Image image(path);
 
@@ -41,6 +47,7 @@ int main(int nargs, char *args[]){
 	coder1.code();
 
 	stringstream ss1;
+
 	ss1 << Nmax;
 	string nmax = ss1.str();
 
@@ -48,6 +55,8 @@ int main(int nargs, char *args[]){
 
 	Decoder decoder(codedImage);
 	decoder.decode();
+	
+	cout << "// END CODER + DECODER" << endl;
 
 	/*
 
