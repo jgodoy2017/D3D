@@ -31,8 +31,8 @@ using namespace std;
 
 int main(int nargs, char *args[]){
 
-	string path="D:\\Mauro\\Documents\\Facultad\\Proyecto\\img\\1.pgm";
-	string path2="D:\\Mauro\\Documents\\Facultad\\Proyecto\\img\\2.pgm";
+	string path="D:\\Mauro\\Documents\\Facultad\\Proyecto\\img\\PruebasComp\\2.pgm";
+	string path2="D:\\Mauro\\Documents\\Facultad\\Proyecto\\img\\PruebasComp\\1.pgm";
 	int Nmax=20;
 
 	Image image(path);
@@ -41,8 +41,6 @@ int main(int nargs, char *args[]){
 	TempImg imageT(image, image2);
 
 	imageT.makeImg();
-
-
 
 	/***
 	if (nargs<3)	{

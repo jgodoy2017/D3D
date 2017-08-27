@@ -42,11 +42,16 @@ public:
 	TempImg();
 	TempImg(Image, Image);
 	void makeImg();
+	void drawTemp(int, int, int);
+	void drawImage(int, int, int);
+	void drawImage2(int, int, int);
+	void drawLine(int, int, int, int, int, int);
 	pixelsTemp getPixels(int, int);
 	gradTemp setGradientsTemp(int, pixelsTemp);
 	int selectMED(gradTemp);
-	int getPredictedValue(int, pixelsTemp, int);
+	int getPredictedValue(int, pixelsTemp);
 	void initTemp();
+	void itera(string, int&, int, int);
 	void encode(int, int, ofstream&);
 	void writeCode(ofstream&);	/* writecode() y flushEncoder() son métodos reciclados de la (propia) tarea del curso de Compresión de Datos Sin Pérdida*/
 	void flushEncoder(ofstream&);
@@ -73,6 +78,9 @@ public:
 	int m; //veces alto bloque
 
 	int *tempimage;
+	int *h_vector;
+	int *v_vector;
+	bool debug = false;
 
 	/* En este array auxiliar se van guardando los bits de código generado a escribir en el archivo
 	se usa 800 como un tamaño suficiente, este número tiene que ser mayor al error más grande que pueda ser codificado + 7

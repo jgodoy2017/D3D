@@ -23,16 +23,19 @@ TempImg::TempImg(Image image, Image image2) {
 }
 
  void TempImg::makeImg(){
-     int bsize = 16;
+     int bsize = 10;
      int bh = bsize;
      int bv = bsize;
-     int search = 15;
+     int search = 12;
 	 int sIzq = 0;
 	 int sDer = 0;
 	 int sArr = 0;
 	 int sAba = 0;
+	 int vector_ind = 0;
 
      tempimage=(int*)malloc(this->image.width*this->image.heigth*sizeof(int));
+     h_vector=(int*)malloc(this->image.width*this->image.heigth*sizeof(int));
+     v_vector=(int*)malloc(this->image.width*this->image.heigth*sizeof(int));
 
 	initTemp();
 
@@ -52,16 +55,21 @@ TempImg::TempImg(Image image, Image image2) {
 			int vmin = 0;
 			restoV = max((bloqueV+1)*bsize-image2.heigth, 0);
 			restoH = max((bloqueH+1)*bsize-image2.width, 0);
-			derecha = (bloqueH+1)*bsize - image2.width;
-			abajo = (bloqueV+1)*bsize - image2.heigth;
+			derecha = abs((bloqueH+1)*bsize - image2.width);
+			abajo = abs((bloqueV+1)*bsize - image2.heigth);
+
+			//cout<<"H: "<<bloqueH<<" V: "<<bloqueV<<" restoV: "<<restoV<<" restoH "<<restoH<<" derecha: "<<derecha<<" abajo: "<<abajo<<endl;
 
 			sIzq = min(search,bloqueH*bsize);
-			sDer = min(search,derecha + restoH);
+			sDer = min(search,derecha - restoH);
 			sArr = min(search,bloqueV*bsize);
-			sAba = min(search,abajo + restoV);
-			//cout<<"H: "<<bloqueH<<" V: "<<bloqueV<<" "<<sIzq<<" "<<sDer<<" "<<sArr<<" "<<sAba<<endl;
+			sAba = min(search,abajo - restoV);
+			//cout<<"H: "<<bloqueH<<" V: "<<bloqueV<<" sIzq: "<<sIzq<<" sDer: "<<sDer<<" sArr: "<<sArr<<" sAba: "<<sAba<<endl;
 			bh = bsize - restoH;
-			bh = bsize - restoV;
+			bv = bsize - restoV;
+			if (debug) cout<<"H: "<<bloqueH<<" V: "<<bloqueV<<endl;
+			if (debug) cout<<"restoV: "<<restoV<<" restoH: "<<restoH<<" sIzq: "<<sIzq<<" sDer: "<<sDer<<" sArr: "<<sArr<<" sAba: "<<sAba<<endl;
+			if (debug) cout<<"bh: "<<bh<<" bv: "<<bv<<endl;
 
 			for(int v=-sArr;v<sAba+1;v++){
 						for(int h=-sIzq;h<sDer+1;h++){
@@ -74,9 +82,9 @@ TempImg::TempImg(Image image, Image image2) {
 										int pix = (i + j*image.width) + (h + v*image.width) + (bloqueH*bsize + bloqueV*bsize*(image.width));
 										int pix2 = (i + j*image2.width) + (bloqueH*bsize + bloqueV*bsize*(image2.width));
 										//cout<<"p:"<<pix<<" - p2:"<<pix2<<endl;
-										pixelsTemp pxls = getPixels(pix, pix2);
-										gradientes = setGradientsTemp(1,pxls);
-										s = s + abs(getPredictedValue(selectMED(gradientes),pxls, image2.image[pix2]));
+
+										itera("MED3D",s,pix,pix2);
+
 									}
 							}
 							//cout<<"S:"<<s<<" Smin: "<<smin<<endl;
@@ -88,29 +96,59 @@ TempImg::TempImg(Image image, Image image2) {
 							}
 						}
 					}
-
-					//cout<<"v:"<<vmin<<" - h:"<<hmin<<endl;
+					h_vector[vector_ind] = hmin;
+					v_vector[vector_ind] = vmin;
+					vector_ind++;
+					if (debug) cout<<"v:"<<vmin<<" - h:"<<hmin<<endl<<endl;
 					for(int j=0;j<bv;j++){
 							for(int i=0;i<bh;i++){
-								int pix2 = i + j*image.width+bloqueV*bsize*(image.width) + bloqueH*bsize;
-								int pix = i + j*image.width+bloqueV*bsize*(image.width) + bloqueH*bsize + hmin + vmin*image.width;
-								tempimage[pix2]=image.image[pix];
+								int pix = (i + j*image.width) + (hmin + vmin*image.width) + (bloqueH*bsize + bloqueV*bsize*(image.width));
+								int pix2 = (i + j*image2.width) + (bloqueH*bsize + bloqueV*bsize*(image2.width));
+								tempimage[pix2]=image.image[pix]; // Normal
+								//int c = pix2%image.width; // para imprimir laplaciano
+								//int f = ceil(pix2/image.width); // para imprimir laplaciano
+								//tempimage[pix2] = abs(image2.image[min(pix2+1,(f+1)*image2.width-1)]+image2.image[max(pix2-1,f*image2.width)]+image2.image[max(pix2-image2.width,c)]+image2.image[min(pix2+image2.width,(image2.heigth-1)*image2.width+c)]-4*image2.image[pix2]); // para imprimir laplaciano
 								//cout<<hmin<<","<<vmin<<"";
 							}
 							//cout<<endl;
 					}
+					drawLine(bloqueH, bloqueV, bsize, hmin, vmin, image.white);
 				//}
 
 			//cout<<endl;
 		}
 	}
-	for(int pix=0;pix<image.width*image.heigth;pix++){
-		int temp=tempimage[pix]; //valor del pixel actual
-		char temp_=(char)temp;
-		salida.write(&temp_,1);
+	for(int i=0;i<vector_ind;i++){
+		cout<<h_vector[i]<<","<<v_vector[i]<<endl;
 	}
-
+	for(int pix=0;pix<image.width*image.heigth;pix++){
+			//tempimage[pix]=image.image[pix];
+			int temp=tempimage[pix]; //valor del pixel actual
+			char temp_=(char)temp;
+			salida.write(&temp_,1);
+		}
 	salida.close();
+
+}
+
+void TempImg::itera(string function, int &s, int pix, int pix2){
+	/* Valores válidos para Function:
+	 * 	"MED3D": Utilizando el predictor 3D
+	 * 	"ERROR": Utilizando la diferencia entre pixeles
+	 */
+	if (function == "MED3D"){
+		pixelsTemp pxls = getPixels(pix, pix2);
+		gradientes = setGradientsTemp(1,pxls);
+		s = s + abs(getPredictedValue(selectMED(gradientes),pxls)-image2.image[pix2]);
+	}
+	if (function == "ERROR"){
+		s = s + abs(image.image[pix]-image2.image[pix2]);
+	}
+	if (function == "LAPLACE"){
+		int c = pix%image.width;
+		int f = ceil(pix/image.width);
+		s = s + abs(abs(image.image[min(pix+1,(f+1)*image.width-1)]+image.image[max(pix-1,f*image.width)]+image.image[max(pix-image.width,c)]+image.image[min(pix+image.width,(image.heigth-1)*image.width+c)]-4*image.image[pix])-abs(image2.image[min(pix+1,(f+1)*image2.width-1)]+image2.image[max(pix-1,f*image2.width)]+image2.image[max(pix-image2.width,c)]+image2.image[min(pix+image2.width,(image2.heigth-1)*image2.width+c)]-4*image2.image[pix]));
+	}
 
 }
 
@@ -121,6 +159,41 @@ void TempImg::initTemp() {
 	}
 }
 
+void TempImg::drawImage(int x, int y, int value){
+	image.image[x + y*image.width] = value;
+}
+
+void TempImg::drawImage2(int x, int y, int value){
+	image2.image[x + y*image2.width] = value;
+}
+
+void TempImg::drawTemp(int x, int y, int value){
+	tempimage[x + y*image.width] = value;
+}
+
+
+void TempImg::drawLine(int bloqueH, int bloqueV, int bsize, int h, int v, int value){
+
+	if (h==0 && v==0) {
+		drawTemp(bloqueH*bsize, bloqueV*bsize, image.white);
+	} else {
+	double length = sqrt( h*h + v*v );
+
+	double addh = h / length;
+	double addv = v / length;
+
+	double x = bloqueH*bsize;
+	double y = bloqueV*bsize;
+
+	for(int i = 0; i < length; i += 1)
+	{
+	  drawTemp(floor(x), floor(y), image.white-10*i);
+	  x += addh;
+	  y += addv;
+	}
+	}
+
+}
 void TempImg::encode(int error, int k, ofstream &salida){
 
 		/** Almacena en potencia el valor de 2^k
@@ -398,11 +471,10 @@ int TempImg::selectMED(gradTemp gradients){
 	return modo;
 }
 
-int TempImg::getPredictedValue(int modo, pixelsTemp pxls, int pixel){
+int TempImg::getPredictedValue(int modo, pixelsTemp pxls){
 
 	/** Calcula el valor predicho según expresión de las diapositivas del curso */
 	int pred;
-	int error;
 
 	if (modo == 0){
 		if ((pxls.c>=pxls.a)&&(pxls.c>=pxls.b)){
@@ -414,7 +486,6 @@ int TempImg::getPredictedValue(int modo, pixelsTemp pxls, int pixel){
 					pred = pxls.a;
 			else pred = pxls.b;
 		}else pred = (pxls.a+pxls.b-pxls.c);
-		error = pred - pixel;
 	}
 
 	if (modo == 2) {
@@ -427,7 +498,6 @@ int TempImg::getPredictedValue(int modo, pixelsTemp pxls, int pixel){
 				pred = pxls.e_;
 			else pred = pxls.b;
 		}else pred = (pxls.e_+pxls.b-pxls.b_);
-			error = pred - pixel;
 	}
 
 	if (modo == 3){
@@ -440,10 +510,8 @@ int TempImg::getPredictedValue(int modo, pixelsTemp pxls, int pixel){
 					pred = pxls.e_;
 				else pred = pxls.a;
 			}else pred = (pxls.e_+pxls.a-pxls.a_);
-
-		error = pred - pixel;
 	}
-	return error;
+	return pred;
 }
 
 TempImg::pixelsTemp TempImg::getPixels(int current, int current2){
