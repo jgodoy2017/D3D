@@ -38,6 +38,7 @@ public:
 		void setHeigth(ifstream&,char&);
 		void setWhite(ifstream&,char&);
 		void setNmax(ifstream&,char&);
+		void setCantidadImagenes(ifstream&,char&);
 
 		string path;
 
@@ -47,6 +48,8 @@ public:
 
 		int width;
 		int heigth;
+
+		int cantidad_imagenes;
 
 		int white;
 

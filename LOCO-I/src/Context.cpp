@@ -21,13 +21,15 @@ Context::Context() {
 
 }
 
-Context::Context(int q1,int q2,int q3,int white) {
+Context::Context(int q1,int q2,int q3,int q4, int q5,int white) {
 
 	//constructor
 
 	this->q1=q1;
 	this->q2=q2;
 	this->q3=q3;
+	this->q4=q4;
+	this->q5=q5;
 
 	/* Se inicializan A y N según los valores que se indican en la letra del proyecto */
 

@@ -80,7 +80,10 @@ void CodedImage::loadImage(){
 
 			setNmax(in, temp);
 
-			image=(char*)malloc(this->width*this->heigth*sizeof(char));
+			setCantidadImagenes(in, temp);
+
+			image=(char*)malloc(cantidad_imagenes*(this->width*this->heigth)*sizeof(char));
+			/** es una cota superior para el tamaño del archivo codificado*/
 
 			while (true){
 
@@ -102,6 +105,36 @@ void CodedImage::loadImage(){
 
 }
 
+void CodedImage::setCantidadImagenes(ifstream &in,char &temp){
+
+	int contador=0;
+	double resultado=0.0;
+
+	int potencia=10;
+
+	in.read(&temp,1);
+
+	while (temp!='\n'){
+
+		int temp_=temp-'0';
+
+	resultado = double(resultado)+(double)temp_/(double)potencia;
+
+	in.read(&temp,1);
+
+	contador++;
+	potencia=potencia*10;
+
+	}
+
+	resultado=(double)resultado*(double)(potencia/10);
+
+
+
+	this->cantidad_imagenes=round(resultado);
+
+
+}
 
 void CodedImage::setNmax(ifstream &in,char &temp){
 

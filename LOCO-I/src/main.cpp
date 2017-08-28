@@ -28,21 +28,72 @@
 
 using namespace std;
 
+
+bool hasEnding (std::string const &fullString, std::string const &ending) {
+    if (fullString.length() >= ending.length()) {
+        return (0 == fullString.compare (fullString.length() - ending.length(), ending.length(), ending));
+    } else {
+        return false;
+    }
+}
+string* loadImagePaths(string path){
+
+
+		int contador=0;
+		string image_paths[50];
+
+
+		DIR *dir;
+		struct dirent *ent;
+		if ((dir = opendir (path.c_str())) != NULL) {
+		  /* print all the files and directories within directory */
+		  while ((ent = readdir (dir)) != NULL) {
+
+
+		    if (hasEnding(ent->d_name,".pgm")) {
+		    	//cout <<contador<< endl;
+		    	contador++;
+		    	image_paths[contador]=(string)ent->d_name;
+		    }
+
+		  }
+		  closedir (dir);
+		}
+
+		cout <<contador<< endl;
+return image_paths;
+}
+
+string str_(int n){
+
+
+	stringstream ss1;
+	ss1 << n;
+	string n_ = ss1.str();
+
+	return n_;
+}
+
 int main(int nargs, char *args[]){
 
-	//bug en contextos de rachas
+/**		suposiciones: todas las imágenes del stack tienen el mismo ancho, mismo largo		*/
 
-	//chequear mapeo de rice variable map
-
-
- string path="/home/felipe/Documents/ATIPI/img_prueba/womanc.pgm";
+ string path="/home/felipe/Documents/ATIPI/prueba/";
 // string path=args[1];
 	int Nmax=64;
 
-	Image image(path);
 
-	Coder coder1(image,Nmax,1);
+
+	Coder coder1(path,Nmax,1);
 	coder1.code();
+
+	CodedImage codedImage(path+"_coded_Nmax_"+str_(Nmax)+"_"+"1");
+
+	Decoder decoder(codedImage);
+	decoder.decode();
+
+	/*
+	 *
 
 	stringstream ss1;
 	ss1 << Nmax;
@@ -50,8 +101,7 @@ int main(int nargs, char *args[]){
 
 	CodedImage codedImage(path+"_coded_Nmax_"+nmax+"_"+"1");
 
-	Decoder decoder(codedImage);
-	decoder.decode();
+
 
 	/*
 

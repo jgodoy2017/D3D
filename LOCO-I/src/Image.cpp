@@ -30,6 +30,18 @@ image=(int*)malloc(this->width*this->heigth*sizeof(int));
 
 }
 
+Image::Image(string path, int type){
+
+	//constructor
+
+this->path=path;
+this->name="";
+
+if (type==1)loadImage();
+else loadParams();
+
+}
+
 Image::Image(string path){
 
 	//constructor
@@ -56,6 +68,35 @@ void Image::setImage(){
 
 	/** Reserva memoria para guardar toda la imagen */
 	image=(int*)malloc(this->width*this->heigth*sizeof(int));
+}
+
+void Image::loadParams(){
+
+
+
+
+	string some_name;
+
+	string absolute_path=path+name;
+
+				ifstream in;
+				in.open(absolute_path.c_str(), ios::binary);
+
+
+				char temp='1';
+
+
+				setMagic(in,temp);	//recupera el valor de magic de la imagen y lo guarda en la variable "magic"
+									//procedimiento análogo para el width, heigth y white, cada uno es guardado
+									//en la variable correspondiente
+
+				setWidth(in,temp);
+
+				setHeigth(in,temp);
+
+				setWhite(in,temp);
+
+				in.close();
 }
 
 void Image::loadImage(){

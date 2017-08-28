@@ -29,9 +29,11 @@ public:
 	Image();
 	Image(int, int);
 	Image(string);
+	Image(string, int);
 	Image(string, string);
 	virtual ~Image();
 	void loadImage();
+	void loadParams();
 	void setImage();
 	void setMagic(ifstream&,char&);
 	void setWidth(ifstream&,char&);

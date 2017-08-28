@@ -39,17 +39,37 @@ public:
 
 		} grad;
 
+		typedef struct pixels3D{
+
+						int a;
+						int b;
+						int c;
+						int d;
+						int a_;
+						int b_;
+						int c_;
+						int d_;
+						int e_;
+						int f_;
+						int g_;
+
+			} pixels3D;
+
 		Decoder(CodedImage);
 			virtual ~Decoder();
 			void decode();
-		pixels getPixels(int);
-		pixels getPixels_(int);
+		pixels getPixels(int, Image&);
+		pixels getPixels_(int, Image&);
+		pixels3D getPixels3D(int,int, Image&);
 		int getP(pixels);
 		grad setGradients(pixels);
+		grad getGradients3D(int,pixels3D);
 		void setContextsArray();
 		int getContext(grad, int&);
-		int getContext_(int, int);
+		int getContext_(int, int, Image&);
+		int getContext(grad,grad, int&, bool&);
 		int getPredictedValue(pixels);
+		int getPredictedValue(int, pixels3D);
 		int getK(int);
 		int getKPrime(Racha&);
 		void updateContexto(int, int);
@@ -59,7 +79,7 @@ public:
 		void writeHeigth(ofstream&);
 		void writeWhite(ofstream&);
 		void writeMagic(ofstream&);
-		void updateImage(int, int);
+		void updateImage(int, int,Image&);
 		int unRice(int,float,int);
 		int unrice_rachas(int,int,int);
 		void completaArray();
@@ -68,14 +88,16 @@ public:
 		int getError_(int);
 		int getRachaParams(int, int&,int&);
 		int getRachaParams2(int, int&,int&);
-		void updateImageRacha(Racha&, int, ofstream&);
-		void updateImageInterruption(Racha&, int,int, ofstream&, int);
+		void updateImageRacha(Racha&, int, ofstream&, Image&);
+		void updateImageInterruption(Racha&, int,int, ofstream&, int, Image&);
 		int reduccionDeRango(int, int,int);
 		int clipErrorEstadisticos(int);
-
+		Image setInitialImage();
 		int fixPrediction(int,int, int);
-
 		float get_s(int);
+		int getProxImageAnterior(int);
+		int selectMED(grad);
+		string str_(int n);
 
 		/* Este objeto representa la imagen codificada que está decodificando */
 		CodedImage codedImage;
@@ -84,14 +106,20 @@ public:
 		int Nmax;
 		int i;
 
-		static const int CANTIDAD_MAXIMA_CONTEXTOS=9*9*9;
+		static const int CANTIDAD_MAXIMA_CONTEXTOS=9*9*9*9*9;
 
 		Context contexts[CANTIDAD_MAXIMA_CONTEXTOS];
 
 
 	string file;
 
-	Image image;
+	Image images[50]; //hacerlo bien después
+	int cantidad_imagenes;
+
+	Image prev;
+
+	//Image image;
+	//Image image2;
 
 	/* Algún tamaño apropiado
 	Array auxiliar para poder trabajar con los bits individuales de la imagen codificada */

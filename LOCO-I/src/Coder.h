@@ -19,6 +19,22 @@ namespace std {
 class Coder {
 public:
 
+	typedef struct pixels3D{
+
+				int a;
+				int b;
+				int c;
+				int d;
+				int a_;
+				int b_;
+				int c_;
+				int d_;
+				int e_;
+				int f_;
+				int g_;
+
+	} pixels3D;
+
 	typedef struct pixels{
 
 		int a;
@@ -39,16 +55,20 @@ public:
 	Coder();
 	Coder(Image,int);
 
-	Coder(Image,int,int);
+	Coder(string,int,int);
 
-
+	Image setInitialImage();
 	void code();
+	int selectMED(grad);
+	int getPredictedValue(int, pixels3D);
+	grad getGradients3D(int, pixels3D);
 	pixels getPixels(int);
 	pixels getPixels_(int);
+	pixels3D getPixels3D(int,int);
 	int getP(pixels);
 	grad setGradients(pixels);
 	void setContextsArray();
-	int getContext(grad, int&);
+	int getContext(grad,grad, int&, bool&);
 	int getContext_(int, int);
 	int getPredictedValue(pixels);
 	int getK(int);
@@ -67,6 +87,7 @@ public:
 	void writeWhite(ofstream&);
 	void writeMagic(ofstream&);
 	void writeNmax(ofstream&);
+	void writeCantidadImagenes(ofstream&);
 	int getRachaParams(Image&, int, int, int&);
 	int getRachaParams2(Image&, int, int, int&);
 	int encodeRacha(Racha&);
@@ -74,15 +95,27 @@ public:
 	void encodeMuestraInterrupcion(Racha&, int,int, ofstream&, int);
 	int reduccionDeRango(int);
 	int fixPrediction(int,int, int);
+	bool hasEnding (std::string const &fullString, std::string const &ending);
+	string str_(int n);
 
 	int max(int, int);
 
 	int correctPredictedValue(int, int);
 
+	int getProxImageAnterior(int);
+
 	virtual ~Coder();
 
 	/* Este objeto representa la imagen a ser codificada */
+
+	Image images[50]; //hacerlo bien después
+
+	Image image_; //imagen vacía para tener los parámetros que nos interesan, largo, ancho, white, etc.
+
 	Image image;
+	Image image2;
+
+	int width, heigth, white, magic;
 	int Nmax;		//el valor de Nmax
 	int i;
 
@@ -90,7 +123,7 @@ public:
 
 
 
-	static const int CANTIDAD_MAXIMA_CONTEXTOS=9*9*9;
+	static const int CANTIDAD_MAXIMA_CONTEXTOS=9*9*9*9*9;
 
 	/* Array de contextos, cada entrada representa un contexto posible */
 	Context contexts[CANTIDAD_MAXIMA_CONTEXTOS];
@@ -139,6 +172,10 @@ public:
 
 	ContextRun cntx[2];    // Contextos especiales para rachas.
 	float get_s(int);
+
+	string path;
+
+	int cantidad_imagenes;
 };
 
 } /* namespace std */

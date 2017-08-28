@@ -16,7 +16,7 @@ namespace std {
 class Context {
 public:
 	Context();
-	Context(int, int, int, int);
+	Context(int, int, int, int,int, int);
 	void updateC();
 	virtual ~Context();
 
@@ -28,7 +28,7 @@ public:
 	int C;
 	int D;
 
-	int q1,q2,q3;
+	int q1,q2,q3,q4,q5;
 };
 
 } /* namespace std */

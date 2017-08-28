@@ -12,6 +12,22 @@
 #include <sstream>
 #include <math.h>
 
+#include <sstream>
+#include <cstdlib>
+#include <iostream>
+#include <fstream>
+#include <bitset>
+#include <unistd.h>
+
+#include <sstream>
+
+
+#include <iomanip>
+#include <dirent.h>
+
+#include "Coder.h"
+#include "Decoder.h"
+
 namespace std {
 
 
@@ -36,15 +52,46 @@ Coder::Coder(Image image, int Nmax) {
 
 }
 
-Coder::Coder(Image image, int Nmax, int aux) {
+Coder::Coder(string path, int Nmax, int aux) {
 
 		//constructor
 
 	this->Nmax=Nmax;
 
-	this->image=image;
+	DIR *dir;
+	struct dirent *ent;
+	if ((dir = opendir (path.c_str())) != NULL) {
+	  /* print all the files and directories within directory */
+	  while ((ent = readdir (dir)) != NULL) {
+
+
+	    if (hasEnding(ent->d_name,".pgm")) {
+	    	//cout <<path+ent->d_name<< endl;
+
+	    	//image_paths[contador]=(string)ent->d_name;
+	    	images[contador]=Image(path+ent->d_name);
+
+
+	    	contador++;
+	    }
+
+	  }
+	  closedir (dir);
+	}
+
+
+
+	cantidad_imagenes=contador;
+
+	this->width=images[0].width;
+	this->heigth=images[0].heigth;
+	this->white=images[0].white;
+
+	this->image=setInitialImage();
 
 	this->aux=(aux==1);
+
+	this->path=path;
 
 	/**
 	 *
@@ -58,6 +105,46 @@ Coder::Coder(Image image, int Nmax, int aux) {
 	this->qMax_=Lmax-beta-1;
 
 	range=image.white+1;
+
+	int contador=0;
+
+	cout <<"cantidad de imágenes en el stack: "<<cantidad_imagenes<< endl;
+
+}
+
+string Coder::str_(int n){
+
+
+	stringstream ss1;
+	ss1 << n;
+	string n_ = ss1.str();
+
+	return n_;
+}
+bool Coder::hasEnding (std::string const &fullString, std::string const &ending) {
+    if (fullString.length() >= ending.length()) {
+        return (0 == fullString.compare (fullString.length() - ending.length(), ending.length(), ending));
+    } else {
+        return false;
+    }
+}
+
+
+Image Coder::setInitialImage(){
+
+Image aux=Image();
+
+aux.image=(int*)malloc(width*heigth*sizeof(int));
+
+for (int k=0;k<width*heigth;k++)
+	aux.image[k]=0;
+	/*	definir algún criterio para esta imagen */
+
+aux.white=this->white;
+aux.width=this->width;
+aux.heigth=this->heigth;
+
+return aux;
 
 }
 
@@ -73,7 +160,7 @@ Coder::Coder(Image image, int Nmax, int aux) {
 	if (aux) aux_="1";
 	else aux_="0";
 
-	string path_salida=image.path+image.name+"_coded_Nmax_"+nmax+"_"+aux_;
+	string path_salida=path+"_coded_Nmax_"+nmax+"_"+aux_;
 	ofstream salida;
 	salida.open(path_salida.c_str(), ios::binary);
 
@@ -81,13 +168,32 @@ Coder::Coder(Image image, int Nmax, int aux) {
 
 	setContextsArray();
 
-	int maximo_=0;
+	//int maximo_=0;
 
 
 
 	cout << "// START CODER" << endl;
 	//cout << "Tam: " << image.heigth*image.width << endl;
+
+	for (int imagen=0;imagen<cantidad_imagenes;imagen++){
+
+/*
+				if (imagen==1) debug=true;
+				else debug=false;
+*/
+
+		if (debug)cout << "imagen: "<< imagen << endl;
+
+		image2=images[imagen];
+		if (imagen!=0)image=images[imagen-1];
+		//else image=images[imagen];
+
 	for(int prox=0;prox<image.heigth*image.width;prox++){
+
+
+		/** determinar algún criterio para la imagen inicial*/
+
+
 
 		if (debug4)cout<<"prox: "<<prox<<endl;
 
@@ -127,9 +233,18 @@ Coder::Coder(Image image, int Nmax, int aux) {
 
 							//bucle principal que recorre la imagen y va codificando cada pixel
 
-		int currentPixel=image.image[prox]; //valor del pixel actual
+		int currentPixel=image2.image[prox]; //valor del pixel actual
 
-		pixels pxls = getPixels_(prox); //obtiene los píxeles de la vecindad: a,b y c
+		//pixels pxls = getPixels_(prox); //obtiene los píxeles de la vecindad: a,b y c
+
+
+		/**	en esta función va la lógica para implentar la "compensación de movimiento",
+		 * 					dada la posición actual de la imagen que estoy codificando, devuelve la posición que
+		 * 							correspondería según el macrobloque hallado en la compensación de movimiento
+		 * 							*/
+		int prox_image_anterior=getProxImageAnterior(prox);
+
+		pixels3D pxls = getPixels3D(prox_image_anterior,prox);
 
 		//if (prox==267870) debug=true; else debug=false;
 
@@ -143,33 +258,40 @@ Coder::Coder(Image image, int Nmax, int aux) {
 
 		// int p = getP(pxls);	//calcula p
 
-		grad gradients=setGradients(pxls); //calcula los gradientes
+		//grad gradients=setGradients(pxls); //calcula los gradientes
+		grad gradients=getGradients3D(1,pxls); //calcula los gradientes
+
 
 		//cout<<prox<<" " << gradients.ga<<" "<< gradients.gb<<" "<< gradients.gc<<" "<<endl;
 
 		int signo;
 
-		int contexto = getContext(gradients, signo);	//trae el contexto asociado a ese gradiente
+		/* ver bien qué gradientes tiene que traer*/
+
+		bool esRacha;
+		int contexto = getContext(getGradients3D(0,pxls),getGradients3D(1,pxls), signo, esRacha);
 
 		if (debug) cout<<"signo: "<<signo<<endl;
 		//signo=1;
 
 		if (debug )cout<<"contexto: "<<contexto<<endl;
 
-		if (aux){
+		/*if (aux){
 
-		if (contexto==364) {
+		if (esRacha) {
 			racha=true;
 			if (debug) cout<<"RACHA!"<<endl;
 		}
 		else racha =false;
 
 		}
-
-		if (!racha){
+*/
+		if (!esRacha){
 		//if (true){
 
-		int predicted = getPredictedValue(pxls);	//calcula el valor pixel predicho
+		//int predicted = getPredictedValue(pxls);	//calcula el valor pixel predicho
+
+		int predicted = getPredictedValue(selectMED(gradients),pxls);	//calcula el valor pixel predicho
 
 		if (debug) cout<<predicted<<endl;
 
@@ -217,7 +339,7 @@ Coder::Coder(Image image, int Nmax, int aux) {
 
 			int interruption=0;
 			//int largo= getRachaParams(image, prox, pxls.a, interruption);
-			int largo= getRachaParams2(image, prox, pxls.a, interruption);
+			int largo= getRachaParams2(image2, prox, pxls.a, interruption);
 
 //			int contexto=(pxls.a==pxls.b);
 			int contexto=getContext_(prox, largo);
@@ -228,7 +350,7 @@ Coder::Coder(Image image, int Nmax, int aux) {
 
 			if (debug) cout<<prox<<" "<<largo<<" "<<interruption<<" "<<pxls.a<<" "<<contexto<<endl;
 
-			if (debug) cout<<"actual: "<<image.image[prox]<<endl;
+			if (debug) cout<<"actual: "<<image2.image[prox]<<endl;
 
 			//int cantidad_unos=encodeRacha(racha);
 			int cantidad_unos=encodeRacha2(racha);
@@ -242,9 +364,7 @@ Coder::Coder(Image image, int Nmax, int aux) {
 				contador++;
 			}cout<<endl;}
 */
-			encodeMuestraInterrupcion(racha, image.image[prox+largo], prox+largo,salida,cantidad_unos);
-
-
+			encodeMuestraInterrupcion(racha, image2.image[prox+largo], prox+largo,salida,cantidad_unos);
 
 			racha.updateContexto();
 
@@ -264,6 +384,8 @@ Coder::Coder(Image image, int Nmax, int aux) {
 		if (debug) cout<<endl;
 	}
 
+	}
+
 	flushEncoder(salida);	//termina de escribir los últimos bits que hayan quedado en el array de bits
 
 	salida.close();
@@ -279,6 +401,13 @@ Coder::Coder(Image image, int Nmax, int aux) {
 	 in2.close();
 
 }
+
+ int Coder::getProxImageAnterior(int prox){
+
+	 //implementar
+
+	 return prox;
+ }
 
  int Coder::max(int uno, int dos){
 
@@ -848,13 +977,15 @@ void Coder::encode(int error, int k, ofstream &salida, int racha,int ajuste){
 	for (int j=0;j<cociente;j++){
 
 			bitsToFile[bitsToFilePointer]=0;
-			if ((debug4)and(racha)) cout<<0;
+			//if ((debug4)and(racha)) cout<<0;
+			if ((debug)) cout<<0;
 
 			bitsToFilePointer++;
 
 		}
 
-	if ((debug4)and(racha)) cout<<endl;
+	//if ((debug4)and(racha)) cout<<endl;
+	if ((debug)) cout<<endl;
 
 		/*	para indicar el fin del código de la parte unaria escribe un 1 al final */
 	//if (debug3) cout<<"cociente: "<<cociente<<endl;
@@ -868,12 +999,14 @@ void Coder::encode(int error, int k, ofstream &salida, int racha,int ajuste){
 	//}
 			bitsToFile[bitsToFilePointer]=1;
 			if ((debug4)and(racha))cout<<1;
+			if ((debug)) cout<<1;
 
 		bitsToFilePointer++;
 
 	}
 
 	if ((debug4)and(racha)) cout<<endl;
+	if ((debug)) cout<<endl;
 	if (cociente==qMax)	{
 
 		if ((debug4)and(racha)) cout<<" Byte por código de escape: "<<endl;
@@ -886,6 +1019,7 @@ void Coder::encode(int error, int k, ofstream &salida, int racha,int ajuste){
 
 					bitsToFile[bitsToFilePointer]=error/potencia;
 					if ((debug4)and(racha))cout<<error/potencia;
+					if ((debug))cout<<error/potencia;
 
 					bitsToFilePointer++;
 
@@ -896,6 +1030,7 @@ void Coder::encode(int error, int k, ofstream &salida, int racha,int ajuste){
 				}
 
 		if ((debug4)and(racha)) cout<<endl;
+		if ((debug)) cout<<endl;
 	}
 
 	else{
@@ -905,6 +1040,7 @@ void Coder::encode(int error, int k, ofstream &salida, int racha,int ajuste){
 
 			bitsToFile[bitsToFilePointer]=resto/potencia;
 			if ((debug4)and(racha))cout<<resto/potencia;
+			if ((debug))cout<<resto/potencia;
 
 			bitsToFilePointer++;
 
@@ -921,6 +1057,7 @@ void Coder::encode(int error, int k, ofstream &salida, int racha,int ajuste){
 
 
 	}if ((debug4)and(racha))	cout<<endl;
+	if ((debug)) cout<<endl;
 /*
 	if (debug){
 		cout<<"bitsToFilePointer: "<<bitsToFilePointer<<endl;
@@ -1039,7 +1176,7 @@ int Coder::getPredictedValue(pixels pxls){
 
 }
 
-int Coder::getContext(grad gradients, int &signo){
+int Coder::getContext(grad gradients1,grad gradients2, int &signo, bool &racha){
 
 	/** Determina el contexto
 	Todos los contextos posibles se organizan en un array, donde cada elemento del array representa un contexto,
@@ -1048,48 +1185,72 @@ int Coder::getContext(grad gradients, int &signo){
 
 	signo=1;
 
-	int contga, contgb,contgc;
+	int contga, contgb,contgc,contgd,contge;
 
-	if (gradients.ga<=-21) contga=0;
-	else if (gradients.ga<=-7) contga=1;
-	else if (gradients.ga<=-3) contga=2;
-	else if (gradients.ga<0) contga=3;
-	else if (gradients.ga==0) contga=4;
-	else if (gradients.ga<3) contga=5;
-	else if (gradients.ga<7) contga=6;
-	else if (gradients.ga<21) contga=7;
+	if (gradients1.ga<=-21) contga=0;
+	else if (gradients1.ga<=-7) contga=1;
+	else if (gradients1.ga<=-3) contga=2;
+	else if (gradients1.ga<0) contga=3;
+	else if (gradients1.ga==0) contga=4;
+	else if (gradients1.ga<3) contga=5;
+	else if (gradients1.ga<7) contga=6;
+	else if (gradients1.ga<21) contga=7;
 	else contga=8;
 
-	if (gradients.gb<=-21) contgb=0;
-		else if (gradients.gb<=-7) contgb=1;
-		else if (gradients.gb<=-3) contgb=2;
-		else if (gradients.gb<0) contgb=3;
-		else if (gradients.gb==0) contgb=4;
-		else if (gradients.gb<3) contgb=5;
-		else if (gradients.gb<7) contgb=6;
-		else if (gradients.gb<21) contgb=7;
+	if (gradients1.gb<=-21) contgb=0;
+		else if (gradients1.gb<=-7) contgb=1;
+		else if (gradients1.gb<=-3) contgb=2;
+		else if (gradients1.gb<0) contgb=3;
+		else if (gradients1.gb==0) contgb=4;
+		else if (gradients1.gb<3) contgb=5;
+		else if (gradients1.gb<7) contgb=6;
+		else if (gradients1.gb<21) contgb=7;
 		else contgb=8;
 
-	if (gradients.gc<=-21) contgc=0;
-		else if (gradients.gc<=-7) contgc=1;
-		else if (gradients.gc<=-3) contgc=2;
-		else if (gradients.gc<0) contgc=3;
-		else if (gradients.gc==0) contgc=4;
-		else if (gradients.gc<3) contgc=5;
-		else if (gradients.gc<7) contgc=6;
-		else if (gradients.gc<21) contgc=7;
+	if (gradients1.gc<=-21) contgc=0;
+		else if (gradients1.gc<=-7) contgc=1;
+		else if (gradients1.gc<=-3) contgc=2;
+		else if (gradients1.gc<0) contgc=3;
+		else if (gradients1.gc==0) contgc=4;
+		else if (gradients1.gc<3) contgc=5;
+		else if (gradients1.gc<7) contgc=6;
+		else if (gradients1.gc<21) contgc=7;
 		else contgc=8;
+
+	if (gradients2.gb<=-21) contgd=0;
+		else if (gradients2.gb<=-7) contgd=1;
+		else if (gradients2.gb<=-3) contgd=2;
+		else if (gradients2.gb<0) contgd=3;
+		else if (gradients2.gb==0) contgd=4;
+		else if (gradients2.gb<3) contgd=5;
+		else if (gradients2.gb<7) contgd=6;
+		else if (gradients2.gb<21) contgd=7;
+		else contgd=8;
+
+	if (gradients2.gc<=-21) contge=0;
+		else if (gradients2.gc<=-7) contge=1;
+		else if (gradients2.gc<=-3) contge=2;
+		else if (gradients2.gc<0) contge=3;
+		else if (gradients2.gc==0) contge=4;
+		else if (gradients2.gc<3) contge=5;
+		else if (gradients2.gc<7) contge=6;
+		else if (gradients2.gc<21) contge=7;
+		else contge=8;
 
 		if(contga<4){
 			contga=8-contga;
 			contgb=8-contgb;
 			contgc=8-contgc;
+			contgd=8-contgd;
+			contge=8-contge;
 
 			signo=-1;
 		}else if((contga==4)and(contgb<4)) {
 			contga=8-contga;
 			contgb=8-contgb;
 			contgc=8-contgc;
+			contgd=8-contgd;
+			contge=8-contge;
 
 			signo=-1;
 		}
@@ -1097,12 +1258,38 @@ int Coder::getContext(grad gradients, int &signo){
 					contga=8-contga;
 					contgb=8-contgb;
 					contgc=8-contgc;
+					contgd=8-contgd;
+					contge=8-contge;
 
 					signo=-1;
 				}
 
+		else if((contga==4)and(contgb==4)and(contgc==4)and(contgd<4)) {
+					contga=8-contga;
+					contgb=8-contgb;
+					contgc=8-contgc;
+					contgd=8-contgd;
+					contge=8-contge;
+
+					signo=-1;
+				}
+
+		else if((contga==4)and(contgb==4)and(contgc==4)and(contgd==4)and(contge<4)) {
+					contga=8-contga;
+					contgb=8-contgb;
+					contgc=8-contgc;
+					contgd=8-contgd;
+					contge=8-contge;
+
+					signo=-1;
+				}
 	//mapeo elegido para representar los contextos
-	return (9*9*contga)+(9*contgb)+(contgc);
+
+		if ((9*9*9*9*contga)+(9*9*9*contgb)+(9*9*contgc)==29484)
+				racha=true;
+		else racha=false;
+
+	return (9*9*9*9*contga)+(9*9*9*contgb)+(9*9*contgc)+(9*contgd)+contge;
 }
 
 void Coder::setContextsArray(){
@@ -1117,9 +1304,18 @@ void Coder::setContextsArray(){
 
 			for (int i=-4;i<5;i++){
 
-					Context contexto(k,j,i,image.white);
+				for (int l=-4;l<5;l++){
+
+					for (int m=-4;m<5;m++){
+
+
+					Context contexto(k,j,i,l,m,image.white);
 					contexts[indice]=contexto;
 					indice++;
+
+					}
+
+				}
 
 			}
 
@@ -1196,6 +1392,105 @@ Coder::pixels Coder::getPixels(int current){
 		return pxls;
 }
 
+Coder::pixels3D Coder::getPixels3D(int current, int current2){
+
+	/** Devuelve los píxeles de la vecindad: a, b, c, d, a_, b_, c_, d_, e_, f_ y g_ */
+
+
+	/**  arreglar criterio para los píxeles que caen fuera de la imagen*/
+
+	int a=-1;
+	int b=-1;
+	int c=-1;
+	int d=-1;
+
+	int a_=-1;
+	int b_=-1;
+	int c_=-1;
+	int d_=-1;
+	int e_=-1;
+	int f_=-1;
+	int g_=-1;
+
+	if ((current2%image2.width)==0){
+
+		/* Si estoy parado en un borde izquierdo, el valor de a y c tienen que ser "128",
+		o la mitad del valor de blanco de la imagen */
+		a=ceil((double)image2.white/(double)2);
+		c=ceil((double)image2.white/(double)2);
+
+	}
+
+	if ((current2%image2.width)==image.width-1){
+
+		/* Si estoy parado en un borde derecho, el valor de d tiene que ser "128",
+		o la mitad del valor de blanco de la imagen */
+		d=ceil((double)image2.white/(double)2);
+
+	}
+
+	if (current2<image2.width){
+
+		/* Si estoy en la primer fila, b y c deben ser "128"
+		o la mitad del valor de blanco de la imagen */
+		if (b==-1) b=ceil((double)image2.white/(double)2);
+		if (c==-1) c=ceil((double)image2.white/(double)2);
+		if (d==-1) d=ceil((double)image2.white/(double)2);
+
+	}
+
+	if ((current%image.width)==0){
+
+			/* Si estoy parado en un borde izquierdo, el valor de a y c tienen que ser "128",
+			o la mitad del valor de blanco de la imagen */
+			a_=ceil((double)image.white/(double)2);
+			c_=ceil((double)image.white/(double)2);
+
+		}
+
+		if ((current%image.width)==image.width-1){
+
+			/* Si estoy parado en un borde derecho, el valor de d tiene que ser "128",
+			o la mitad del valor de blanco de la imagen */
+			d_=ceil((double)image.white/(double)2);
+			f_=ceil((double)image.white/(double)2);
+
+		}
+
+		if (current<image.width){
+
+			/* Si estoy en la primer fila, b y c deben ser "128"
+			o la mitad del valor de blanco de la imagen */
+			if (b_==-1) b_=ceil((double)image.white/(double)2);
+			if (c_==-1) c_=ceil((double)image.white/(double)2);
+			if (d_==-1) d_=ceil((double)image.white/(double)2);
+		}
+
+		if (current>(image.heigth-2)*image.width){
+
+			/* Si estoy en la última o penúltima fila, g debe ser "128"
+			o la mitad del valor de blanco de la imagen */
+			g_=ceil((double)image.white/(double)2);
+		}
+
+	/* Para cada a, b,c y d, si no se cumple una condición de borde, y por lo tanto no hubo asignación en los if que preceden,
+	se traen los valores de a, b,c y d de la imagen */
+	if (a==-1) a=image2.image[current2-1];
+	if (b==-1) b=image2.image[current2-image.width];
+	if (c==-1) c=image2.image[current2-image.width-1];
+	if (d==-1) d=image2.image[current2-image.width+1];
+	if (a_==-1) a_=image.image[current-1];
+	if (b_==-1) b_=image.image[current-image.width];
+	if (c_==-1) c_=image.image[current-image.width-1];
+	if (d_==-1) d_=image.image[current-image.width+1];
+	if (e_==-1) e_=image.image[current];
+	if (f_==-1) f_=image.image[current+1];
+	if (g_==-1) g_=image.image[current+image.width];
+	pixels3D pxls={a,b,c,d,a_,b_,c_,d_,e_,f_,g_};
+
+		return pxls;
+}
+
 Coder::pixels Coder::getPixels_(int current){
 
 	/** Devuelve los píxeles de la vecindad: a, b y c */
@@ -1214,17 +1509,17 @@ Coder::pixels Coder::getPixels_(int current){
 		c=0;
 		d=0;
 
-	}	else if ((current%image.width)==0){
+	}	else if ((current%image2.width)==0){
 
 		/* columna izquierda */
 
-		a=image.image[current-image.width];
-		c=getPixels_(current-image.width).a;
+		a=image2.image[current-image2.width];
+		c=getPixels_(current-image2.width).a;
 
 
 	}
 
-	if (current<image.width){
+	if (current<image2.width){
 
 			//primer fila
 
@@ -1236,11 +1531,11 @@ Coder::pixels Coder::getPixels_(int current){
 
 
 
-	else if ((current%image.width)==image.width-1){
+	else if ((current%image2.width)==image2.width-1){
 
 		/* columna derecha */
 
-		d=image.image[current-image.width];
+		d=image2.image[current-image.width];
 
 
 	}
@@ -1248,10 +1543,10 @@ Coder::pixels Coder::getPixels_(int current){
 
 	/* Para cada a, b,c y d, si no se cumple una condición de borde, y por lo tanto no hubo asignación en los if que preceden,
 	se traen los valores de a, b,c y d de la imagen */
-	if (a==-1) a=image.image[current-1];
-	if (b==-1) b=image.image[current-image.width];
-	if (c==-1) c=image.image[current-image.width-1];
-	if (d==-1) d=image.image[current-image.width+1];
+	if (a==-1) a=image2.image[current-1];
+	if (b==-1) b=image2.image[current-image.width];
+	if (c==-1) c=image2.image[current-image.width-1];
+	if (d==-1) d=image2.image[current-image.width+1];
 
 	pixels pxls={a,b,c,d};
 
@@ -1273,7 +1568,58 @@ void Coder::writeHeader(ofstream &salida){
 	writeHeigth(salida);
 	writeWhite(salida);
 	writeNmax(salida);
+	writeCantidadImagenes(salida);
 
+}
+
+void Coder::writeCantidadImagenes(ofstream &salida){
+
+	/** Se lleva el valor de Nmax a un double de la forma 0,Nmax
+	luego se multiplica entre 10 y se redondea para quedarse
+	con cada digito de Nmax y poder escribirlos como chars */
+
+	int nmax =cantidad_imagenes;
+
+	double aux=(double)nmax;
+
+	int potencia=1;
+
+	while(aux>=1){
+
+		aux=aux/10;
+		potencia=potencia*10;
+	}	//calcula cuál es el orden de Nmax, 10, 100, 1000, etc... y deja a aux (Nmax) en un valor entre 0 y 1
+
+	char temp_;
+
+	int temp=0;
+
+	while(potencia>1){
+
+		aux=aux-(double)temp;	//luego de que ya fue escrito el digito anterior,
+								//se hace esta resta para eliminar del decimal el valor que ya fue escrito,
+								//por ejemplo, si de 0.256 pasamos a 2.56, luego de la resta se tiene el
+								//número 0.56, para que pueda volver a ser multiplicado por 10, escribir el 5 y así siguiendo...
+
+	aux=aux*double(10);
+
+	if (double(ceil(aux))-(double)aux<(double)0.00001)
+						temp=ceil(aux);			//parche artesanal, algunos números uno los ve como
+												//cierto valor, pero al tomar el floor te da el entero
+												//anterior, suponemos que si bien uno lo ve como el número n
+												//para la máquina es (n-1),9999999999
+	else temp=floor(aux);
+
+	temp_=temp+'0';	//pasa el entero a char para escribirlo
+
+	salida.write(&temp_,1);
+
+	potencia=potencia/10;
+	}
+
+	temp_='\n';	//por último escribe un salto de línea
+
+	salida.write(&temp_,1);
 }
 
 void Coder::writeNmax(ofstream &salida){
@@ -1506,6 +1852,96 @@ void Coder::updateContexto_(int c, int err,int err_,int map,int k){
 
 	//cout << "map: "<<map<< " k: "<<k<< " A: "<<cntx[c].A_racha<< " N: "<<cntx[c].N_racha<< " Nn: "<<cntx[c].Nn_racha << " error: "<< err<< " mapeo de Rice: "<< err_<< " contexto: "<< c<<endl;
 
+}
+
+int Coder::selectMED(grad gradients){
+	int gz = abs(gradients.ga);
+	int gx = abs(gradients.gb);
+	int gy = abs(gradients.gc);
+
+	int modo = 3;
+
+	if ((gz>=gx)&&(gz>=gy)){
+		modo = 0;
+	}
+	if ((gx>=gz)&&(gx>=gy)){
+		modo = 2;
+	}
+	return modo;
+}
+
+Coder::grad Coder::getGradients3D(int modo, pixels3D pxls){
+
+	/** Devuelve los gradientes según el modo de funcionamiento elegido:
+	 * Modos:
+	 * 		1 = Devuelve los gradientes de elección de predictor
+	 * 		2 = Devuelve los gradientes del predictor filas-tiempo
+	 * 		3 = Devuelve los gradientes del predictor columnas-tiempo
+	 * 		0 o cualquier otros = Devuelve los gradientes del predictor filas-columnas
+	 *  */
+
+	grad gradients={pxls.d-pxls.b,pxls.b-pxls.c,pxls.c-pxls.a};
+
+	if (modo == 1){
+			gradients={pxls.a-pxls.a_,pxls.b-pxls.c,pxls.c-pxls.a};
+	}
+	if (modo == 2){
+			gradients={pxls.g_-pxls.e_,pxls.e_-pxls.b_,pxls.b_-pxls.b};
+	}
+	if (modo == 3){
+			gradients={pxls.f_-pxls.e_,pxls.e_-pxls.a_,pxls.a_-pxls.a};
+	}
+
+	return gradients;
+}
+
+
+int Coder::getPredictedValue(int modo, pixels3D pxls){
+
+	/** Calcula el valor predicho según expresión de las diapositivas del curso */
+	int pred;
+	int error;
+
+	if (modo == 0){
+		if ((pxls.c>=pxls.a)&&(pxls.c>=pxls.b)){
+			if (pxls.a>pxls.b)
+					pred = pxls.b;
+			else pred = pxls.a;
+		}else if ((pxls.c<=pxls.a)&&(pxls.c<=pxls.b)){
+			if (pxls.a>pxls.b)
+					pred = pxls.a;
+			else pred = pxls.b;
+		}else pred = (pxls.a+pxls.b-pxls.c);
+		//error = pred - pixel;
+	}
+
+	if (modo == 2) {
+		if ((pxls.b_>=pxls.e_)&&(pxls.b_>=pxls.b)){
+			if (pxls.e_>pxls.b)
+				pred = pxls.b;
+			else pred = pxls.e_;
+		}else if ((pxls.b_<=pxls.e_)&&(pxls.b_<=pxls.b)){
+			if (pxls.e_>pxls.b)
+				pred = pxls.e_;
+			else pred = pxls.b;
+		}else pred = (pxls.e_+pxls.b-pxls.b_);
+			//error = pred - pixel;
+	}
+
+	if (modo == 3){
+		if ((pxls.a_>=pxls.e_)&&(pxls.a_>=pxls.a)){
+				if (pxls.e_>pxls.a)
+					pred = pxls.a;
+				else pred = pxls.e_;
+			}else if ((pxls.a_<=pxls.e_)&&(pxls.a_<=pxls.a)){
+				if (pxls.e_>pxls.a)
+					pred = pxls.e_;
+				else pred = pxls.a;
+			}else pred = (pxls.e_+pxls.a-pxls.a_);
+
+		//error = pred - pixel;
+	}
+	return pred;
 }
 
 Coder::~Coder() {
