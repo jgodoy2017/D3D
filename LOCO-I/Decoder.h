@@ -10,18 +10,6 @@
 #ifndef DECODER_H_
 #define DECODER_H_
 
-#ifndef T1
-#define T1 3
-#endif
-
-#ifndef T2
-#define T2 7
-#endif
-
-#ifndef T3
-#define T3 21
-#endif
-
 #include "CodedImage.h"
 #include "Image.h"
 #include "Context.h"
@@ -51,7 +39,7 @@ public:
 
 		} grad;
 
-		Decoder(CodedImage);
+		Decoder(CodedImage, int, int, int, int);
 			virtual ~Decoder();
 			void decode();
 		pixels getPixels(int);
@@ -59,7 +47,7 @@ public:
 		int getP(pixels);
 		grad setGradients(pixels);
 		void setContextsArray();
-		int getContext(grad, int&);
+		int getContext(grad, int&, int, int, int);
 		int getContext_(int, int);
 		int getPredictedValue(pixels);
 		int getK(int);
@@ -88,6 +76,11 @@ public:
 		int fixPrediction(int,int, int);
 
 		float get_s(int);
+
+		// Limites de cuantizacion de los contextos.
+		int T1;
+		int T2;
+		int T3;
 
 		/* Este objeto representa la imagen codificada que está decodificando */
 		CodedImage codedImage;
@@ -139,6 +132,7 @@ public:
 	int RUNindex = 0;
 	bool golombLimitado(int);
 
+	int RESET;  // RESET de rachas.
 	ContextRun cntx[2];    // Contextos especiales para rachas.
 };
 

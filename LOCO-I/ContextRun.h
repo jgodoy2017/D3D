@@ -2,8 +2,6 @@
 
 #include <cstdlib>
 
-#define RESET 64
-
 using namespace std;
 
 class ContextRun {
@@ -14,6 +12,8 @@ public:
 	int A_racha;
 	int N_racha;
 	int Nn_racha;
+	
+	int RESET;
 
 	void updateA(int);
 	void updateN(void);

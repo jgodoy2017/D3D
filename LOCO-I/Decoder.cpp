@@ -13,7 +13,7 @@
 
 namespace std {
 
-Decoder::Decoder(CodedImage codedImage) {
+Decoder::Decoder(CodedImage codedImage, int T1, int T2, int T3, int RESET) {
 
 	//constructor
 
@@ -72,9 +72,12 @@ Decoder::Decoder(CodedImage codedImage) {
 		if (debug4)cout <<"white: "<<image.white<<endl;
 
 		range=image.white+1;
-		
-		cout << "// DECODER usando (T1, T2, T3) = (" << T1 << ", " << T2 << ", " << T3 << ")" << endl;
-}
+
+		this->T1=T1;
+		this->T2=T2;
+		this->T3=T3;
+		this->RESET=RESET;
+	}
 
 Decoder::~Decoder() {
 	// TODO Auto-generated destructor stub
@@ -130,7 +133,7 @@ int contadorH=1,contadorW=1,contador=0;
 
 				int signo;
 
-				int contexto = getContext(gradients,signo);	//trae el contexto que corresponde a estte pixel
+				int contexto = getContext(gradients,signo, T1, T2, T3);	//trae el contexto que corresponde a estte pixel
 
 				//signo=1;
 
@@ -1035,7 +1038,7 @@ int Decoder::getPredictedValue(pixels pxls){
 
 }
 
-int Decoder::getContext(grad gradients, int &signo){
+int Decoder::getContext(grad gradients, int &signo, int T1, int T2, int T3){
 	signo=1;
 
 	int contga, contgb,contgc;

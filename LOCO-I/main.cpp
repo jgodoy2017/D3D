@@ -40,12 +40,17 @@ int main(int nargs, char *args[]){
 
    string path=args[1];
    int Nmax=atoi(args[2]);  // Tomo el Nmax por parametro. Como son chars, lo convierto a int.
+   int T1=atoi(args[3]);
+   int T2=atoi(args[4]);
+   int T3=atoi(args[5]);
+   int RESET=atoi(args[6]);
 
 	Image image(path);
 
-	Coder coder1(image,Nmax,1);
+	Coder coder1(image,Nmax, 1, T1, T2, T3, RESET);
 	coder1.code();
 
+/*
 	stringstream ss1;
 
 	ss1 << Nmax;
@@ -57,7 +62,7 @@ int main(int nargs, char *args[]){
 	decoder.decode();
 	
 	cout << "// END CODER + DECODER" << endl;
-
+*/
 	/*
 
 	Coder coder2(image,8,0);

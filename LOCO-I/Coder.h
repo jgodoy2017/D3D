@@ -9,19 +9,6 @@
 #ifndef CODER_H_
 #define CODER_H_
 
-#ifndef T1
-#define T1 3
-#endif
-
-#ifndef T2
-#define T2 7
-#endif
-
-#ifndef T3
-#define T3 21
-#endif
-
-
 #include "Image.h"
 #include "Context.h"
 #include "Racha.h"
@@ -52,7 +39,7 @@ public:
 	Coder();
 	Coder(Image,int);
 
-	Coder(Image,int,int);
+	Coder(Image,int,int,int,int,int,int);
 
 
 	void code();
@@ -61,7 +48,7 @@ public:
 	int getP(pixels);
 	grad setGradients(pixels);
 	void setContextsArray();
-	int getContext(grad, int&);
+	int getContext(grad, int&, int, int, int);
 	int getContext_(int, int);
 	int getPredictedValue(pixels);
 	int getK(int);
@@ -93,6 +80,11 @@ public:
 	int correctPredictedValue(int, int);
 
 	virtual ~Coder();
+
+	// Limites de cuantizacion de los contextos.
+	int T1;
+	int T2;
+	int T3;
 
 	/* Este objeto representa la imagen a ser codificada */
 	Image image;
@@ -150,6 +142,7 @@ public:
 
 	int acum=0;
 
+	int RESET; // RESET de rachas.
 	ContextRun cntx[2];    // Contextos especiales para rachas.
 	float get_s(int);
 };

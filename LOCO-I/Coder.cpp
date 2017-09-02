@@ -36,7 +36,7 @@ Coder::Coder(Image image, int Nmax) {
 
 }
 
-Coder::Coder(Image image, int Nmax, int aux) {
+Coder::Coder(Image image, int Nmax, int aux, int T1, int T2, int T3, int RESET) {
 
 		//constructor
 
@@ -58,9 +58,11 @@ Coder::Coder(Image image, int Nmax, int aux) {
 	this->qMax_=Lmax-beta-1;
 
 	range=image.white+1;
-	cout << "// CODER usando (T1, T2, T3) = (" << T1 << ", " << T2 << ", " << T3 << ")" << endl;
 	
-
+	this->T1=T1;
+	this->T2=T2;
+	this->T3=T3;
+	this->RESET=RESET;
 }
 
  void Coder::code(){
@@ -151,7 +153,7 @@ Coder::Coder(Image image, int Nmax, int aux) {
 
 		int signo;
 
-		int contexto = getContext(gradients, signo);	//trae el contexto asociado a ese gradiente
+		int contexto = getContext(gradients, signo, T1, T2, T3);	//trae el contexto asociado a ese gradiente
 
 		if (debug) cout<<"signo: "<<signo<<endl;
 		//signo=1;
@@ -1041,7 +1043,7 @@ int Coder::getPredictedValue(pixels pxls){
 
 }
 
-int Coder::getContext(grad gradients, int &signo){
+int Coder::getContext(grad gradients, int &signo, int T1, int T2, int T3){
 
 	/** Determina el contexto
 	Todos los contextos posibles se organizan en un array, donde cada elemento del array representa un contexto,
