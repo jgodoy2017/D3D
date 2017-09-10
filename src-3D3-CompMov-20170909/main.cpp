@@ -57,10 +57,10 @@ int main(int nargs, char *args[]){
 	coder1.code(false,salida);
 	salida.close();
 
-	CodedImage codedImage(path+"_coded_Nmax_"+str_(Nmax));
+//	CodedImage codedImage(path+"_coded_Nmax_"+str_(Nmax));
 
-	Decoder decoder(codedImage);
-	decoder.decode();
+//	Decoder decoder(codedImage);
+//	decoder.decode();
 
     return 0;
 }

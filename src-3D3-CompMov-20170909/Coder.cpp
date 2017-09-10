@@ -41,19 +41,20 @@ Coder::Coder() {
 
 }
 
-Coder::Coder(Image img, int Nmax) {
-		//constructor
+Coder::Coder(Image img1, Image img2, int Nmax) {
+	this->images = new Image[2];
+	
+	this->images[0]=img1;
+	this->images[1]=img2;
+	
+	this->cantidad_imagenes=2;
 
 	this->Nmax=Nmax;
 	
-	this->images=(Image*)malloc(sizeof(Image));
-	this->images[0]=img;
+	this->width=img1.width;
+	this->heigth=img1.heigth;
+	this->white=img1.white;
 	
-	this->cantidad_imagenes=1;
-	this->width=img.width;
-	this->heigth=img.heigth;
-	this->white=img.white;
-	cout <<"// VECTOR white: "<<white<< endl;
 	image=setInitialImage();
 	this->beta=max(2, ceil(log2(image.white+1)));
 	this->Lmax=2*(max(2, ceil(log2(image.white+1)) )+max(8, max(2, ceil(log2(image.white+1)) )));
@@ -156,40 +157,35 @@ return aux;
 }
 
  void Coder::code(bool vector, ofstream &salida){
-
 	stringstream ss1;
-
 	ss1 << Nmax;
 	string nmax = ss1.str();
 
-	if (vector) {
-			writeHeaderVector(salida);
-		} else {
-			writeHeader(salida);
-	}
+	if (vector) writeHeaderVector(salida);
+    else        writeHeader(salida);
 
 	setContextsArray();
-
-	//int maximo_=0;
-
-
 
 	cout << "// START CODER" << endl;
 
 	for (int imagen=0;imagen<cantidad_imagenes;imagen++){
-//		if (!vector) cout << "imagen: "<< imagen << endl;
-//		if (vector)  cout << "vector: "<< imagen << endl;
 		cout << (vector ? "vector " : "imagen ") << "coder: " << imagen << endl;
 
-		image2=images[imagen];
-		if (imagen!=0)image=images[imagen-1];
-		//else image=images[imagen];
+		image2 = images[imagen];
+		if (imagen > 0) image = images[imagen-1];
 
+		if(!vector) cout << "Procesando imagen >> " << image2.path << endl;
 
 		// ######## Compensación de movimiento
 				if (activarCompMov && !vector){
-					Image imageH = Image();
-					Image imageV = Image();
+//					Image imageH = Image();
+//					Image imageV = Image();
+					
+					// Necesitamos alocar memoria en forma dinamica. Aguante la flechita (->).
+					Image* imageH = new Image();
+					Image* imageV = new Image();
+
+/*					
 					imageH.image=(int*)malloc(this->image.width*this->image.heigth*sizeof(int));
 					imageV.image=(int*)malloc(this->image.width*this->image.heigth*sizeof(int));
 					imageH.width=ceil((double)image.width/(double)bsize); // verificar en Excel
@@ -198,20 +194,34 @@ return aux;
 					imageV.heigth=ceil((double)image.heigth/(double)bsize); // verificar en Excel
 					imageH.white=128;
 					imageV.white=128;
-					CompMov(imageH, imageV);
+*/
 					
-			//		Coder coderH(imageH, Nmax);
+					imageH->image=(int*)malloc(this->image.width*this->image.heigth*sizeof(int));
+					imageV->image=(int*)malloc(this->image.width*this->image.heigth*sizeof(int));
+					imageH->width=ceil((double)image.width/(double)bsize);
+					imageV->width=ceil((double)image.width/(double)bsize);
+					imageH->heigth=ceil((double)image.heigth/(double)bsize);
+					imageV->heigth=ceil((double)image.heigth/(double)bsize);
+					imageH->white=128;  // Really? Siempre funciona 128? :o
+					imageV->white=128;
+
+//					CompMov(imageH, imageV);
+					CompMov(*imageH, *imageV);
+
+/*					
 					Coder * coderH = new Coder(imageH, Nmax);
 					coderH->code(1,salida);
-
 					flushEncoder(salida);
 
-			//		Coder coderV(imageV, Nmax);
 					Coder * coderV = new Coder(imageV, Nmax);
 					coderV->code(1,salida);
-
 					flushEncoder(salida);
+*/
 					
+//					Coder* coderVec = new Coder(imageH, imageV, Nmax);
+					Coder* coderVec = new Coder(*imageH, *imageV, Nmax);
+
+					coderVec->code(1, salida);
 				}
 
 	for(int prox=0;prox<image.heigth*image.width;prox++){
@@ -328,9 +338,9 @@ return aux;
   									for(int i=0;i<bh;i++){
   										// Estos FOR son para moverse por todos los pixeles del Macrobloque
 
-  										int pix = (i + j*image.width) + (h + v*image.width) + (bloqueH*bsize + bloqueV*bsize*(image.width));
+  										int pix  = (i + j*image.width)  + (h + v*image.width) + (bloqueH*bsize + bloqueV*bsize*(image.width));
   										int pix2 = (i + j*image2.width) + (bloqueH*bsize + bloqueV*bsize*(image2.width));
-
+										
   										itera("ERROR",s,pix,pix2);
 
   									}
@@ -351,7 +361,6 @@ return aux;
   					imageH.image[vector_ind] = hmin;
   					imageV.image[vector_ind] = vmin;
   					vector_ind++; // Muevo el puntero utilizado en los vectores
-
   		}
   	}
  	cout <<"Salgo CompMov"<< endl;
@@ -380,18 +389,33 @@ return aux;
   	}
  }
 
-  int Coder::getProxImageAnterior(int prox, bool vector){
-
+int Coder::getProxImageAnterior(int prox, bool vector){
+/*
  	 if (activarCompMov && !vector) {
- 	 int bloqueV = (prox / image.width) / bsize;
- 	 int bloqueH = (prox % image.width) / bsize;
+ 		int bloqueV = (prox / image.width) / bsize;
+ 	 	int bloqueH = (prox % image.width) / bsize;
 
- 	 int index = bloqueH + bloqueV*ceil(image.width/bsize);
- 	 return (prox + h_vector[index] + v_vector[index]*image.width);
+		int index = bloqueH + bloqueV*ceil(image.width/bsize);
+		
+//		return prox + h_vector[index] + v_vector[index]*image.width;
+ 	 	return min((prox + h_vector[index] + v_vector[index]*image.width), image.width*image.heigth - 1);
  	 }
 
  	 return prox;
-  }
+*/
+	
+	int proxAnt=prox;
+	
+	if (activarCompMov && !vector){
+ 		int bloqueV = (prox / image.width) / bsize;
+ 	 	int bloqueH = (prox % image.width) / bsize;
+
+		int ind = bloqueH + bloqueV * (1 + image.width / bsize);  // ceil() = 1 + /  :)
+		proxAnt = min((prox + h_vector[ind] + v_vector[ind] * image.width), image.width * image.heigth - 1);
+	}
+	
+	return proxAnt;
+}
 
 
  int Coder::max(int uno, int dos){
@@ -1384,7 +1408,7 @@ Coder::pixels Coder::getPixels(int current){
 Coder::pixels3D Coder::getPixels3D(int current, int current2){
 
 	/** Devuelve los píxeles de la vecindad: a, b, c, d, a_, b_, c_, d_, e_, f_ y g_ */
-
+    // A mi por lo menos sin (double) y con (>> 1) me corre mucho mas rapido, para stacks grandes (200+) se empieza a notar.
 
 	/**  arreglar criterio para los píxeles que caen fuera de la imagen*/
 
@@ -1398,6 +1422,7 @@ Coder::pixels3D Coder::getPixels3D(int current, int current2){
 	int c_=-1;
 	int d_=-1;
 	int e_=-1;
+	
 	int f_=-1;
 	int g_=-1;
 
@@ -1405,16 +1430,20 @@ Coder::pixels3D Coder::getPixels3D(int current, int current2){
 
 		/* Si estoy parado en un borde izquierdo, el valor de a y c tienen que ser "128",
 		o la mitad del valor de blanco de la imagen */
-		a=ceil((double)image2.white/(double)2);
-		c=ceil((double)image2.white/(double)2);
-
+	//	a=ceil((double)image2.white/(double)2);
+	//	c=ceil((double)image2.white/(double)2);
+		
+		a = 1 + (image2.white >> 1);
+		c = 1 + (image2.white >> 1);
 	}
 
 	if ((current2%image2.width)==image.width-1){
 
 		/* Si estoy parado en un borde derecho, el valor de d tiene que ser "128",
 		o la mitad del valor de blanco de la imagen */
-		d=ceil((double)image2.white/(double)2);
+//		d=ceil((double)image2.white/(double)2);
+
+		d = 1 + (image2.white >> 1);
 
 	}
 
@@ -1422,52 +1451,65 @@ Coder::pixels3D Coder::getPixels3D(int current, int current2){
 
 		/* Si estoy en la primer fila, b y c deben ser "128"
 		o la mitad del valor de blanco de la imagen */
-		if (b==-1) b=ceil((double)image2.white/(double)2);
-		if (c==-1) c=ceil((double)image2.white/(double)2);
-		if (d==-1) d=ceil((double)image2.white/(double)2);
+//		if (b==-1) b=ceil((double)image2.white/(double)2);
+//		if (c==-1) c=ceil((double)image2.white/(double)2);
+//		if (d==-1) d=ceil((double)image2.white/(double)2);
 
+		if(b == -1) b = 1 + (image2.white >> 1);
+		if(c == -1) c = 1 + (image2.white >> 1);
+		if(d == -1) d = 1 + (image2.white >> 1);
 	}
 
 	if ((current%image.width)==0){
 
 			/* Si estoy parado en un borde izquierdo, el valor de a y c tienen que ser "128",
 			o la mitad del valor de blanco de la imagen */
-			a_=ceil((double)image.white/(double)2);
-			c_=ceil((double)image.white/(double)2);
-
+//			a_=ceil((double)image.white/(double)2);
+//			c_=ceil((double)image.white/(double)2);
+			
+			a_ = 1 + (image.white >> 1);
+			c_ = 1 + (image.white >> 1);
 		}
 
 		if ((current%image.width)==image.width-1){
 
 			/* Si estoy parado en un borde derecho, el valor de d tiene que ser "128",
 			o la mitad del valor de blanco de la imagen */
-			d_=ceil((double)image.white/(double)2);
-			f_=ceil((double)image.white/(double)2);
-
+//			d_=ceil((double)image.white/(double)2);
+//			f_=ceil((double)image.white/(double)2);
+			
+			d_ = 1 + (image.white >> 1);
+			f_ = 1 + (image.white >> 1);
 		}
 
 		if (current<image.width){
 
 			/* Si estoy en la primer fila, b y c deben ser "128"
 			o la mitad del valor de blanco de la imagen */
-			if (b_==-1) b_=ceil((double)image.white/(double)2);
-			if (c_==-1) c_=ceil((double)image.white/(double)2);
-			if (d_==-1) d_=ceil((double)image.white/(double)2);
+//			if (b_==-1) b_=ceil((double)image.white/(double)2);
+//			if (c_==-1) c_=ceil((double)image.white/(double)2);
+//			if (d_==-1) d_=ceil((double)image.white/(double)2);
+			
+			if(b_ == -1) b_ = 1 + (image.white >> 1);
+			if(c_ == -1) c_ = 1 + (image.white >> 1);
+			if(d_ == -1) d_ = 1 + (image.white >> 1);
 		}
 
 		if (current>(image.heigth-2)*image.width){
 
 			/* Si estoy en la última o penúltima fila, g debe ser "128"
 			o la mitad del valor de blanco de la imagen */
-			g_=ceil((double)image.white/(double)2);
+//			g_=ceil((double)image.white/(double)2);
+			
+			g_ = 1 + (image.white >> 1);
 		}
 
 	/* Para cada a, b,c y d, si no se cumple una condición de borde, y por lo tanto no hubo asignación en los if que preceden,
 	se traen los valores de a, b,c y d de la imagen */
-	if (a==-1) a=image2.image[current2-1];
-	if (b==-1) b=image2.image[current2-image.width];
-	if (c==-1) c=image2.image[current2-image.width-1];
-	if (d==-1) d=image2.image[current2-image.width+1];
+	if (a==-1)  a=image2.image[current2-1];
+	if (b==-1)  b=image2.image[current2-image.width];
+	if (c==-1)  c=image2.image[current2-image.width-1];
+	if (d==-1)  d=image2.image[current2-image.width+1];
 	if (a_==-1) a_=image.image[current-1];
 	if (b_==-1) b_=image.image[current-image.width];
 	if (c_==-1) c_=image.image[current-image.width-1];
@@ -1475,9 +1517,12 @@ Coder::pixels3D Coder::getPixels3D(int current, int current2){
 	if (e_==-1) e_=image.image[current];
 	if (f_==-1) f_=image.image[current+1];
 	if (g_==-1) g_=image.image[current+image.width];
-	pixels3D pxls={a,b,c,d,a_,b_,c_,d_,e_,f_,g_};
+	
+//	pixels3D pxls={a,b,c,d,a_,b_,c_,d_,e_,f_,g_};
 
-		return pxls;
+		return {a,  b,  c,  d,
+			    a_, b_, c_, d_,
+				e_, f_, g_};
 }
 
 Coder::pixels Coder::getPixels_(int current){

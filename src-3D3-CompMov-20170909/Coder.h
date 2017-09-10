@@ -53,7 +53,7 @@ public:
 	} grad;	//se define esta estructura para modelar el vector de gradientes
 
 	Coder();
-	Coder(Image,int);
+	Coder(Image,Image,int);
 	Coder(string,int,int);
 
 	Image setInitialImage();
@@ -185,7 +185,7 @@ public:
 		int *tempimage;
 		int *h_vector;
 		int *v_vector;
-		bool activarCompMov=false;
+		bool activarCompMov=true;
 		int vector_ind;
 		int bsize = 10; // Tamaño del Macrobloque cuadrado
 };
