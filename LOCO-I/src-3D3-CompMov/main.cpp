@@ -25,6 +25,7 @@
 
 #include "Coder.h"
 #include "Decoder.h"
+#include "Image.h"
 
 using namespace std;
 
@@ -48,27 +49,32 @@ int main(int nargs, char *args[]){
 	int Nmax=64;
 
 	string path_salida=path+"_coded_Nmax_"+str_(Nmax);
-//	path = path + '\\';
 
-/*	ofstream salida;
+	ofstream salida;
 	salida.open(path_salida.c_str(), ios::binary);
 
-	Coder coder1(path,Nmax,1);
-	coder1.code(false,salida);
+	Coder * coder1 = new Coder(path,Nmax,1);
+	coder1->code(false,salida);
 	salida.close();
-*/
-	CodedImage codedImage(path+"_coded_Nmax_"+str_(Nmax));
+	
+	CodedImage * codedImage = new CodedImage(path+"_coded_Nmax_"+str_(Nmax));
 	int codedImagePointer = 0;
 
-	for (int imagenActual = 0;imagenActual<codedImage.cantidad_imagenes;imagenActual++){
-		if (codedImage.activarCompMov) {
-			Decoder decoder1(codedImage,true);
-			decoder1.decode(true,codedImagePointer);
-		}
-			Decoder decoder2(codedImage);
-			decoder2.decode(false,codedImagePointer);
-	}
+	Decoder * decoder2 = new Decoder(*codedImage);
+	Image * prev2 = new Image();
 
+	for (int imagenActual = 0; imagenActual<codedImage->cantidad_imagenes; imagenActual++){
+		cout << "main(): 1 codedImagePointer = " << codedImagePointer << endl;
+		
+		if (codedImage->activarCompMov) {
+			Image * prev1 = new Image();
+			Decoder * decoder1 = new Decoder(*codedImage, true);
+			decoder1->decode(true, codedImagePointer, *prev1, 0);
+		}
+		
+		cout << "main(): 2 codedImagePointer = " << codedImagePointer << endl;
+		decoder2->decode(false, codedImagePointer, *prev2, imagenActual);
+	}
 
     return 0;
 }

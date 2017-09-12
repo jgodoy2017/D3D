@@ -48,7 +48,7 @@ Decoder::Decoder(CodedImage codedImage) {
 
 	range=codedImage.white+1;
 
-	this->cantidad_imagenes=codedImage.cantidad_imagenes;
+	this->cantidad_imagenes=1;
 	this->activarCompMov=codedImage.activarCompMov;
 	this->images = new Image[this->cantidad_imagenes];
 }
@@ -87,44 +87,38 @@ Decoder::Decoder(CodedImage codedImage, bool vector) {
 
 	range=codedImage.v_white+1;
 
-	this->cantidad_imagenes=2;
+	this->cantidad_imagenes = (vector ? 2 : 1);
 	this->activarCompMov=codedImage.activarCompMov;
-	this->images = new Image[this->cantidad_imagenes];
+	this->images = new Image[codedImage.cantidad_imagenes];
 }
 
 
-void Decoder::decode(bool vector,int &codedImagePointer){
+void Decoder::decode(bool vector,int &codedImagePointer, Image &prev, int imgActual){
 
 	/** como puede verse el funcionamiento general del decodificador es bastante simétrico al codificador
 
 	Por una descripción de los métodos en común con la clase Coder, recurrir a las descripciones disponibles en Coder.cpp */
 
-	int ancho = (vector ? codedImage.v_width : codedImage.width);
-	int alto = (vector ? codedImage.v_heigth : codedImage.heigth);
-	int blanco = (vector ? codedImage.v_white : codedImage.white);
+	ancho  = (vector ? codedImage.v_width  : codedImage.width);
+	alto   = (vector ? codedImage.v_heigth : codedImage.heigth);
+	blanco = (vector ? codedImage.v_white  : codedImage.white);
+	
+	cout << "decode(): 1 codedImagePointer = " << codedImagePointer << endl;
+	
 
 		setContextsArray();
 
 		cout << "cant_imagenes_decoder: "<< cantidad_imagenes<<endl;
 
-		prev=setInitialImage();
-
-		//codedImagePointer=0;
+		if(vector || primeraImagen) prev=setInitialImage();
 
 		cout << "// START DECODER" << endl;
 
-		if (!vector) cantidad_imagenes = 1;
-
-		for (int imagen=0;imagen<cantidad_imagenes;imagen++){
+		for (int imagen=imgActual; imagen < imgActual + cantidad_imagenes; imagen++){
 			if (vector) cout << "imagen vector: " << imagen << endl;
 			if (!vector) cout << "imagen deco: " << imagen << endl;
 			if (debug) cout << "imagen: "<< imagen << endl;
 
-	//		if (!vector){
-		//		Decoder v_decoder(codedImage,false);
-			//	v_decoder.decode(false,codedImagePointer);
-
-		//	}
 			int contadorH=1,contadorW=1,contador=0;
 
 			ofstream salida;
@@ -134,14 +128,9 @@ void Decoder::decode(bool vector,int &codedImagePointer){
 
 			if(!vector) writeHeader(salida);	//escribe encabezado en el archivo de salida
 
-			//cout << "Tam: " << codedImage.heigth*codedImage.width << endl;
-
-
 
 		Image image(alto,ancho);
 		image.white=blanco;
-
-
 
 		while (contadorH<alto+1){
 				contadorW=1;
@@ -150,107 +139,85 @@ void Decoder::decode(bool vector,int &codedImagePointer){
 				bool esRacha;
 				if (debug)cout <<"puntero: " <<codedImagePointer<<endl;
 
-
 				int prox_image_anterior=getProxImageAnterior(contador);
-
 				pixels3D pxls = getPixels3D(prox_image_anterior,contador,image);
-
 
 				if (debug) cout<<contador<<" "  << pxls.a<<" "<< pxls.b<<" "<< pxls.c<<" "<< pxls.d<<endl;
 				grad gradients = getGradients3D(1,pxls);
 
 				int contexto = getContext(getGradients3D(0,pxls),getGradients3D(4,pxls), signo, esRacha);
-
 				if (debug) cout<<"signo: "<<signo<<endl;
-
 				if (debug) cout<<contexto<<endl;
+
 				if (!esRacha){
-
 					int predicted = getPredictedValue(selectMED(gradients),pxls);	//calcula el valor pixel predicho
-
 					if (debug) cout<<predicted<<endl;
 
-				predicted=fixPrediction(predicted,signo, contexto);
+					predicted=fixPrediction(predicted,signo, contexto);
+					if (debug) cout<<predicted<<endl;
 
-				if (debug) cout<<predicted<<endl;
+					int k= getK(contexto);	//calcula k
+					int error_=getError(k,0,0,codedImagePointer);	//lee el archivo para tener el valor del error codificado
+					int error=unRice(error_,get_s(contexto),k);	//deshace el mapeo de rice para recuperar el error real
+					error=reduccionDeRango(error,signo,predicted);
 
-				int k= getK(contexto);	//calcula k
+					if (debug) cout<<"error= "<<error<<endl;
+					if (debug) cout<<"k= "<<k<<endl;
+					if (debug) cout<<"error_= "<<error_<<endl;
 
-				int error_=getError(k,0,0,codedImagePointer);	//lee el archivo para tener el valor del error codificado
+					int pixel=predicted+error;	//calcula el pixel como la suma entre el predicho y el error
+					updateImage(pixel,contador,image);	//va formando el array que representa la imagen con cada pixel decodificado
 
-
-				int error=unRice(error_,get_s(contexto),k);	//deshace el mapeo de rice para recuperar el error real
-
-				error=reduccionDeRango(error,signo,predicted);
-
-				if (debug) cout<<"error= "<<error<<endl;
-
-				if (debug) cout<<"k= "<<k<<endl;
-
-				if (debug) cout<<"error_= "<<error_<<endl;
-
-				//int error_s=error*signo;
-
-				int pixel=predicted+error;	//calcula el pixel como la suma entre el predicho y el error
-
-				updateImage(pixel,contador,image);	//va formando el array que representa la imagen con cada pixel decodificado
-
-				char pixel_ =pixel+'\0';
-
-				salida.write(&pixel_,1);	//escribe el pixel en el archivo
-
-				updateContexto(contexto,error*signo);	//actualiza A y N del contexto
-
-
-
+					char pixel_ =pixel+'\0';
+					salida.write(&pixel_,1);	//escribe el pixel en el archivo
+					updateContexto(contexto,error*signo);	//actualiza A y N del contexto
 				}
 
 				else {
+					int interruption=0;
+					int cantidad_unos=0;
 
-				int interruption=0;
-				int cantidad_unos=0;
+					int largo= getRachaParams2(contadorW, interruption,cantidad_unos,codedImagePointer);
 
-				int largo= getRachaParams2(contadorW, interruption,cantidad_unos,codedImagePointer);
+			//		int contexto=(pxls.a==pxls.b);
+					int contexto=getContext_(contador, largo,image);
 
-		//		int contexto=(pxls.a==pxls.b);
-				int contexto=getContext_(contador, largo,image);
+					Racha racha(largo, interruption, pxls.a,contexto);
+					if (debug) cout<<contador<<" "<<largo<<" "<<interruption<<" "<<pxls.a<<" "<<contexto<<endl;
 
-				Racha racha(largo, interruption, pxls.a,contexto);
+					updateImageRacha(racha, contador, salida,image);
+					if(contador+largo<alto*ancho) updateImageInterruption(racha, contador,contador+largo, salida,cantidad_unos,image,codedImagePointer);
 
-				if (debug) cout<<contador<<" "<<largo<<" "<<interruption<<" "<<pxls.a<<" "<<contexto<<endl;
+					contadorW=contadorW+largo;
+					contador=contador+largo;
 
-				updateImageRacha(racha, contador, salida,image);
-				if(contador+largo<alto*ancho) updateImageInterruption(racha, contador,contador+largo, salida,cantidad_unos,image,codedImagePointer);
+					if (racha.interruption)	{
+						contadorW--;
+						contador--;
+					}
 
-
-				contadorW=contadorW+largo;contador=contador+largo; //está bien?
-
-				if (racha.interruption)	{
-					contadorW--;
-					contador--;
+					if (debug) cout<<contadorW<<" "<<contadorH<<endl;
+					if (debug) cout<<endl;
 				}
-
-				if (debug) cout<<contadorW<<" "<<contadorH<<endl;
-
-				if (debug) cout<<endl;
-
-				//if ((!racha.interruption))
-					//			cout<<contexto<<" "<<racha.contexto<<" "<<cntx[contexto].A_racha<<" "<<cntx[contexto].N_racha<<" "<<cntx[contexto].Nn_racha<<endl;
-
-				}contador++;contadorW++;
-
-				}contadorH++;
+				
+				contador++;
+				contadorW++;
+			}
+			contadorH++;
 		}
-		
 		
 		salida.close();
 		
 		images[imagen]=image;
 		prev=image;
-
-}
+		
+		if(primeraImagen) primeraImagen=false;
+		
+		cout << "decode(): 2 codedImagePointer = " << codedImagePointer << endl;
+	
+	}
+	
 	cout << "// END DECODER." << endl;
-
 }
 
 string Decoder::str_(int n){
@@ -790,7 +757,10 @@ void Decoder::completaArray(int &codedImagePointer){
 	while ((contador<100)&&((codedImagePointer<(cantidad_imagenes*codedImage.heigth*codedImage.width)))){ //hasta leer 100 bytes o que se termine la imagen
 
 	temp=codedImage.image[codedImagePointer];
+	
+	cout << "completaArray(): 1 codedImagePointer = " << codedImagePointer << endl;
 	codedImagePointer++;
+	cout << "completaArray(): 2 codedImagePointer = " << codedImagePointer << endl;
 
 	std::bitset<8> temp_b(temp);
 
@@ -977,9 +947,9 @@ void Decoder::writeMagic(ofstream &salida){
 
 void Decoder::writeWidth(ofstream &salida){
 
-	int ancho =codedImage.width;
+	int ancho_ = codedImage.width;
 
-	double aux=(double)ancho;
+	double aux=(double)ancho_;
 
 	int potencia=1;
 
@@ -1018,9 +988,9 @@ void Decoder::writeWidth(ofstream &salida){
 	salida.write(&temp_,1);
 }
 void Decoder::writeHeigth(ofstream &salida){
-	int alto =codedImage.heigth;
+	int alto_=codedImage.heigth;
 
-	double aux=(double)alto;
+	double aux=(double)alto_;
 
 	int potencia=1;
 
@@ -1060,9 +1030,9 @@ void Decoder::writeHeigth(ofstream &salida){
 }
 void Decoder::writeWhite(ofstream &salida){
 
-	int blanco =codedImage.white;
+	int blanco_=codedImage.white;
 
-	double aux=(double)blanco;
+	double aux=(double)blanco_;
 
 	int potencia=1;
 

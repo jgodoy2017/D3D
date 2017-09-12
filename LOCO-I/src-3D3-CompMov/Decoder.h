@@ -57,8 +57,8 @@ public:
 
 		Decoder(CodedImage);
 		Decoder(CodedImage,bool);
-			virtual ~Decoder();
-			void decode(bool,int&);
+		virtual ~Decoder();
+		void decode(bool, int&, Image&, int);
 		pixels getPixels(int, Image&);
 		pixels getPixels_(int, Image&);
 		pixels3D getPixels3D(int,int, Image&);
@@ -159,6 +159,10 @@ public:
 	ContextRun cntx[2];    // Contextos especiales para rachas.
 
 	bool activarCompMov=false;
+	bool primeraImagen=true;
+	int ancho;
+	int alto;
+	int blanco;
 };
 
 } /* namespace std */
