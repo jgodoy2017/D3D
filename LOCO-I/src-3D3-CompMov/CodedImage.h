@@ -35,9 +35,9 @@ public:
 	void loadImage();
 		void setMagic(ifstream&,char&);
 		void setCompMov(ifstream&,char&);
-		void setWidth(ifstream&,char&);
-		void setHeigth(ifstream&,char&);
-		void setWhite(ifstream&,char&);
+		void setWidth(ifstream&,char&,bool);
+		void setHeigth(ifstream&,char&,bool);
+		void setWhite(ifstream&,char&,bool);
 		void setNmax(ifstream&,char&);
 		void setCantidadImagenes(ifstream&,char&);
 
@@ -49,6 +49,9 @@ public:
 
 		int width;
 		int heigth;
+		int v_width;
+		int v_heigth;
+		int v_white;
 
 		int cantidad_imagenes;
 
@@ -60,6 +63,7 @@ public:
 
 		int Nmax;
 
+		bool activarCompMov=false;
 };
 
 } /* namespace std */

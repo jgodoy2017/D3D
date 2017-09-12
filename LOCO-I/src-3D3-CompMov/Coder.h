@@ -53,7 +53,7 @@ public:
 	} grad;	//se define esta estructura para modelar el vector de gradientes
 
 	Coder();
-	Coder(Image,int);
+	Coder(Image,Image,int);
 	Coder(string,int,int);
 
 	Image setInitialImage();
@@ -84,9 +84,9 @@ public:
 	void flushEncoder(ofstream&);
 	void writeHeader(ofstream&);
 	void writeHeaderVector(ofstream&); // Compensación de Movimiento
-	void writeWidth(ofstream&);
-	void writeHeigth(ofstream&);
-	void writeWhite(ofstream&);
+	void writeWidth(ofstream&,bool);
+	void writeHeigth(ofstream&,bool);
+	void writeWhite(ofstream&,bool);
 	void writeMagic(ofstream&);
 	void writeCompMov(ofstream&, bool); // Compensación de Movimiento
 	void writeNmax(ofstream&);
@@ -111,7 +111,7 @@ public:
 
 	/* Este objeto representa la imagen a ser codificada */
 
-	Image images[50]; //hacerlo bien después
+	Image* images;
 
 	Image image_; //imagen vacía para tener los parámetros que nos interesan, largo, ancho, white, etc.
 
@@ -185,8 +185,11 @@ public:
 		int *tempimage;
 		int *h_vector;
 		int *v_vector;
-		bool activarCompMov=false;
+		bool activarCompMov=true;
 		int vector_ind;
+		int v_ancho;
+		int v_alto;
+		int v_blanco;
 		int bsize = 10; // Tamaño del Macrobloque cuadrado
 };
 

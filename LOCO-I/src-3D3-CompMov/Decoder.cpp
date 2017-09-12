@@ -20,63 +20,88 @@ Decoder::Decoder(CodedImage codedImage) {
 
 	this->file=codedImage.path+codedImage.name+"_decoded_";
 
-		this->codedImage=codedImage;
+	this->codedImage=codedImage;
 
+	Nmax=codedImage.Nmax;
 
+	if (2>ceil(log2(codedImage.white+1))) this->beta=2;
+	else this->beta=ceil(log2(codedImage.white+1));
 
-		Nmax=codedImage.Nmax;
-
-
-		if (2>ceil(log2(codedImage.white+1))) this->beta=2;
-		else this->beta=ceil(log2(codedImage.white+1));
-
-
-
-		if (2>ceil(log2(codedImage.white+1))) {
-
-
-			this->Lmax=2*(2+8);
+	if (2>ceil(log2(codedImage.white+1))) {
+		this->Lmax=2*(2+8);
+	}
+	else {
+		if (8>ceil(log2(codedImage.white+1))) {
+			this->Lmax=2*(ceil(log2(codedImage.white+1))+8);
 		}
-		else {
-
-			if (8>ceil(log2(codedImage.white+1))) {
-
-				this->Lmax=2*(ceil(log2(codedImage.white+1))+8);
-
-			}
-			else{
-				this->Lmax=2*(ceil(log2(codedImage.white+1))+ceil(log2(codedImage.white+1)));
-			}
-
-
+		else{
+			this->Lmax=2*(ceil(log2(codedImage.white+1))+ceil(log2(codedImage.white+1)));
 		}
+	}
 
+	this->qMax=Lmax-beta-1;
+	this->qMax_=Lmax-beta-1;
 
+	if (debug4)cout <<"qmaxs: "<<this->qMax<<" "<<this->qMax_<<endl;
+	if (debug4)cout <<"lmax, beta: "<<Lmax<<" "<<beta<<endl;
+	if (debug4)cout <<"white: "<<codedImage.white<<endl;
 
-		this->qMax=Lmax-beta-1;
-		this->qMax_=Lmax-beta-1;
+	range=codedImage.white+1;
 
-		if (debug4)cout <<"qmaxs: "<<this->qMax<<" "<<this->qMax_<<endl;
-
-		if (debug4)cout <<"lmax, beta: "<<Lmax<<" "<<beta<<endl;
-		if (debug4)cout <<"white: "<<codedImage.white<<endl;
-
-		range=codedImage.white+1;
-
-		cantidad_imagenes=codedImage.cantidad_imagenes;
+	this->cantidad_imagenes=codedImage.cantidad_imagenes;
+	this->activarCompMov=codedImage.activarCompMov;
+	this->images = new Image[this->cantidad_imagenes];
 }
 
 Decoder::~Decoder() {
 	// TODO Auto-generated destructor stub
 }
 
-void Decoder::decode(){
+Decoder::Decoder(CodedImage codedImage, bool vector) {
+
+	this->file=codedImage.path+"vector";
+
+	Nmax=codedImage.Nmax;
+
+	if (2>ceil(log2(codedImage.v_white+1))) this->beta=2;
+	else this->beta=ceil(log2(codedImage.v_white+1));
+
+	if (2>ceil(log2(codedImage.v_white+1))) {
+		this->Lmax=2*(2+8);
+	}
+	else {
+		if (8>ceil(log2(codedImage.v_white+1))) {
+			this->Lmax=2*(ceil(log2(codedImage.v_white+1))+8);
+		}
+		else{
+			this->Lmax=2*(ceil(log2(codedImage.v_white+1))+ceil(log2(codedImage.v_white+1)));
+		}
+	}
+
+	this->qMax=Lmax-beta-1;
+	this->qMax_=Lmax-beta-1;
+
+	if (debug4)cout <<"qmaxs: "<<this->qMax<<" "<<this->qMax_<<endl;
+	if (debug4)cout <<"lmax, beta: "<<Lmax<<" "<<beta<<endl;
+	if (debug4)cout <<"white: "<<codedImage.white<<endl;
+
+	range=codedImage.v_white+1;
+
+	this->cantidad_imagenes=2;
+	this->activarCompMov=codedImage.activarCompMov;
+	this->images = new Image[this->cantidad_imagenes];
+}
+
+
+void Decoder::decode(bool vector,int &codedImagePointer){
 
 	/** como puede verse el funcionamiento general del decodificador es bastante simétrico al codificador
 
 	Por una descripción de los métodos en común con la clase Coder, recurrir a las descripciones disponibles en Coder.cpp */
 
-
+	int ancho = (vector ? codedImage.v_width : codedImage.width);
+	int alto = (vector ? codedImage.v_heigth : codedImage.heigth);
+	int blanco = (vector ? codedImage.v_white : codedImage.white);
 
 		setContextsArray();
 
@@ -84,105 +109,62 @@ void Decoder::decode(){
 
 		prev=setInitialImage();
 
-		codedImagePointer=0;
+		//codedImagePointer=0;
 
 		cout << "// START DECODER" << endl;
 
+		if (!vector) cantidad_imagenes = 1;
+
 		for (int imagen=0;imagen<cantidad_imagenes;imagen++){
-
-
-/*
-
-				 	if (imagen==1) debug=true;
-					else debug=false;
-*/
-
-
-
+			if (vector) cout << "imagen vector: " << imagen << endl;
+			if (!vector) cout << "imagen deco: " << imagen << endl;
 			if (debug) cout << "imagen: "<< imagen << endl;
 
+	//		if (!vector){
+		//		Decoder v_decoder(codedImage,false);
+			//	v_decoder.decode(false,codedImagePointer);
+
+		//	}
 			int contadorH=1,contadorW=1,contador=0;
 
 			ofstream salida;
 
-			string nombre= file + str_(imagen);
+			string nombre= file + str_(codedImagePointer);
 			salida.open(nombre.c_str(), ios::binary);
 
-			writeHeader(salida);	//escribe encabezado en el archivo de salida
-
-
-
+			if(!vector) writeHeader(salida);	//escribe encabezado en el archivo de salida
 
 			//cout << "Tam: " << codedImage.heigth*codedImage.width << endl;
 
-		Image image(codedImage.heigth,codedImage.width);
-		image.white=codedImage.white;
+
+
+		Image image(alto,ancho);
+		image.white=blanco;
 
 
 
-		while (contadorH<codedImage.heigth+1){
+		while (contadorH<alto+1){
 				contadorW=1;
-				while (contadorW!=codedImage.width+1){
-
-					if (debug)cout <<"puntero: " <<codedImagePointer<<endl;
-
-
-					//if (contador>22000) debug=true;
-
-/*
-							if (contador==1350) {
-								cout <<"imagen: ";
-								for (int aux_cont=0;aux_cont<2025;aux_cont++)
-										cout <<image.image[aux_cont]<<" ";
-								cout <<endl;
-							}
-*/
-
-					int prox_image_anterior=getProxImageAnterior(contador);
-
-					pixels3D pxls = getPixels3D(prox_image_anterior,contador,image);
+				while (contadorW!=ancho+1){
+				int signo;
+				bool esRacha;
+				if (debug)cout <<"puntero: " <<codedImagePointer<<endl;
 
 
-				//pixels pxls = getPixels_(contador,image);	//trae el vecindario a, b y c de cada pixel a decodificar
+				int prox_image_anterior=getProxImageAnterior(contador);
 
-				//int p = getP(pxls);	//calcula p
+				pixels3D pxls = getPixels3D(prox_image_anterior,contador,image);
 
-				//if (contador==0)
+
 				if (debug) cout<<contador<<" "  << pxls.a<<" "<< pxls.b<<" "<< pxls.c<<" "<< pxls.d<<endl;
-				//cout<<"[" << contador << "] " << pxls.a << " " << pxls.b << " " << pxls.c << " " << pxls.d << endl;
-
-				//cout<<contador<<" "  << pxls.a<<" "<< pxls.b<<" "<< pxls.c<<" "<< pxls.d<<endl;
-
-
-				//grad gradients=setGradients(pxls);	//calcula el vector de gradientes
 				grad gradients = getGradients3D(1,pxls);
 
-
-				//cout<<contador<<" " << gradients.ga<<" "<< gradients.gb<<" "<< gradients.gc<<" "<<endl;
-
-				int signo;
-
-				//int contexto = getContext(gradients,signo);	//trae el contexto que corresponde a estte pixel
-
-				bool esRacha;
 				int contexto = getContext(getGradients3D(0,pxls),getGradients3D(4,pxls), signo, esRacha);
-
-				//signo=1;
 
 				if (debug) cout<<"signo: "<<signo<<endl;
 
 				if (debug) cout<<contexto<<endl;
-
-				/*if (contexto==29484) {
-					racha=true;
-					if (debug) cout<<"RACHA!"<<endl;
-				}
-				else racha=false;
-*/
 				if (!esRacha){
-				//if (true){
-
-				//int predicted = getPredictedValue(pxls);	//calcula el valor predicho
 
 					int predicted = getPredictedValue(selectMED(gradients),pxls);	//calcula el valor pixel predicho
 
@@ -194,7 +176,7 @@ void Decoder::decode(){
 
 				int k= getK(contexto);	//calcula k
 
-				int error_=getError(k,0,0);	//lee el archivo para tener el valor del error codificado
+				int error_=getError(k,0,0,codedImagePointer);	//lee el archivo para tener el valor del error codificado
 
 
 				int error=unRice(error_,get_s(contexto),k);	//deshace el mapeo de rice para recuperar el error real
@@ -228,7 +210,7 @@ void Decoder::decode(){
 				int interruption=0;
 				int cantidad_unos=0;
 
-				int largo= getRachaParams2(contadorW, interruption,cantidad_unos);
+				int largo= getRachaParams2(contadorW, interruption,cantidad_unos,codedImagePointer);
 
 		//		int contexto=(pxls.a==pxls.b);
 				int contexto=getContext_(contador, largo,image);
@@ -238,7 +220,7 @@ void Decoder::decode(){
 				if (debug) cout<<contador<<" "<<largo<<" "<<interruption<<" "<<pxls.a<<" "<<contexto<<endl;
 
 				updateImageRacha(racha, contador, salida,image);
-				if(contador+largo<codedImage.heigth*codedImage.width) updateImageInterruption(racha, contador,contador+largo, salida,cantidad_unos,image);
+				if(contador+largo<alto*ancho) updateImageInterruption(racha, contador,contador+largo, salida,cantidad_unos,image,codedImagePointer);
 
 
 				contadorW=contadorW+largo;contador=contador+largo; //está bien?
@@ -258,14 +240,16 @@ void Decoder::decode(){
 				}contador++;contadorW++;
 
 				}contadorH++;
-
-
-			}
+		}
+		
+		
 		salida.close();
-
+		
 		images[imagen]=image;
 		prev=image;
+
 }
+	cout << "// END DECODER." << endl;
 
 }
 
@@ -471,7 +455,7 @@ int Decoder::unrice_rachas(int error,int contexto, int k){
 
 	int map=0;
 
-	int retorno=error+contexto+1>> 1;
+	int retorno=(error+contexto+1)>> 1;
 
 	if ((error+contexto+1)%2==0) map=1;
 
@@ -499,7 +483,7 @@ int Decoder::unrice_rachas(int error,int contexto, int k){
 
 
 
-void Decoder::updateImageInterruption(Racha &racha, int contador,int prox_, ofstream &salida,int cantidad_unos, Image &image){
+void Decoder::updateImageInterruption(Racha &racha, int contador,int prox_, ofstream &salida,int cantidad_unos, Image &image,int &codedImagePointer){
 
 	if (!racha.interruption){
 
@@ -508,7 +492,7 @@ void Decoder::updateImageInterruption(Racha &racha, int contador,int prox_, ofst
 		if (racha.contexto==0) signo=-1;
 
 	int kPrime=getKPrime(racha);
-	int error_=getError(kPrime,1,cantidad_unos);
+	int error_=getError(kPrime,1,cantidad_unos,codedImagePointer);
 
 
 	//int error = unRice(error_,0,1);
@@ -547,7 +531,7 @@ void Decoder::updateImageRacha(Racha &racha, int contador, ofstream &salida, Ima
 
 }
 
-int Decoder::getRachaParams2(int contadorW, int &interruption_, int &cantidad_unos){
+int Decoder::getRachaParams2(int contadorW, int &interruption_, int &cantidad_unos,int &codedImagePointer){
 
 	if (debug4) cout<<" Decodificación de la racha: "<<endl;
 
@@ -565,7 +549,7 @@ int Decoder::getRachaParams2(int contadorW, int &interruption_, int &cantidad_un
 
 	while (true){
 
-		bit=getBit();
+		bit=getBit(codedImagePointer);
 
 		if (bit==1){
 
@@ -603,7 +587,7 @@ int Decoder::getRachaParams2(int contadorW, int &interruption_, int &cantidad_un
 
 									for (int j=0;j<J[RUNindex];j++){
 
-										largo=largo+(pow(2,J[RUNindex]-j-1))*getBit();
+										largo=largo+(pow(2,J[RUNindex]-j-1))*getBit(codedImagePointer);
 
 
 									}
@@ -687,7 +671,7 @@ int Decoder::getRachaParams2(int contadorW, int &interruption_, int &cantidad_un
 	return largo;
 
 }
-int Decoder::getRachaParams(int contadorW, int &interruption_, int &cantidad_unos){
+int Decoder::getRachaParams(int contadorW, int &interruption_, int &cantidad_unos,int &codedImagePointer){
 
 	//kr=0;
 
@@ -702,7 +686,7 @@ int Decoder::getRachaParams(int contadorW, int &interruption_, int &cantidad_uno
 
 
 
-	while ((!finDeFila)&&(bit=getBit())){
+	while ((!finDeFila)&&(bit=getBit(codedImagePointer))){
 
 //		if ((bit=getBit())==0) break;
 
@@ -746,7 +730,7 @@ int Decoder::getRachaParams(int contadorW, int &interruption_, int &cantidad_uno
 
 		for (int j=kr;j>=0;j--){
 
-			pot=(pow(2,j))*getBit();
+			pot=(pow(2,j))*getBit(codedImagePointer);
 
 			largo=largo+pot;
 
@@ -795,7 +779,7 @@ int Decoder::unRice(int error,float s, int k){
 	}
 }
 
-void Decoder::completaArray(){
+void Decoder::completaArray(int &codedImagePointer){
 
 	/** Cuando se lee el último bit disponible del array, este método vuelve a completarlo. */
 
@@ -821,7 +805,7 @@ void Decoder::completaArray(){
 
 }
 
-int Decoder::getBit(){
+int Decoder::getBit(int &codedImagePointer){
 
 	/** Esta función devuelve el próximo bit de fileToBits.
 	Cuando llega al último elemento del array, vuelve a llenar el array con los valores de la imagen
@@ -831,7 +815,7 @@ int Decoder::getBit(){
 
 	if (fileToBitsPointer==0){
 
-		completaArray();
+		completaArray(codedImagePointer);
 
 	}int retorno = fileToBits[fileToBitsPointer];
 	if (debug) cout<<fileToBits[fileToBitsPointer];
@@ -846,7 +830,7 @@ int Decoder::getBit(){
 
 }
 
-int Decoder::getError_(int k){
+int Decoder::getError_(int k,int &codedImagePointer){
 
 	/** Devuelve como entero el error codificado */
 
@@ -859,7 +843,7 @@ int Decoder::getError_(int k){
 	que corresponden a la parte binaria del error */
 	for (int j=0;j<k;j++){
 
-		bit=getBit();
+		bit=getBit(codedImagePointer);
 
 		potencia=potencia/2;
 			error=error+bit*potencia;
@@ -870,7 +854,7 @@ int Decoder::getError_(int k){
 		return error;
 }
 
-int Decoder::getError(int k, int racha, int ajuste){
+int Decoder::getError(int k, int racha, int ajuste,int &codedImagePointer){
 
 	/** Devuelve como entero el error codificado */
 
@@ -910,7 +894,7 @@ int Decoder::getError(int k, int racha, int ajuste){
 	if ((debug4)and(racha)) cout<<" Codificación muestra de interupción: "<<endl;
 	if ((debug4)and(racha)) cout<<" Parte unaria: "<<endl;
 
-	while ((contador!=qMax)&&getBit()!=1){
+	while ((contador!=qMax)&&getBit(codedImagePointer)!=1){
 	//while (getBit()!=1){
 			contador++;
 
@@ -929,7 +913,7 @@ int Decoder::getError(int k, int racha, int ajuste){
 
 
 
-		bit=getBit();
+		bit=getBit(codedImagePointer);
 
 		potencia=potencia/2;
 			error=error+bit*potencia;
@@ -945,7 +929,7 @@ int Decoder::getError(int k, int racha, int ajuste){
 
 		for (int j=0;j<beta;j++){
 
-				bit=getBit();
+				bit=getBit(codedImagePointer);
 
 				potencia=potencia/2;
 					error=error+bit*potencia;
@@ -1593,7 +1577,7 @@ int Decoder::getContext_(int pos, int lar, Image &image){
 
 void Decoder::updateContexto_(int c, int err,int err_){
 
-	cntx[c].updateA(err_+1-c>>1);
+	cntx[c].updateA((err_+1-c)>>1);
 	cntx[c].updateNn(err);
 
 	if(cntx[c].N_racha==RESET) {
