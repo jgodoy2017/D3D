@@ -93,31 +93,26 @@ Decoder::Decoder(CodedImage codedImage, bool vector) {
 }
 
 
-void Decoder::decode(bool vector,int &codedImagePointer, Image &previa, int imgActual){
-
-	/** como puede verse el funcionamiento general del decodificador es bastante simétrico al codificador
-
-	Por una descripción de los métodos en común con la clase Coder, recurrir a las descripciones disponibles en Coder.cpp */
-	prev = previa;
+void Decoder::decode(bool vector, int &codedImagePointer, Image &previa, int imgActual){
 	ancho  = (vector ? codedImage.v_width  : codedImage.width);
 	alto   = (vector ? codedImage.v_heigth : codedImage.heigth);
 	blanco = (vector ? codedImage.v_white  : codedImage.white);
 	
-	cout << "decode(): 1 codedImagePointer = " << codedImagePointer << endl;
-	
+		if(vector || primeraImagen){
+			setContextsArray();
+			prev=setInitialImage();
+		}else{
+			prev = previa;			
+		}
 
-		if(vector || primeraImagen) setContextsArray();
-
-		cout << "cant_imagenes_decoder: "<< cantidad_imagenes<<endl;
-
-		if(vector || primeraImagen) prev=setInitialImage();
-		cout << " ancho de prev "<<prev.width<<endl;
 		cout << "// START DECODER" << endl;
-		cout << "actual: "<<imgActual<< " final: "<<imgActual + cantidad_imagenes<<endl;;
+		if (vector) cout << "decode(): Modo VECTORES" << endl; else cout << "decode(): Modo IMAGEN" << endl;
+		cout << "decode(): cant_imagenes_decoder: "<< cantidad_imagenes<<endl;
+		cout << "decode(): 1 codedImagePointer = " << codedImagePointer << endl;
+		cout << "decode(): actual: " << imgActual << " final: " << imgActual + cantidad_imagenes - 1 << endl;;
+
 		for (int imagen=imgActual; imagen < imgActual + cantidad_imagenes; imagen++){
-			if (vector) cout << "imagen vector: " << imagen << endl;
-			if (!vector) cout << "imagen deco: " << imagen << endl;
-			if (debug) cout << "imagen: "<< imagen << endl;
+			if (vector) cout << "decode(): imagen vector: " << imagen << endl; else cout << "decode(): imagen deco: " << imagen << endl;
 
 			int contadorH=1,contadorW=1,contador=0;
 
@@ -125,95 +120,92 @@ void Decoder::decode(bool vector,int &codedImagePointer, Image &previa, int imgA
 
 			string nombre= file + str_(codedImagePointer);
 			salida.open(nombre.c_str(), ios::binary);
+			cout << "decode(): nombre = " << nombre << endl;
 
 			if(!vector) writeHeader(salida);	//escribe encabezado en el archivo de salida
 
+			Image image(alto,ancho);
+			image.white=blanco;
 
-		Image image(alto,ancho);
-		image.white=blanco;
+			while (contadorH < alto + 1){
+					contadorW=1;
+					
+					while (contadorW != ancho + 1){
+						int signo;
+						bool esRacha;
+						
+						if (debug)cout <<"puntero: " <<codedImagePointer<<endl;
 
-		while (contadorH<alto+1){
-				contadorW=1;
-				while (contadorW!=ancho+1){
-				int signo;
-				bool esRacha;
-				if (debug)cout <<"puntero: " <<codedImagePointer<<endl;
+						int prox_image_anterior=getProxImageAnterior(contador);
+						pixels3D pxls = getPixels3D(prox_image_anterior,contador,image);
 
-				int prox_image_anterior=getProxImageAnterior(contador);
-				pixels3D pxls = getPixels3D(prox_image_anterior,contador,image);
+						if (debug) cout<<contador<<" "  << pxls.a<<" "<< pxls.b<<" "<< pxls.c<<" "<< pxls.d<<endl;
+						grad gradients = getGradients3D(1,pxls);
 
-				if (debug) cout<<contador<<" "  << pxls.a<<" "<< pxls.b<<" "<< pxls.c<<" "<< pxls.d<<endl;
-				grad gradients = getGradients3D(1,pxls);
+						int contexto = getContext(getGradients3D(0,pxls), getGradients3D(4,pxls), signo, esRacha);
+						if (debug) cout<<"signo: "<<signo<<endl;
+						if (debug) cout<<contexto<<endl;
 
-				int contexto = getContext(getGradients3D(0,pxls),getGradients3D(4,pxls), signo, esRacha);
-				if (debug) cout<<"signo: "<<signo<<endl;
-				if (debug) cout<<contexto<<endl;
+						if (!esRacha){
+							int predicted = getPredictedValue(selectMED(gradients),pxls);	//calcula el valor pixel predicho
+							if (debug) cout<<predicted<<endl;
 
-				if (!esRacha){
-					int predicted = getPredictedValue(selectMED(gradients),pxls);	//calcula el valor pixel predicho
-					if (debug) cout<<predicted<<endl;
+							predicted=fixPrediction(predicted,signo, contexto);
+							if (debug) cout<<predicted<<endl;
 
-					predicted=fixPrediction(predicted,signo, contexto);
-					if (debug) cout<<predicted<<endl;
+							int k= getK(contexto);	//calcula k
+							int error_=getError(k,0,0,codedImagePointer);	//lee el archivo para tener el valor del error codificado
+							int error=unRice(error_,get_s(contexto),k);	//deshace el mapeo de rice para recuperar el error real
+							error=reduccionDeRango(error,signo,predicted);
 
-					int k= getK(contexto);	//calcula k
-					int error_=getError(k,0,0,codedImagePointer);	//lee el archivo para tener el valor del error codificado
-					int error=unRice(error_,get_s(contexto),k);	//deshace el mapeo de rice para recuperar el error real
-					error=reduccionDeRango(error,signo,predicted);
+							if (debug) cout<<"error= "<<error<<endl;
+							if (debug) cout<<"k= "<<k<<endl;
+							if (debug) cout<<"error_= "<<error_<<endl;
 
-					if (debug) cout<<"error= "<<error<<endl;
-					if (debug) cout<<"k= "<<k<<endl;
-					if (debug) cout<<"error_= "<<error_<<endl;
+							int pixel=predicted+error;	//calcula el pixel como la suma entre el predicho y el error
+							updateImage(pixel,contador,image);	//va formando el array que representa la imagen con cada pixel decodificado
 
-					int pixel=predicted+error;	//calcula el pixel como la suma entre el predicho y el error
-					updateImage(pixel,contador,image);	//va formando el array que representa la imagen con cada pixel decodificado
+							char pixel_ =pixel+'\0';
+							salida.write(&pixel_,1);	//escribe el pixel en el archivo
+							updateContexto(contexto,error*signo);	//actualiza A y N del contexto
+						}else{
+							int interruption=0;
+							int cantidad_unos=0;
 
-					char pixel_ =pixel+'\0';
-					salida.write(&pixel_,1);	//escribe el pixel en el archivo
-					updateContexto(contexto,error*signo);	//actualiza A y N del contexto
+							int largo=getRachaParams2(contadorW, interruption,cantidad_unos,codedImagePointer);
+							int contexto=getContext_(contador, largo,image);
+
+							Racha racha(largo, interruption, pxls.a,contexto);
+							if (debug) cout<<contador<<" "<<largo<<" "<<interruption<<" "<<pxls.a<<" "<<contexto<<endl;
+
+							updateImageRacha(racha, contador, salida,image);
+							if(contador+largo<alto*ancho) updateImageInterruption(racha, contador, contador+largo, salida, cantidad_unos, image, codedImagePointer);
+
+							contadorW=contadorW+largo;
+							contador=contador+largo;
+
+							if (racha.interruption)	{
+								contadorW--;
+								contador--;
+							}
+
+							if (debug) cout<<contadorW<<" "<<contadorH<<endl;
+							if (debug) cout<<endl;
+						}
+					contador++;
+					contadorW++;
 				}
-
-				else {
-					int interruption=0;
-					int cantidad_unos=0;
-
-					int largo= getRachaParams2(contadorW, interruption,cantidad_unos,codedImagePointer);
-
-			//		int contexto=(pxls.a==pxls.b);
-					int contexto=getContext_(contador, largo,image);
-
-					Racha racha(largo, interruption, pxls.a,contexto);
-					if (debug) cout<<contador<<" "<<largo<<" "<<interruption<<" "<<pxls.a<<" "<<contexto<<endl;
-
-					updateImageRacha(racha, contador, salida,image);
-					if(contador+largo<alto*ancho) updateImageInterruption(racha, contador,contador+largo, salida,cantidad_unos,image,codedImagePointer);
-
-					contadorW=contadorW+largo;
-					contador=contador+largo;
-
-					if (racha.interruption)	{
-						contadorW--;
-						contador--;
-					}
-
-					if (debug) cout<<contadorW<<" "<<contadorH<<endl;
-					if (debug) cout<<endl;
-				}
-				
-				contador++;
-				contadorW++;
+				contadorH++;
 			}
-			contadorH++;
-		}
 		
-		salida.close();
+			salida.close();
 		
-		images[imagen]=image;
-		previa=image;
+			images[imagen]=image;
+			previa=image;
 		
-		if(primeraImagen) primeraImagen=false;
+			if(primeraImagen) primeraImagen=false;
 		
-		cout << "decode(): 2 codedImagePointer = " << codedImagePointer << endl;
+			cout << "decode(): 2 codedImagePointer = " << codedImagePointer << endl;
 	
 	}
 	

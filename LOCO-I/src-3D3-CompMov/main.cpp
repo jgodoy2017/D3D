@@ -64,16 +64,19 @@ int main(int nargs, char *args[]){
 	Image * prev2 = new Image();
 
 	for (int imagenActual = 0; imagenActual<codedImage->cantidad_imagenes; imagenActual++){
-		cout << "main(): 1 codedImagePointer = " << codedImagePointer << endl;
 		
 		if (codedImage->activarCompMov) {
 			Image * prev1 = new Image();
 			Decoder * decoder1 = new Decoder(*codedImage, true);
+
+			cout << "main(): 1 codedImagePointer = " << codedImagePointer << endl;
 			decoder1->decode(true, codedImagePointer, *prev1, 0);
+			cout << "main(): 2 codedImagePointer = " << codedImagePointer << endl;
 		}
 		
-		cout << "main(): 2 codedImagePointer = " << codedImagePointer << endl;
+		cout << "main(): 3 codedImagePointer = " << codedImagePointer << endl;
 		decoder2->decode(false, codedImagePointer, *prev2, imagenActual);
+		cout << "main(): 4 codedImagePointer = " << codedImagePointer << endl;
 	}
 
     return 0;
