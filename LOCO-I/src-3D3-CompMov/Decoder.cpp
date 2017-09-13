@@ -93,12 +93,12 @@ Decoder::Decoder(CodedImage codedImage, bool vector) {
 }
 
 
-void Decoder::decode(bool vector,int &codedImagePointer, Image &prev, int imgActual){
+void Decoder::decode(bool vector,int &codedImagePointer, Image &previa, int imgActual){
 
 	/** como puede verse el funcionamiento general del decodificador es bastante simétrico al codificador
 
 	Por una descripción de los métodos en común con la clase Coder, recurrir a las descripciones disponibles en Coder.cpp */
-
+	prev = previa;
 	ancho  = (vector ? codedImage.v_width  : codedImage.width);
 	alto   = (vector ? codedImage.v_heigth : codedImage.heigth);
 	blanco = (vector ? codedImage.v_white  : codedImage.white);
@@ -106,14 +106,14 @@ void Decoder::decode(bool vector,int &codedImagePointer, Image &prev, int imgAct
 	cout << "decode(): 1 codedImagePointer = " << codedImagePointer << endl;
 	
 
-		setContextsArray();
+		if(vector || primeraImagen) setContextsArray();
 
 		cout << "cant_imagenes_decoder: "<< cantidad_imagenes<<endl;
 
 		if(vector || primeraImagen) prev=setInitialImage();
-
+		cout << " ancho de prev "<<prev.width<<endl;
 		cout << "// START DECODER" << endl;
-
+		cout << "actual: "<<imgActual<< " final: "<<imgActual + cantidad_imagenes<<endl;;
 		for (int imagen=imgActual; imagen < imgActual + cantidad_imagenes; imagen++){
 			if (vector) cout << "imagen vector: " << imagen << endl;
 			if (!vector) cout << "imagen deco: " << imagen << endl;
@@ -209,7 +209,7 @@ void Decoder::decode(bool vector,int &codedImagePointer, Image &prev, int imgAct
 		salida.close();
 		
 		images[imagen]=image;
-		prev=image;
+		previa=image;
 		
 		if(primeraImagen) primeraImagen=false;
 		
@@ -758,9 +758,7 @@ void Decoder::completaArray(int &codedImagePointer){
 
 	temp=codedImage.image[codedImagePointer];
 	
-	cout << "completaArray(): 1 codedImagePointer = " << codedImagePointer << endl;
 	codedImagePointer++;
-	cout << "completaArray(): 2 codedImagePointer = " << codedImagePointer << endl;
 
 	std::bitset<8> temp_b(temp);
 
