@@ -59,6 +59,7 @@ Decoder::~Decoder() {
 
 Decoder::Decoder(CodedImage codedImage, bool vector) {
 
+	this->codedImage=codedImage;
 	this->file=codedImage.path+"vector";
 
 	Nmax=codedImage.Nmax;
@@ -110,6 +111,7 @@ void Decoder::decode(bool vector, int &codedImagePointer, Image &previa, int img
 		cout << "decode(): cant_imagenes_decoder: "<< cantidad_imagenes<<endl;
 		cout << "decode(): 1 codedImagePointer = " << codedImagePointer << endl;
 		cout << "decode(): actual: " << imgActual << " final: " << imgActual + cantidad_imagenes - 1 << endl;;
+		cout << "decode(): alto = " << alto << " ancho = " << ancho << " blanco = " << blanco << endl;
 
 		for (int imagen=imgActual; imagen < imgActual + cantidad_imagenes; imagen++){
 			if (vector) cout << "decode(): imagen vector: " << imagen << endl; else cout << "decode(): imagen deco: " << imagen << endl;
@@ -126,7 +128,7 @@ void Decoder::decode(bool vector, int &codedImagePointer, Image &previa, int img
 
 			Image image(alto,ancho);
 			image.white=blanco;
-
+			
 			while (contadorH < alto + 1){
 					contadorW=1;
 					
@@ -202,6 +204,11 @@ void Decoder::decode(bool vector, int &codedImagePointer, Image &previa, int img
 		
 			images[imagen]=image;
 			previa=image;
+			
+			if(vector){
+				for(int i=0; i<10; i++) cout << previa.image[i] << " ";
+				cout << endl;				
+			}
 		
 			if(primeraImagen) primeraImagen=false;
 		
@@ -742,6 +749,7 @@ void Decoder::completaArray(int &codedImagePointer){
 
 	/** Cuando se lee el último bit disponible del array, este método vuelve a completarlo. */
 
+//	cout << "|";
 	char temp;
 
 	int contador=0;
@@ -766,6 +774,8 @@ void Decoder::completaArray(int &codedImagePointer){
 }
 
 int Decoder::getBit(int &codedImagePointer){
+
+//	cout << ".";
 
 	/** Esta función devuelve el próximo bit de fileToBits.
 	Cuando llega al último elemento del array, vuelve a llenar el array con los valores de la imagen

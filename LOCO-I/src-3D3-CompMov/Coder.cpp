@@ -180,24 +180,11 @@ return aux;
 
 		// ######## Compensación de movimiento
 				if (activarCompMov && !vector){
-//					Image imageH = Image();
-//					Image imageV = Image();
 					
 					// Necesitamos alocar memoria en forma dinamica. Aguante la flechita (->).
 					Image* imageH = new Image();
 					Image* imageV = new Image();
 
-/*					
-					imageH.image=(int*)malloc(this->image.width*this->image.heigth*sizeof(int));
-					imageV.image=(int*)malloc(this->image.width*this->image.heigth*sizeof(int));
-					imageH.width=ceil((double)image.width/(double)bsize); // verificar en Excel
-					imageV.width=ceil((double)image.width/(double)bsize); // verificar en Excel
-					imageH.heigth=ceil((double)image.heigth/(double)bsize); // verificar en Excel
-					imageV.heigth=ceil((double)image.heigth/(double)bsize); // verificar en Excel
-					imageH.white=128;
-					imageV.white=128;
-*/
-					
 					imageH->image=(int*)malloc(this->image.width*this->image.heigth*sizeof(int));
 					imageV->image=(int*)malloc(this->image.width*this->image.heigth*sizeof(int));
 					imageH->width=v_ancho;
@@ -207,21 +194,8 @@ return aux;
 					imageH->white=v_blanco;
 					imageV->white=v_blanco;
 
-//					CompMov(imageH, imageV);
 					CompMov(*imageH, *imageV);
 
-/*					
-					Coder * coderH = new Coder(imageH, Nmax);
-					coderH->code(1,salida);
-					flushEncoder(salida);
-
-					Coder * coderV = new Coder(imageV, Nmax);
-					coderV->code(1,salida);
-					flushEncoder(salida);
-*/
-					
-//					Coder* coderVec = new Coder(imageH, imageV, Nmax);
-					//cout<<(*imageH).width<<" ### "<<imageH->heigth<<endl;
 					Coder* coderVec = new Coder(*imageH, *imageV, Nmax);
 
 					coderVec->code(1, salida);
@@ -281,6 +255,12 @@ return aux;
 	}
 
 	}
+	
+	if(vector){
+		for(int i=0; i<10; i++) cout << image.image[i] << " ";
+		cout << endl;				
+	}
+	
 
 	flushEncoder(salida);	//termina de escribir los últimos bits que hayan quedado en el array de bits
 }
@@ -359,10 +339,10 @@ return aux;
   						}
   					}
 
-					h_vector[vector_ind] = hmin; // Se guarda el valor de hmin en el vector de h
-					v_vector[vector_ind] = vmin; // Se guarda el valor de hmin en el vector de v
-  					imageH.image[vector_ind] = hmin;
-  					imageV.image[vector_ind] = vmin;
+					h_vector[vector_ind] = hmin + 128; // Se guarda el valor de hmin en el vector de h
+					v_vector[vector_ind] = vmin + 128; // Se guarda el valor de hmin en el vector de v
+  					imageH.image[vector_ind] = hmin + 128;
+  					imageV.image[vector_ind] = vmin + 128;
   					vector_ind++; // Muevo el puntero utilizado en los vectores
   		}
   	}

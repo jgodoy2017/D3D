@@ -104,6 +104,8 @@ void CodedImage::setCantidadImagenes(ifstream &in,char &temp){
 		potencia=potencia*10;
 	}
 
+//	in.read(&temp,1);
+
 	resultado=(double)resultado*(double)(potencia/10);
 	this->cantidad_imagenes=round(resultado);
 }
@@ -146,20 +148,18 @@ void CodedImage::setMagic(ifstream &in,char &temp){
 
 void CodedImage::setCompMov(ifstream &in,char &temp){
 
-		//char aux;
-
-		in.read(&temp,1);
-		//aux=temp;
-
+	in.read(&temp,1);
 
 		if (temp=='1') {
 			activarCompMov=true;
+
+			in.read(&temp,1);
+
 			setWidth(in,temp,true);
 			setHeigth(in,temp,true);
 			setWhite(in,temp,true);
 		} else {
-		in.read(&temp,1);
-
+			in.read(&temp,1);
 		}
 }
 
@@ -174,7 +174,9 @@ void CodedImage::setWidth(ifstream &in,char &temp, bool vector){
 		while (temp!=' '){
 			int temp_=temp-'0';
 			resultado = double(resultado)+(double)temp_/(double)potencia;
+
 			in.read(&temp,1);
+
 			contador++;
 			potencia=potencia*10;
 		}
