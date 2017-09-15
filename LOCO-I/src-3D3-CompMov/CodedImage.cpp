@@ -78,6 +78,8 @@ void CodedImage::loadImage(){
 
 			image=(char*)malloc(cantidad_imagenes*(this->width*this->heigth)*sizeof(char));
 			/** es una cota superior para el tamaño del archivo codificado*/
+			vector_alto = (int*)malloc((this->v_width*this->v_heigth)*sizeof(int));
+			vector_ancho = (int*)malloc((this->v_width*this->v_heigth)*sizeof(int));
 
 			while (true){
 					in.read(&temp,1);

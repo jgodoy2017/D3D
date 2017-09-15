@@ -96,7 +96,7 @@ public:
 		Image setInitialImage();
 		int fixPrediction(int,int, int);
 		float get_s(int);
-		int getProxImageAnterior(int);
+		int getProxImageAnterior(int,bool);
 		int selectMED(grad);
 		string str_(int n);
 
@@ -163,6 +163,7 @@ public:
 	int ancho;
 	int alto;
 	int blanco;
+	int bsize = 10;
 };
 
 } /* namespace std */

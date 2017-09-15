@@ -88,9 +88,12 @@ Decoder::Decoder(CodedImage codedImage, bool vector) {
 
 	range=codedImage.v_white+1;
 
-	this->cantidad_imagenes = (vector ? 2 : 1);
+	//this->cantidad_imagenes = (vector ? 2 : 1);
+	//this->activarCompMov=codedImage.activarCompMov;
+	//this->images = new Image[codedImage.cantidad_imagenes];
+	this->cantidad_imagenes=2;
 	this->activarCompMov=codedImage.activarCompMov;
-	this->images = new Image[codedImage.cantidad_imagenes];
+	this->images = new Image[this->cantidad_imagenes];
 }
 
 
@@ -136,9 +139,9 @@ void Decoder::decode(bool vector, int &codedImagePointer, Image &previa, int img
 						int signo;
 						bool esRacha;
 						
-						if (debug)cout <<"puntero: " <<codedImagePointer<<endl;
+						//cout <<"puntero: " <<codedImagePointer<<endl;
 
-						int prox_image_anterior=getProxImageAnterior(contador);
+						int prox_image_anterior=getProxImageAnterior(contador,vector);
 						pixels3D pxls = getPixels3D(prox_image_anterior,contador,image);
 
 						if (debug) cout<<contador<<" "  << pxls.a<<" "<< pxls.b<<" "<< pxls.c<<" "<< pxls.d<<endl;
@@ -201,15 +204,26 @@ void Decoder::decode(bool vector, int &codedImagePointer, Image &previa, int img
 			}
 		
 			salida.close();
-		
-			images[imagen]=image;
+//			images[imagen]=image;
+
 			previa=image;
 			
 			if(vector){
-				for(int i=0; i<10; i++) cout << previa.image[i] << " ";
+				for(int i=0; i<ancho*alto; i++) cout << previa.image[i] << " ";
 				cout << endl;				
 			}
 		
+			if(vector && imagen == 0){
+				for(int i=0; i<ancho*alto; i++) {
+				codedImage.vector_ancho[i] = previa.image[i];
+				}
+			}
+			if(vector && imagen == 1){
+				for(int i=0; i<ancho*alto; i++) {
+				codedImage.vector_alto[i] = previa.image[i];
+				}
+			}
+
 			if(primeraImagen) primeraImagen=false;
 		
 			cout << "decode(): 2 codedImagePointer = " << codedImagePointer << endl;
@@ -229,11 +243,19 @@ string Decoder::str_(int n){
 	return n_;
 }
 
-int Decoder::getProxImageAnterior(int prox){
+int Decoder::getProxImageAnterior(int prox, bool vector){
 
-	 //implementar
+	int proxAnt=prox;
 
-	 return prox;
+	if (activarCompMov && !vector){
+ 		int bloqueV = (prox / ancho) / bsize;
+ 	 	int bloqueH = (prox % ancho) / bsize;
+
+		int ind = bloqueH + bloqueV * (1 + ancho / bsize);
+
+		proxAnt = min((prox + codedImage.vector_ancho[ind] + codedImage.vector_alto[ind] * ancho), ancho * alto - 1);
+	}
+	return proxAnt;
 }
 
 Decoder::pixels3D Decoder::getPixels3D(int current, int current2, Image &image2){

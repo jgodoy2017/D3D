@@ -64,6 +64,8 @@ public:
 		int Nmax;
 
 		bool activarCompMov=false;
+		int *vector_alto;
+		int *vector_ancho;
 };
 
 } /* namespace std */

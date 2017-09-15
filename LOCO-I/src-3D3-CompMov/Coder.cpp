@@ -159,7 +159,7 @@ return aux;
  void Coder::code(bool vector, ofstream &salida){
 	v_ancho = 1+(image.width/bsize);
 	v_alto = 1+(image.heigth/bsize);
-	v_blanco = 128;
+	v_blanco = 255;
 	stringstream ss1;
 	ss1 << Nmax;
 	string nmax = ss1.str();
@@ -257,7 +257,7 @@ return aux;
 	}
 	
 	if(vector){
-		for(int i=0; i<10; i++) cout << image.image[i] << " ";
+		for(int i=0; i<100; i++) cout << image.image[i] << " ";
 		cout << endl;				
 	}
 	
