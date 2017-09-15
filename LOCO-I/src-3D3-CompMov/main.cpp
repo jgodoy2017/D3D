@@ -49,14 +49,14 @@ int main(int nargs, char *args[]){
 	int Nmax=64;
 
 	string path_salida=path+"_coded_Nmax_"+str_(Nmax);
-
+/*
 	ofstream salida;
 	salida.open(path_salida.c_str(), ios::binary);
 
 	Coder * coder1 = new Coder(path,Nmax,1);
 	coder1->code(false,salida);
 	salida.close();
-	
+*/
 	CodedImage * codedImage = new CodedImage(path+"_coded_Nmax_"+str_(Nmax));
 	int codedImagePointer = 0;
 

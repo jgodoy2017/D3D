@@ -135,22 +135,22 @@ void Decoder::decode(bool vector, int &codedImagePointer, Image &previa, int img
 			while (contadorH < alto + 1){
 					contadorW=1;
 					
-					while (contadorW != ancho + 1){
+					while (contadorW < ancho + 1){// había un !=
 						int signo;
 						bool esRacha;
-						
+						//cout << alto << " " << ancho << contador << endl;
 						//cout <<"puntero: " <<codedImagePointer<<endl;
 
 						int prox_image_anterior=getProxImageAnterior(contador,vector);
 						pixels3D pxls = getPixels3D(prox_image_anterior,contador,image);
-
+						if (contadorH < 3) cout<<contador+1<<" "  << contadorW<<endl;
 						if (debug) cout<<contador<<" "  << pxls.a<<" "<< pxls.b<<" "<< pxls.c<<" "<< pxls.d<<endl;
 						grad gradients = getGradients3D(1,pxls);
 
 						int contexto = getContext(getGradients3D(0,pxls), getGradients3D(4,pxls), signo, esRacha);
 						if (debug) cout<<"signo: "<<signo<<endl;
 						if (debug) cout<<contexto<<endl;
-
+						if (contador > ancho*alto ) cout<<contador<<"#########"<<contadorW<<" "<<contadorH<<endl;
 						if (!esRacha){
 							int predicted = getPredictedValue(selectMED(gradients),pxls);	//calcula el valor pixel predicho
 							if (debug) cout<<predicted<<endl;
@@ -181,7 +181,7 @@ void Decoder::decode(bool vector, int &codedImagePointer, Image &previa, int img
 							int contexto=getContext_(contador, largo,image);
 
 							Racha racha(largo, interruption, pxls.a,contexto);
-							if (debug) cout<<contador<<" "<<largo<<" "<<interruption<<" "<<pxls.a<<" "<<contexto<<endl;
+							//cout<<contador<<" "<<largo<<" "<<interruption<<" "<<pxls.a<<" "<<contexto<<endl;
 
 							updateImageRacha(racha, contador, salida,image);
 							if(contador+largo<alto*ancho) updateImageInterruption(racha, contador, contador+largo, salida, cantidad_unos, image, codedImagePointer);
@@ -215,12 +215,12 @@ void Decoder::decode(bool vector, int &codedImagePointer, Image &previa, int img
 		
 			if(vector && imagen == 0){
 				for(int i=0; i<ancho*alto; i++) {
-				codedImage.vector_ancho[i] = previa.image[i];
+				codedImage.vector_ancho[i] = previa.image[i]-128;
 				}
 			}
 			if(vector && imagen == 1){
 				for(int i=0; i<ancho*alto; i++) {
-				codedImage.vector_alto[i] = previa.image[i];
+				codedImage.vector_alto[i] = previa.image[i]-128;
 				}
 			}
 
@@ -508,7 +508,6 @@ void Decoder::updateImageInterruption(Racha &racha, int contador,int prox_, ofst
 void Decoder::updateImageRacha(Racha &racha, int contador, ofstream &salida, Image &image){
 
 	for (int k=0;k<racha.largo;k++){
-
 		image.image[contador+k]=racha.pixel;
 
 		char pixel_ =racha.pixel+'\0';
