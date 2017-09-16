@@ -105,7 +105,7 @@ public:
 
 	int correctPredictedValue(int, int);
 
-	int getProxImageAnterior(int, bool);
+	int getProxImageAnterior(int, bool, Image, Image);
 
 	virtual ~Coder();
 
@@ -185,7 +185,7 @@ public:
 		int *tempimage;
 		int *h_vector;
 		int *v_vector;
-		bool activarCompMov=true;
+		bool activarCompMov=false;
 		int vector_ind;
 		int v_ancho;
 		int v_alto;

@@ -164,6 +164,10 @@ return aux;
 	ss1 << Nmax;
 	string nmax = ss1.str();
 
+	// Necesitamos alocar memoria en forma dinamica. Aguante la flechita (->).
+	Image* imageH = new Image();
+	Image* imageV = new Image();
+
 	if (!vector) writeHeader(salida);
 
 	setContextsArray();
@@ -180,11 +184,6 @@ return aux;
 
 		// ######## Compensación de movimiento
 				if (activarCompMov && !vector){
-					
-					// Necesitamos alocar memoria en forma dinamica. Aguante la flechita (->).
-					Image* imageH = new Image();
-					Image* imageV = new Image();
-
 					imageH->image=(int*)malloc(this->image.width*this->image.heigth*sizeof(int));
 					imageV->image=(int*)malloc(this->image.width*this->image.heigth*sizeof(int));
 					imageH->width=v_ancho;
@@ -195,6 +194,10 @@ return aux;
 					imageV->white=v_blanco;
 
 					CompMov(*imageH, *imageV);
+					for(int i=0; i<v_ancho*v_alto; i++){
+						imageH->image[i]=128;
+						imageV->image[i]=128;
+					}
 
 					Coder* coderVec = new Coder(*imageH, *imageV, Nmax);
 
@@ -208,7 +211,7 @@ return aux;
 
 		int currentPixel=image2.image[prox]; //valor del pixel actual
 
-		int prox_image_anterior=getProxImageAnterior(prox,vector);
+		int prox_image_anterior=getProxImageAnterior(prox,vector, *imageH, *imageV);
 
 		pixels3D pxls = getPixels3D(prox_image_anterior,prox);
 
@@ -252,12 +255,16 @@ return aux;
 
 			if ((racha.interruption))	prox--;	//
 		}
-	}
+	} //pixeles
+//		flushEncoder(salida);	//termina de escribir los últimos bits que hayan quedado en el array de bits
 
-	}
+	}//imagenes
 	
 	if(vector){
-		for(int i=0; i<100; i++) cout << image.image[i] << " ";
+		for(int i=0; i<image.heigth*image.width; i++) cout << image.image[i] << " ";
+		cout << endl << endl;
+		
+		for(int i=0; i<image2.heigth*image2.width; i++) cout << image2.image[i] << " ";
 		cout << endl;				
 	}
 	
@@ -281,8 +288,6 @@ return aux;
  	 cout<<"Entro CompMov - "<<endl;
  	 vector_ind = 0;// Inicializo en cero el índice para los vectores de movimiento
 
- 	 h_vector=(int*)malloc(this->image.width*this->image.heigth*sizeof(int)); // Memoria para vector h
-     v_vector=(int*)malloc(this->image.width*this->image.heigth*sizeof(int)); // Memoria para vector v
 
       int s;
 
@@ -339,10 +344,8 @@ return aux;
   						}
   					}
 
-					h_vector[vector_ind] = hmin + 128; // Se guarda el valor de hmin en el vector de h
-					v_vector[vector_ind] = vmin + 128; // Se guarda el valor de hmin en el vector de v
-  					imageH.image[vector_ind] = hmin + 128;
-  					imageV.image[vector_ind] = vmin + 128;
+					imageH.image[vector_ind] = hmin + 128;
+					imageV.image[vector_ind] = vmin + 128;
   					vector_ind++; // Muevo el puntero utilizado en los vectores
   		}
   	}
@@ -372,29 +375,17 @@ return aux;
   	}
  }
 
-int Coder::getProxImageAnterior(int prox, bool vector){
-/*
- 	 if (activarCompMov && !vector) {
- 		int bloqueV = (prox / image.width) / bsize;
- 	 	int bloqueH = (prox % image.width) / bsize;
+int Coder::getProxImageAnterior(int prox, bool vector, Image imagenH, Image imagenV){
 
-		int index = bloqueH + bloqueV*ceil(image.width/bsize);
-		
-//		return prox + h_vector[index] + v_vector[index]*image.width;
- 	 	return min((prox + h_vector[index] + v_vector[index]*image.width), image.width*image.heigth - 1);
- 	 }
-
- 	 return prox;
-*/
-	
 	int proxAnt=prox;
-	
+
 	if (activarCompMov && !vector){
  		int bloqueV = (prox / image.width) / bsize;
  	 	int bloqueH = (prox % image.width) / bsize;
 
 		int ind = bloqueH + bloqueV * (1 + image.width / bsize);  // ceil() = 1 + /  :)
-		proxAnt = min((prox + h_vector[ind] + v_vector[ind] * image.width), image.width * image.heigth - 1);
+//		proxAnt = prox + h_vector[ind] + v_vector[ind] * image.width;
+		proxAnt = prox + imagenH.image[ind] + imagenV.image[ind] * image.width;
 	}
 	
 	return proxAnt;
@@ -789,6 +780,7 @@ int Coder::fixPrediction(int predicted,int signo, int contexto){
 
 void Coder::updateContexto(int contexto, int error){
 
+//	cout << "updateContexto(): Contexto: " << contexto << " N: " << contexts[contexto].N << " Nn: "<<contexts[contexto].N_<<" A: "<<contexts[contexto].A<<" B: "<<contexts[contexto].B<<" C: "<<contexts[contexto].C<<endl;
 
 	/** Actualiza los datos N y A del contexto */
 
@@ -858,19 +850,17 @@ void Coder::flushEncoder(ofstream &salida){
 	/** Completa con ceros para poder escribir los últimos bits */
 
 	if (bitsToFilePointer>0) {
-
 		bitset<8> temp_b;
 
-		for(int j=0;j<bitsToFilePointer;j++){
+		for(int j=0;j<bitsToFilePointer;j++) temp_b[7-j]=bitsToFile[j];
 
-			temp_b[7-j]=bitsToFile[j];
+		char temp=(char)temp_b.to_ulong();
 
-			}//for j
-
-			char temp=(char)temp_b.to_ulong();
-
-			salida.write(&temp, 1);
-
+		salida.write(&temp, 1);
+		
+		cout << "flushEncoder(): bits = " << (8-bitsToFilePointer%8)%8 << endl;
+		for(int i=0; i<bitsToFilePointer; i++) cout << bitsToFile[i];
+		cout << endl;
 	}
 }
 
@@ -1090,13 +1080,16 @@ void Coder::writeCode(ofstream &salida){
 			se guarda en un bitset los próximos 8 bits a ser escritos,
 			luego se pasa este bitset a char, y por último se escribe el char */
 			std::bitset<8> temp_b;
-			if (debug) cout<<"salida a archivo: ";
+			
+//			cout << "writeCode(): ";
+			
 			for(int j=0;j<8;j++){
 
-			temp_b[7-j]=bitsToFile[k*8+j];
-			if (debug)	cout<<temp_b[7-j];
+				temp_b[7-j]=bitsToFile[k*8+j];
+//				cout << temp_b[7-j];
+			
 			}//for j
-			if (debug)cout<<" termina salida a archivo"<<endl;
+//			cout << endl;
 
 			char temp=(char)temp_b.to_ulong();
 

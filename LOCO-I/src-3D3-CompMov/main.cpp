@@ -49,18 +49,17 @@ int main(int nargs, char *args[]){
 	int Nmax=64;
 
 	string path_salida=path+"_coded_Nmax_"+str_(Nmax);
-/*
+
 	ofstream salida;
 	salida.open(path_salida.c_str(), ios::binary);
 
 	Coder * coder1 = new Coder(path,Nmax,1);
 	coder1->code(false,salida);
 	salida.close();
-*/
-	CodedImage * codedImage = new CodedImage(path+"_coded_Nmax_"+str_(Nmax));
-	int codedImagePointer = 0;
 
-	Decoder * decoder2 = new Decoder(*codedImage);
+	CodedImage * codedImage = new CodedImage(path+"_coded_Nmax_"+str_(Nmax));
+
+	Decoder * decoder2 = new Decoder(*codedImage, false);
 	Image * prev2 = new Image();
 
 	for (int imagenActual = 0; imagenActual<codedImage->cantidad_imagenes; imagenActual++){
@@ -69,15 +68,21 @@ int main(int nargs, char *args[]){
 			Image * prev1 = new Image();
 			Decoder * decoder1 = new Decoder(*codedImage, true);
 
-			cout << "main(): 1 codedImagePointer = " << codedImagePointer << endl;
-			decoder1->decode(true, codedImagePointer, *prev1, 0);
-			cout << "main(): 2 codedImagePointer = " << codedImagePointer << endl;
+			cout << "main(): 1 bitInByte = " << CodedImage::bitInByte << endl;
+			decoder1->decode(true, *prev1, 0);
+			cout << "main(): 2 bitInByte = " << CodedImage::bitInByte << endl;
+			decoder1->decode(true, *prev1, 1);
+			cout << "main(): 3 bitInByte = " << CodedImage::bitInByte << endl;
+			codedImage->flushDecoder();
+			cout << "main(): 4 bitInByte = " << CodedImage::bitInByte << endl;
 		}
-		
-		cout << "main(): 3 codedImagePointer = " << codedImagePointer << endl;
-		decoder2->decode(false, codedImagePointer, *prev2, imagenActual);
-		cout << "main(): 4 codedImagePointer = " << codedImagePointer << endl;
+		cout << "main(): codedImagePointer = " << CodedImage::codedImagePointer << endl;
+		decoder2->decode(false, *prev2, imagenActual);
+		cout << "main(): 5 bitInByte = " << CodedImage::bitInByte << endl;
 	}
-
+	
+	cout << "main(): 6 bitInByte = " << CodedImage::bitInByte << endl;
+	codedImage->flushDecoder();
+	cout << "main(): 7 bitInByte = " << CodedImage::bitInByte << endl;
     return 0;
 }

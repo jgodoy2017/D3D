@@ -10,9 +10,16 @@
 
 */
 
+#include <sstream>
 #include "CodedImage.h"
 
+
 namespace std {
+	
+	int CodedImage::codedImagePointer = 0;
+	int CodedImage::fileToBitsPointer = 0;
+	bool CodedImage::fileToBits[800];
+	unsigned int CodedImage::bitInByte = 0;
 
 CodedImage::CodedImage() {
 
@@ -241,5 +248,50 @@ void CodedImage::setWhite(ifstream &in,char &temp, bool vector){
 		this->white=round(resultado);
 	}
 }
+
+void CodedImage::completaArray(){
+
+	/** Cuando se lee el último bit disponible del array, este método vuelve a completarlo. */
+
+	char temp;
+
+	int count=0;
+	
+	int tam = this->cantidad_imagenes * (this->width*this->heigth + 2*this->v_width*this->v_heigth);
+
+	while ((count<100) && (codedImagePointer<tam)){ //hasta leer 100 bytes o que se termine la informacion
+		temp=this->image[codedImagePointer];
+	
+		codedImagePointer++;
+
+		std::bitset<8> temp_b(temp);
+		for(int j=0;j<8;j++) fileToBits[count*8+j]=temp_b[7-j];
+		count++;
+	}
+}
+
+int CodedImage::getBit(){
+
+	/** Esta función devuelve el próximo bit de fileToBits.
+	Cuando llega al último elemento del array, vuelve a llenar el array con los valores de la imagen
+	y empieza desde el lugar 0 */
+
+	bitInByte = (bitInByte + 1) % 8;
+	if (fileToBitsPointer==0) completaArray();
+	
+	int retorno = fileToBits[fileToBitsPointer];
+	fileToBitsPointer=((fileToBitsPointer+1)%800); //actualiza el puntero al array de manera circular
+	
+	return retorno;
+}
+
+void CodedImage::flushDecoder(){
+	unsigned int bib = bitInByte;
+	
+	for(unsigned int i=(8-bib)%8; i>0; i--) (void)getBit(); 
+//	for(unsigned int i=0; i<2; i++) (void)getBit(); 
+	cout << "flushDecoder(): bits = " << (8-bib)%8 << endl;
+}
+
 
 } /* namespace std */

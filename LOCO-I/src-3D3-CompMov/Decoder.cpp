@@ -14,95 +14,50 @@
 
 namespace std {
 
-Decoder::Decoder(CodedImage codedImage) {
-
-	//constructor
-
-	this->file=codedImage.path+codedImage.name+"_decoded_";
-
-	this->codedImage=codedImage;
-
-	Nmax=codedImage.Nmax;
-
-	if (2>ceil(log2(codedImage.white+1))) this->beta=2;
-	else this->beta=ceil(log2(codedImage.white+1));
-
-	if (2>ceil(log2(codedImage.white+1))) {
-		this->Lmax=2*(2+8);
-	}
-	else {
-		if (8>ceil(log2(codedImage.white+1))) {
-			this->Lmax=2*(ceil(log2(codedImage.white+1))+8);
-		}
-		else{
-			this->Lmax=2*(ceil(log2(codedImage.white+1))+ceil(log2(codedImage.white+1)));
-		}
-	}
-
-	this->qMax=Lmax-beta-1;
-	this->qMax_=Lmax-beta-1;
-
-	if (debug4)cout <<"qmaxs: "<<this->qMax<<" "<<this->qMax_<<endl;
-	if (debug4)cout <<"lmax, beta: "<<Lmax<<" "<<beta<<endl;
-	if (debug4)cout <<"white: "<<codedImage.white<<endl;
-
-	range=codedImage.white+1;
-
-	this->cantidad_imagenes=1;
-	this->activarCompMov=codedImage.activarCompMov;
-	this->images = new Image[this->cantidad_imagenes];
-}
-
 Decoder::~Decoder() {
 	// TODO Auto-generated destructor stub
 }
 
-Decoder::Decoder(CodedImage codedImage, bool vector) {
+Decoder::Decoder(CodedImage &ci, bool vector) {
 
-	this->codedImage=codedImage;
-	this->file=codedImage.path+"vector";
+	this->codedImage=ci;
+	
+	string tipo = (vector ? "_vector_" : "_decoded_");
+	this->file = ci.path + ci.name + tipo;
 
-	Nmax=codedImage.Nmax;
+	ancho  = (vector ? ci.v_width  : ci.width);
+	alto   = (vector ? ci.v_heigth : ci.heigth);
+	blanco = (vector ? ci.v_white  : ci.white);
 
-	if (2>ceil(log2(codedImage.v_white+1))) this->beta=2;
-	else this->beta=ceil(log2(codedImage.v_white+1));
+	Nmax=ci.Nmax;
 
-	if (2>ceil(log2(codedImage.v_white+1))) {
+	if (2>ceil(log2(blanco+1))) this->beta=2;
+	else this->beta=ceil(log2(blanco+1));
+
+	if (2>ceil(log2(blanco+1))) {
 		this->Lmax=2*(2+8);
 	}
 	else {
-		if (8>ceil(log2(codedImage.v_white+1))) {
-			this->Lmax=2*(ceil(log2(codedImage.v_white+1))+8);
+		if (8>ceil(log2(blanco+1))) {
+			this->Lmax=2*(ceil(log2(blanco+1))+8);
 		}
 		else{
-			this->Lmax=2*(ceil(log2(codedImage.v_white+1))+ceil(log2(codedImage.v_white+1)));
+			this->Lmax=2*(ceil(log2(blanco+1))+ceil(log2(blanco+1)));
 		}
 	}
 
 	this->qMax=Lmax-beta-1;
 	this->qMax_=Lmax-beta-1;
-
-	if (debug4)cout <<"qmaxs: "<<this->qMax<<" "<<this->qMax_<<endl;
-	if (debug4)cout <<"lmax, beta: "<<Lmax<<" "<<beta<<endl;
-	if (debug4)cout <<"white: "<<codedImage.white<<endl;
-
-	range=codedImage.v_white+1;
-
-	//this->cantidad_imagenes = (vector ? 2 : 1);
-	//this->activarCompMov=codedImage.activarCompMov;
-	//this->images = new Image[codedImage.cantidad_imagenes];
-	this->cantidad_imagenes=2;
-	this->activarCompMov=codedImage.activarCompMov;
+	this->range=blanco+1;
+	this->cantidad_imagenes=(vector ? 2 : ci.cantidad_imagenes);
+	this->activarCompMov=ci.activarCompMov;
 	this->images = new Image[this->cantidad_imagenes];
 }
 
 
-void Decoder::decode(bool vector, int &codedImagePointer, Image &previa, int imgActual){
-	ancho  = (vector ? codedImage.v_width  : codedImage.width);
-	alto   = (vector ? codedImage.v_heigth : codedImage.heigth);
-	blanco = (vector ? codedImage.v_white  : codedImage.white);
+void Decoder::decode(bool vector, Image &previa, int imgActual){
 	
-		if(vector || primeraImagen){
+		if(primeraImagen){
 			setContextsArray();
 			prev=setInitialImage();
 		}else{
@@ -111,19 +66,29 @@ void Decoder::decode(bool vector, int &codedImagePointer, Image &previa, int img
 
 		cout << "// START DECODER" << endl;
 		if (vector) cout << "decode(): Modo VECTORES" << endl; else cout << "decode(): Modo IMAGEN" << endl;
+		
+		cout << "decode(): 1 fileToBits: ";
+		for(int i=codedImage.fileToBitsPointer-25; i<codedImage.fileToBitsPointer+40; i++){
+			if(i==codedImage.fileToBitsPointer) cout << " >";
+			cout << codedImage.fileToBits[i];
+			if(i==codedImage.fileToBitsPointer) cout << "< ";
+		}
+		cout << endl << "decode(): 1 fileToBitsPointer: " << codedImage.fileToBitsPointer << endl;
+		
+		
 		cout << "decode(): cant_imagenes_decoder: "<< cantidad_imagenes<<endl;
-		cout << "decode(): 1 codedImagePointer = " << codedImagePointer << endl;
+		cout << "decode(): 1 CodedImage::codedImagePointer = " << CodedImage::codedImagePointer << endl;
 		cout << "decode(): actual: " << imgActual << " final: " << imgActual + cantidad_imagenes - 1 << endl;;
 		cout << "decode(): alto = " << alto << " ancho = " << ancho << " blanco = " << blanco << endl;
 
-		for (int imagen=imgActual; imagen < imgActual + cantidad_imagenes; imagen++){
+		for (int imagen=imgActual; imagen < imgActual + 1; imagen++){
 			if (vector) cout << "decode(): imagen vector: " << imagen << endl; else cout << "decode(): imagen deco: " << imagen << endl;
 
 			int contadorH=1,contadorW=1,contador=0;
 
 			ofstream salida;
 
-			string nombre= file + str_(codedImagePointer);
+			string nombre = file + str_(CodedImage::codedImagePointer);
 			salida.open(nombre.c_str(), ios::binary);
 			cout << "decode(): nombre = " << nombre << endl;
 
@@ -139,11 +104,11 @@ void Decoder::decode(bool vector, int &codedImagePointer, Image &previa, int img
 						int signo;
 						bool esRacha;
 						//cout << alto << " " << ancho << contador << endl;
-						//cout <<"puntero: " <<codedImagePointer<<endl;
+//						cout <<"puntero: " <<CodedImage::codedImagePointer<<endl;
 
 						int prox_image_anterior=getProxImageAnterior(contador,vector);
 						pixels3D pxls = getPixels3D(prox_image_anterior,contador,image);
-						if (contadorH < 3) cout<<contador+1<<" "  << contadorW<<endl;
+
 						if (debug) cout<<contador<<" "  << pxls.a<<" "<< pxls.b<<" "<< pxls.c<<" "<< pxls.d<<endl;
 						grad gradients = getGradients3D(1,pxls);
 
@@ -159,7 +124,7 @@ void Decoder::decode(bool vector, int &codedImagePointer, Image &previa, int img
 							if (debug) cout<<predicted<<endl;
 
 							int k= getK(contexto);	//calcula k
-							int error_=getError(k,0,0,codedImagePointer);	//lee el archivo para tener el valor del error codificado
+							int error_=getError(k,0,0);	//lee el archivo para tener el valor del error codificado
 							int error=unRice(error_,get_s(contexto),k);	//deshace el mapeo de rice para recuperar el error real
 							error=reduccionDeRango(error,signo,predicted);
 
@@ -177,14 +142,14 @@ void Decoder::decode(bool vector, int &codedImagePointer, Image &previa, int img
 							int interruption=0;
 							int cantidad_unos=0;
 
-							int largo=getRachaParams2(contadorW, interruption,cantidad_unos,codedImagePointer);
+							int largo=getRachaParams2(contadorW, interruption,cantidad_unos);
 							int contexto=getContext_(contador, largo,image);
 
 							Racha racha(largo, interruption, pxls.a,contexto);
 							//cout<<contador<<" "<<largo<<" "<<interruption<<" "<<pxls.a<<" "<<contexto<<endl;
 
 							updateImageRacha(racha, contador, salida,image);
-							if(contador+largo<alto*ancho) updateImageInterruption(racha, contador, contador+largo, salida, cantidad_unos, image, codedImagePointer);
+							if(contador+largo<alto*ancho) updateImageInterruption(racha, contador, contador+largo, salida, cantidad_unos, image);
 
 							contadorW=contadorW+largo;
 							contador=contador+largo;
@@ -208,26 +173,40 @@ void Decoder::decode(bool vector, int &codedImagePointer, Image &previa, int img
 
 			previa=image;
 			
-			if(vector){
-				for(int i=0; i<ancho*alto; i++) cout << previa.image[i] << " ";
-				cout << endl;				
-			}
 		
-			if(vector && imagen == 0){
+			if(vector && imgActual == 0){
 				for(int i=0; i<ancho*alto; i++) {
 				codedImage.vector_ancho[i] = previa.image[i]-128;
 				}
 			}
-			if(vector && imagen == 1){
+			if(vector && imgActual == 1){
 				for(int i=0; i<ancho*alto; i++) {
 				codedImage.vector_alto[i] = previa.image[i]-128;
 				}
 			}
 
+			cout << "-----------" << endl;
+			for(int i=0; i<26*26; i++) cout << codedImage.vector_ancho[i]  << " ";
+			cout << endl << endl;
+			for(int i=0; i<26*26; i++) cout << codedImage.vector_alto[i]  << " ";
+			cout << endl;
+			cout << "-----------" << endl;
+//			if(!vector) cout << "decode(): Ultimo: " << (previa.image[0]+'\0') << endl;
+			cout << "decode(): 2 fileToBits: ";
+			for(int i=codedImage.fileToBitsPointer-25; i<codedImage.fileToBitsPointer+40; i++){
+				if(i==codedImage.fileToBitsPointer) cout << " >";
+				cout << codedImage.fileToBits[i];
+				if(i==codedImage.fileToBitsPointer) cout << "< ";
+			}
+			cout << endl << "decode(): 2 fileToBitsPointer: " << codedImage.fileToBitsPointer << endl;
+
 			if(primeraImagen) primeraImagen=false;
 		
-			cout << "decode(): 2 codedImagePointer = " << codedImagePointer << endl;
-	
+			cout << "decode(): 2 CodedImage::codedImagePointer = " << CodedImage::codedImagePointer << endl;
+			
+//			cout << "decode(): codedImage.image: " << endl;
+//			for(int i=0; i<50; i++) cout << (codedImage.image[i]+'\0') << " ";
+//			cout << endl;
 	}
 	
 	cout << "// END DECODER." << endl;
@@ -246,15 +225,16 @@ string Decoder::str_(int n){
 int Decoder::getProxImageAnterior(int prox, bool vector){
 
 	int proxAnt=prox;
-
+	
 	if (activarCompMov && !vector){
  		int bloqueV = (prox / ancho) / bsize;
  	 	int bloqueH = (prox % ancho) / bsize;
 
 		int ind = bloqueH + bloqueV * (1 + ancho / bsize);
-
-		proxAnt = min((prox + codedImage.vector_ancho[ind] + codedImage.vector_alto[ind] * ancho), ancho * alto - 1);
+//		proxAnt = min((prox + codedImage.vector_ancho[ind] + codedImage.vector_alto[ind] * ancho), ancho * alto - 1);
+		proxAnt = prox + codedImage.vector_ancho[ind] + codedImage.vector_alto[ind] * ancho;
 	}
+	
 	return proxAnt;
 }
 
@@ -265,7 +245,7 @@ Decoder::pixels3D Decoder::getPixels3D(int current, int current2, Image &image2)
 
 	/**  arreglar criterio para los píxeles que caen fuera de la imagen*/
 
-	Image image=prev;
+	Image image1=prev;
 
 	int a=-1;
 	int b=-1;
@@ -284,94 +264,112 @@ Decoder::pixels3D Decoder::getPixels3D(int current, int current2, Image &image2)
 
 		/* Si estoy parado en un borde izquierdo, el valor de a y c tienen que ser "128",
 		o la mitad del valor de blanco de la imagen */
-		a=ceil((double)image2.white/(double)2);
-		c=ceil((double)image2.white/(double)2);
-
+	//	a=ceil((double)image2.white/(double)2);
+	//	c=ceil((double)image2.white/(double)2);
+		
+		a = 1 + (image2.white >> 1);
+		c = 1 + (image2.white >> 1);
 	}
 
-	if ((current2%image2.width)==image.width-1){
+	if ((current2%image2.width)==image1.width-1){
 
 		/* Si estoy parado en un borde derecho, el valor de d tiene que ser "128",
 		o la mitad del valor de blanco de la imagen */
-		d=ceil((double)image2.white/(double)2);
-
+	//	d=ceil((double)image2.white/(double)2);
+		
+		d = 1 + (image2.white >> 1);
+		
 	}
 
 	if (current2<image2.width){
 
 		/* Si estoy en la primer fila, b y c deben ser "128"
 		o la mitad del valor de blanco de la imagen */
-		if (b==-1) b=ceil((double)image2.white/(double)2);
-		if (c==-1) c=ceil((double)image2.white/(double)2);
-		if (d==-1) d=ceil((double)image2.white/(double)2);
-
+//		if (b==-1) b=ceil((double)image2.white/(double)2);
+//		if (c==-1) c=ceil((double)image2.white/(double)2);
+//		if (d==-1) d=ceil((double)image2.white/(double)2);
+		
+		if(b == -1) b = 1 + (image2.white >> 1);
+		if(c == -1) c = 1 + (image2.white >> 1);
+		if(d == -1) d = 1 + (image2.white >> 1);
 	}
 
-	if ((current%image.width)==0){
+	if ((current%image1.width)==0){
 
 			/* Si estoy parado en un borde izquierdo, el valor de a y c tienen que ser "128",
 			o la mitad del valor de blanco de la imagen */
-			a_=ceil((double)image.white/(double)2);
-			c_=ceil((double)image.white/(double)2);
-
+//			a_=ceil((double)image1.white/(double)2);
+//			c_=ceil((double)image1.white/(double)2);
+			
+			a_ = 1 + (image1.white >> 1);
+			c_ = 1 + (image1.white >> 1);
 		}
 
-		if ((current%image.width)==image.width-1){
+		if ((current%image1.width)==image1.width-1){
 
 			/* Si estoy parado en un borde derecho, el valor de d tiene que ser "128",
 			o la mitad del valor de blanco de la imagen */
-			d_=ceil((double)image.white/(double)2);
-			f_=ceil((double)image.white/(double)2);
-
+//			d_=ceil((double)image1.white/(double)2);
+//			f_=ceil((double)image1.white/(double)2);
+			
+			d_ = 1 + (image1.white >> 1);
+			f_ = 1 + (image1.white >> 1);
 		}
 
-		if (current<image.width){
+		if (current<image1.width){
 
 			/* Si estoy en la primer fila, b y c deben ser "128"
 			o la mitad del valor de blanco de la imagen */
-			if (b_==-1) b_=ceil((double)image.white/(double)2);
-			if (c_==-1) c_=ceil((double)image.white/(double)2);
-			if (d_==-1) d_=ceil((double)image.white/(double)2);
+//			if (b_==-1) b_=ceil((double)image1.white/(double)2);
+//			if (c_==-1) c_=ceil((double)image1.white/(double)2);
+//			if (d_==-1) d_=ceil((double)image1.white/(double)2);
+			
+			if(b_ == -1) b_ = 1 + (image1.white >> 1);
+			if(c_ == -1) c_ = 1 + (image1.white >> 1);
+			if(d_ == -1) d_ = 1 + (image1.white >> 1);
 		}
 
-		if (current>(image.heigth-2)*image.width){
+		if (current>(image1.heigth-2)*image1.width){
 
 			/* Si estoy en la última o penúltima fila, g debe ser "128"
 			o la mitad del valor de blanco de la imagen */
-			g_=ceil((double)image.white/(double)2);
+//			g_=ceil((double)image1.white/(double)2);
+			
+			g_ = 1 + (image1.white >> 1);
 		}
 
 	/* Para cada a, b,c y d, si no se cumple una condición de borde, y por lo tanto no hubo asignación en los if que preceden,
 	se traen los valores de a, b,c y d de la imagen */
-	if (a==-1) a=image2.image[current2-1];
-	if (b==-1) b=image2.image[current2-image.width];
-	if (c==-1) c=image2.image[current2-image.width-1];
-	if (d==-1) d=image2.image[current2-image.width+1];
-	if (a_==-1) a_=image.image[current-1];
-	if (b_==-1) b_=image.image[current-image.width];
-	if (c_==-1) c_=image.image[current-image.width-1];
-	if (d_==-1) d_=image.image[current-image.width+1];
-	if (e_==-1) e_=image.image[current];
-	if (f_==-1) f_=image.image[current+1];
-	if (g_==-1) g_=image.image[current+image.width];
-	pixels3D pxls={a,b,c,d,a_,b_,c_,d_,e_,f_,g_};
+	if (a==-1)  a=image2.image[current2-1];
+	if (b==-1)  b=image2.image[current2-image1.width];
+	if (c==-1)  c=image2.image[current2-image1.width-1];
+	if (d==-1)  d=image2.image[current2-image1.width+1];
+	if (a_==-1) a_=image1.image[current-1];
+	if (b_==-1) b_=image1.image[current-image1.width];
+	if (c_==-1) c_=image1.image[current-image1.width-1];
+	if (d_==-1) d_=image1.image[current-image1.width+1];
+	if (e_==-1) e_=image1.image[current];
+	if (f_==-1) f_=image1.image[current+1];
+	if (g_==-1) g_=image1.image[current+image1.width];
+	
+//	pixels3D pxls={a,b,c,d,a_,b_,c_,d_,e_,f_,g_};
 
-		return pxls;
+		return {a,b,c,d,a_,b_,c_,d_,e_,f_,g_};
 }
 
 Image Decoder::setInitialImage(){
 
 Image aux=Image();
 
-aux.image=(int*)malloc(codedImage.width*codedImage.heigth*sizeof(int));
+aux.image=(int*)malloc(ancho*alto*sizeof(int));
 
-for (int k=0;k<codedImage.width*codedImage.heigth;k++)
+for (int k=0;k<ancho*alto;k++)
 	aux.image[k]=0;
 	/*	definir algún criterio para esta imagen */
 
-aux.white=this->codedImage.white;
-aux.width=this->codedImage.width;
-aux.heigth=this->codedImage.heigth;
+aux.white=this->blanco;
+aux.width=this->ancho;
+aux.heigth=this->alto;
 
 return aux;
 
@@ -471,7 +469,7 @@ int Decoder::unrice_rachas(int error,int contexto, int k){
 
 
 
-void Decoder::updateImageInterruption(Racha &racha, int contador,int prox_, ofstream &salida,int cantidad_unos, Image &image,int &codedImagePointer){
+void Decoder::updateImageInterruption(Racha &racha, int contador,int prox_, ofstream &salida,int cantidad_unos, Image &image){
 
 	if (!racha.interruption){
 
@@ -480,7 +478,7 @@ void Decoder::updateImageInterruption(Racha &racha, int contador,int prox_, ofst
 		if (racha.contexto==0) signo=-1;
 
 	int kPrime=getKPrime(racha);
-	int error_=getError(kPrime,1,cantidad_unos,codedImagePointer);
+	int error_=getError(kPrime,1,cantidad_unos);
 
 
 	//int error = unRice(error_,0,1);
@@ -518,7 +516,7 @@ void Decoder::updateImageRacha(Racha &racha, int contador, ofstream &salida, Ima
 
 }
 
-int Decoder::getRachaParams2(int contadorW, int &interruption_, int &cantidad_unos,int &codedImagePointer){
+int Decoder::getRachaParams2(int contadorW, int &interruption_, int &cantidad_unos){
 
 	if (debug4) cout<<" Decodificación de la racha: "<<endl;
 
@@ -536,14 +534,14 @@ int Decoder::getRachaParams2(int contadorW, int &interruption_, int &cantidad_un
 
 	while (true){
 
-		bit=getBit(codedImagePointer);
+		bit=codedImage.getBit();
 
 		if (bit==1){
 
 
-			if ((1 << J[RUNindex])>(-largo+codedImage.width-(contadorW-1))){
+			if ((1 << J[RUNindex])>(-largo+ancho-(contadorW-1))){
 
-				largo=codedImage.width-(contadorW-1);
+				largo=ancho-(contadorW-1);
 
 				if (debug) cout<<"1- largo: "<<largo<<endl;
 
@@ -558,7 +556,7 @@ int Decoder::getRachaParams2(int contadorW, int &interruption_, int &cantidad_un
 							if (debug) cout<<"2- largo: "<<largo<<endl;
 						}
 
-			if (largo==codedImage.width-(contadorW-1)) break;
+			if (largo==ancho-(contadorW-1)) break;
 
 		}else{
 
@@ -574,7 +572,7 @@ int Decoder::getRachaParams2(int contadorW, int &interruption_, int &cantidad_un
 
 									for (int j=0;j<J[RUNindex];j++){
 
-										largo=largo+(pow(2,J[RUNindex]-j-1))*getBit(codedImagePointer);
+										largo=largo+(pow(2,J[RUNindex]-j-1))*codedImage.getBit();
 
 
 									}
@@ -586,70 +584,8 @@ int Decoder::getRachaParams2(int contadorW, int &interruption_, int &cantidad_un
 
 									finDeRacha=true;
 
-
-
-
 		}
 
-
-
-
-	/*
-	while (!finDeRacha){
-
-		bit=getBit();
-
-		if (bit==1){
-
-			if ((1 << J[RUNindex])>(-largo+image.width-(contadorW-1))){
-
-				largo=image.width-(contadorW-1);
-
-				if (debug) cout<<"1- largo: "<<largo<<endl;
-
-
-
-			}
-
-			else {
-				largo=largo + (1 << J[RUNindex]);
-				if (RUNindex<31) RUNindex++;
-
-				if (debug) cout<<"2- largo: "<<largo<<endl;
-			}
-
-			if (largo+contadorW-1<(image.width)){
-				finDeRacha=false;
-			}
-			else finDeRacha=true;
-
-
-		}
-
-		if (bit==0){
-
-
-			if (debug4) cout<<endl;
-			if (debug4) cout<<" Codificación largo faltante: "<<endl;
-
-			interruption_=0;
-
-			for (int j=0;j<J[RUNindex];j++){
-
-				largo=largo+(pow(2,J[RUNindex]-j-1))*getBit();
-
-
-			}
-			if (debug4) cout<<endl;
-
-			ajuste = J[RUNindex];
-			if (RUNindex>0) RUNindex--;
-
-
-			finDeRacha=true;
-		}
-
-	}*/
 
 	cantidad_unos=ajuste+1;
 
@@ -658,7 +594,7 @@ int Decoder::getRachaParams2(int contadorW, int &interruption_, int &cantidad_un
 	return largo;
 
 }
-int Decoder::getRachaParams(int contadorW, int &interruption_, int &cantidad_unos,int &codedImagePointer){
+int Decoder::getRachaParams(int contadorW, int &interruption_, int &cantidad_unos){
 
 	//kr=0;
 
@@ -673,9 +609,8 @@ int Decoder::getRachaParams(int contadorW, int &interruption_, int &cantidad_uno
 
 
 
-	while ((!finDeFila)&&(bit=getBit(codedImagePointer))){
+	while ((!finDeFila)&&(bit=codedImage.getBit())){
 
-//		if ((bit=getBit())==0) break;
 
 		cantidad_unos++;
 
@@ -693,10 +628,7 @@ int Decoder::getRachaParams(int contadorW, int &interruption_, int &cantidad_uno
 			RUNindex++;
 
 		}
-
-		//if (debug) cout<<"largo+contadorW= "<<largo+contadorW<<endl;
-
-	}//cout<<"fileToBitsPointer= "<<fileToBitsPointer<<endl;
+	}
 
 	interruption=bit;
 
@@ -717,7 +649,7 @@ int Decoder::getRachaParams(int contadorW, int &interruption_, int &cantidad_uno
 
 		for (int j=kr;j>=0;j--){
 
-			pot=(pow(2,j))*getBit(codedImagePointer);
+			pot=(pow(2,j))*codedImage.getBit();
 
 			largo=largo+pot;
 
@@ -766,62 +698,8 @@ int Decoder::unRice(int error,float s, int k){
 	}
 }
 
-void Decoder::completaArray(int &codedImagePointer){
 
-	/** Cuando se lee el último bit disponible del array, este método vuelve a completarlo. */
-
-//	cout << "|";
-	char temp;
-
-	int contador=0;
-
-	while ((contador<100)&&((codedImagePointer<(cantidad_imagenes*codedImage.heigth*codedImage.width)))){ //hasta leer 100 bytes o que se termine la imagen
-
-	temp=codedImage.image[codedImagePointer];
-	
-	codedImagePointer++;
-
-	std::bitset<8> temp_b(temp);
-
-				for(int j=0;j<8;j++){
-
-				fileToBits[contador*8+j]=temp_b[7-j];
-
-				}//for j
-
-				contador++;
-	}
-
-}
-
-int Decoder::getBit(int &codedImagePointer){
-
-//	cout << ".";
-
-	/** Esta función devuelve el próximo bit de fileToBits.
-	Cuando llega al último elemento del array, vuelve a llenar el array con los valores de la imagen
-	y empieza desde el lugar 0 */
-
-
-
-	if (fileToBitsPointer==0){
-
-		completaArray(codedImagePointer);
-
-	}int retorno = fileToBits[fileToBitsPointer];
-	if (debug) cout<<fileToBits[fileToBitsPointer];
-	if (debug4) cout<<fileToBits[fileToBitsPointer];
-	fileToBitsPointer=((fileToBitsPointer+1)%800);//actualiza el puntero al array de manera circular
-
-	//if (debug) cout<<retorno;
-
-
-
-	return retorno;
-
-}
-
-int Decoder::getError_(int k,int &codedImagePointer){
+int Decoder::getError_(int k){
 
 	/** Devuelve como entero el error codificado */
 
@@ -834,7 +712,7 @@ int Decoder::getError_(int k,int &codedImagePointer){
 	que corresponden a la parte binaria del error */
 	for (int j=0;j<k;j++){
 
-		bit=getBit(codedImagePointer);
+		bit=codedImage.getBit();
 
 		potencia=potencia/2;
 			error=error+bit*potencia;
@@ -845,7 +723,7 @@ int Decoder::getError_(int k,int &codedImagePointer){
 		return error;
 }
 
-int Decoder::getError(int k, int racha, int ajuste,int &codedImagePointer){
+int Decoder::getError(int k, int racha, int ajuste){
 
 	/** Devuelve como entero el error codificado */
 
@@ -885,8 +763,8 @@ int Decoder::getError(int k, int racha, int ajuste,int &codedImagePointer){
 	if ((debug4)and(racha)) cout<<" Codificación muestra de interupción: "<<endl;
 	if ((debug4)and(racha)) cout<<" Parte unaria: "<<endl;
 
-	while ((contador!=qMax)&&getBit(codedImagePointer)!=1){
-	//while (getBit()!=1){
+	while ((contador!=qMax)&&codedImage.getBit()!=1){
+	//while (codedImage.getBit()!=1){
 			contador++;
 
 		}
@@ -904,7 +782,7 @@ int Decoder::getError(int k, int racha, int ajuste,int &codedImagePointer){
 
 
 
-		bit=getBit(codedImagePointer);
+		bit=codedImage.getBit();
 
 		potencia=potencia/2;
 			error=error+bit*potencia;
@@ -920,7 +798,7 @@ int Decoder::getError(int k, int racha, int ajuste,int &codedImagePointer){
 
 		for (int j=0;j<beta;j++){
 
-				bit=getBit(codedImagePointer);
+				bit=codedImage.getBit();
 
 				potencia=potencia/2;
 					error=error+bit*potencia;
@@ -1104,6 +982,7 @@ int Decoder::fixPrediction(int predicted,int signo, int contexto){
 
 void Decoder::updateContexto(int contexto, int error){
 
+//	cout << "updateContexto(): Contexto: " << contexto << " N: " << contexts[contexto].N << " Nn: "<<contexts[contexto].N_<<" A: "<<contexts[contexto].A<<" B: "<<contexts[contexto].B<<" C: "<<contexts[contexto].C<<endl;
 	/** Actualiza los datos N y A del contexto */
 
 		/** Actualiza B y C */
@@ -1155,8 +1034,7 @@ void Decoder::updateContexto(int contexto, int error){
 
 
 		}
-		 //printf("> A: %3d B: %3d C: %3d N: %3d\n", contexts[contexto].A, contexts[contexto].B, contexts[contexto].C, contexts[contexto].N);
-		//cout<<"N: "<<contexts[contexto].N<<"Nn: "<<contexts[contexto].N_<<"A: "<<contexts[contexto].A<<"B: "<<contexts[contexto].B<<"C: "<<contexts[contexto].C<<endl;
+		//printf("> A: %3d B: %3d C: %3d N: %3d\n", contexts[contexto].A, contexts[contexto].B, contexts[contexto].C, contexts[contexto].N);
 	/*
 		if (!(contexts[contexto].C==0)){
 
@@ -1422,7 +1300,7 @@ void Decoder::setContextsArray(){
 						for (int m=-4;m<5;m++){
 
 
-						Context contexto(k,j,i,l,m,codedImage.white);
+						Context contexto(k,j,i,l,m,blanco);
 						contexts[indice]=contexto;
 						indice++;
 
@@ -1451,116 +1329,9 @@ int Decoder::getP(pixels pxls){
 
 	return floor((double)(2*pxls.a+2*pxls.b+2*pxls.c+3)/(double)6);
 
-}Decoder::pixels Decoder::getPixels_(int current, Image &image){
-
-	/** Devuelve los píxeles de la vecindad: a, b y c */
-
-	int a=-1;
-	int b=-1;
-	int c=-1;
-	int d=-1;
-
-	if (current==0){
-
-		//primer píxel
-
-		a=0;
-		b=0;
-		c=0;
-		d=0;
-
-	}	else if ((current%codedImage.width)==0){
-
-		/* columna izquierda */
-
-		a=image.image[current-codedImage.width];
-		c=getPixels_(current-codedImage.width,image).a;
-
-
-	}
-
-	if (current<codedImage.width){
-
-			//primer fila
-
-			if (b==-1) b=0;
-			if (c==-1) c=0;
-			if (d==-1) d=0;
-		}
-
-
-
-
-	else if ((current%codedImage.width)==codedImage.width-1){
-
-		/* columna derecha */
-
-		d=image.image[current-codedImage.width];
-
-
-	}
-
-
-	/* Para cada a, b,c y d, si no se cumple una condición de borde, y por lo tanto no hubo asignación en los if que preceden,
-	se traen los valores de a, b,c y d de la imagen */
-	if (a==-1) a=image.image[current-1];
-	if (b==-1) b=image.image[current-codedImage.width];
-	if (c==-1) c=image.image[current-codedImage.width-1];
-	if (d==-1) d=image.image[current-codedImage.width+1];
-
-	pixels pxls={a,b,c,d};
-
-		return pxls;
 }
 
-Decoder::pixels Decoder::getPixels(int current, Image &image){
 
-	/** Devuelve los píxeles de la vecindad: a, b y c */
-
-		int a=-1;
-		int b=-1;
-		int c=-1;
-		int d=-1;
-
-		if ((current%codedImage.width)==0){
-
-			/* Si estoy parado en un borde izquierdo, el valor de a y c tienen que ser "128",
-			o la mitad del valor de blanco de la imagen */
-			a=ceil((double)codedImage.white/(double)2);
-			c=ceil((double)codedImage.white/(double)2);
-
-
-		}
-
-		if ((current%codedImage.width)==codedImage.width-1){
-
-			/* Si estoy parado en un borde derecho, el valor de d tiene que ser "128",
-			o la mitad del valor de blanco de la imagen */
-			d=ceil((double)codedImage.white/(double)2);
-
-
-		}
-
-		if (current<codedImage.width){
-
-			/* Si estoy en la primer fila, b y c deben ser "128"
-			o la mitad del valor de blanco de la imagen */
-			if (b==-1) b=ceil((double)codedImage.white/(double)2);
-			if (c==-1) c=ceil((double)codedImage.white/(double)2);
-			if (d==-1) d=ceil((double)codedImage.white/(double)2);
-		}
-
-		/* Para cada a, b,c y d, si no se cumple una condición de borde, y por lo tanto no hubo asignación en los if que preceden,
-		se traen los valores de a, b,c y d de la imagen */
-		if (a==-1) a=image.image[current-1];
-		if (b==-1) b=image.image[current-codedImage.width];
-		if (c==-1) c=image.image[current-codedImage.width-1];
-		if (d==-1) d=image.image[current-codedImage.width+1];
-
-		pixels pxls={a,b,c,d};
-
-			return pxls;
-}
 
 int Decoder::getContext_(int pos, int lar, Image &image){
 	return (getPixels3D(0,pos,image).a==getPixels3D(0,pos+lar,image).b);
