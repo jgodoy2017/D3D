@@ -55,13 +55,13 @@ Coder::Coder(Image img1, Image img2, int Nmax) {
 	this->heigth=img1.heigth;
 	this->white=img1.white;
 	
-	image=setInitialImage();
-	this->beta=max(2, ceil(log2(image.white+1)));
-	this->Lmax=2*(max(2, ceil(log2(image.white+1)) )+max(8, max(2, ceil(log2(image.white+1)) )));
+	this->image=setInitialImage();
+	this->beta=max(2, ceil(log2(this->image.white+1)));
+	this->Lmax=2*(max(2, ceil(log2(this->image.white+1)) )+max(8, max(2, ceil(log2(this->image.white+1)) )));
 	this->qMax=Lmax-beta-1;
 	this->qMax_=Lmax-beta-1;
 
-	range=image.white+1;
+	this->range=this->image.white+1;
 }
 
 Coder::Coder(string path, int Nmax, int aux) {
@@ -195,8 +195,8 @@ return aux;
 
 					CompMov(*imageH, *imageV);
 					for(int i=0; i<v_ancho*v_alto; i++){
-						imageH->image[i]=128;
-						imageV->image[i]=128;
+						imageH->image[i]=0;
+						imageV->image[i]=0;
 					}
 
 					Coder* coderVec = new Coder(*imageH, *imageV, Nmax);

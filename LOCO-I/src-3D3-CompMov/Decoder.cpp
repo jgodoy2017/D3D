@@ -88,7 +88,7 @@ void Decoder::decode(bool vector, Image &previa, int imgActual){
 
 			ofstream salida;
 
-			string nombre = file + str_(CodedImage::codedImagePointer);
+			string nombre = file + str_(CodedImage::codedImagePointer) + "_" + str_(imagen);
 			salida.open(nombre.c_str(), ios::binary);
 			cout << "decode(): nombre = " << nombre << endl;
 
@@ -176,12 +176,12 @@ void Decoder::decode(bool vector, Image &previa, int imgActual){
 		
 			if(vector && imgActual == 0){
 				for(int i=0; i<ancho*alto; i++) {
-				codedImage.vector_ancho[i] = previa.image[i]-128;
+				codedImage.vector_ancho[i] = previa.image[i];
 				}
 			}
 			if(vector && imgActual == 1){
 				for(int i=0; i<ancho*alto; i++) {
-				codedImage.vector_alto[i] = previa.image[i]-128;
+				codedImage.vector_alto[i] = previa.image[i];
 				}
 			}
 
