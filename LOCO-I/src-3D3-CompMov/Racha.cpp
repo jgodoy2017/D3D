@@ -11,22 +11,16 @@ namespace std {
 
 Racha::Racha() {
 	// TODO Auto-generated constructor stub
-
 }
 Racha::Racha(int largo, int interruption,int pixel, int contexto) {
-
 	this->largo=largo;
 	this->interruption=interruption;
 	this->contexto=contexto;
 	this->pixel=pixel;
-
 }
 
 
 void Racha::updateContexto(){
-
-
-
 }
 
 

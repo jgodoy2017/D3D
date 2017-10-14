@@ -1,8 +1,7 @@
 #include "ContextRun.h"
 
 using namespace std;
-
-	//esta clase modela los contextos especiales que aparecen en el modo de rachas. 
+//esta clase modela los contextos especiales que aparecen en el modo de rachas.
 
 ContextRun::ContextRun(){
 	this->A_racha=2;

@@ -185,7 +185,7 @@ public:
 		int *tempimage;
 		int *h_vector;
 		int *v_vector;
-		bool activarCompMov=true;
+		bool activarCompMov=false;
 		int vector_ind;
 		int v_ancho;
 		int v_alto;

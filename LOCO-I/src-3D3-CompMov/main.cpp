@@ -63,27 +63,16 @@ int main(int nargs, char *args[]){
 	Image * prev2 = new Image();
 
 	for (int imagenActual = 0; imagenActual<codedImage->cantidad_imagenes; imagenActual++){
-		
 		if (codedImage->activarCompMov) {
 			Image * prev1 = new Image();
 			Decoder * decoder1 = new Decoder(*codedImage, true);
-			//cout << "main(): 1 bitInByte = " << CodedImage::bitInByte << endl;
 			decoder1->decode(true, *prev1, 0);
-			//cout << "main(): 2 bitInByte = " << CodedImage::bitInByte << endl;
 			decoder1->decode(true, *prev1, 1);
-			//cout << "main(): 3 bitInByte = " << CodedImage::bitInByte << endl;
 			codedImage->flushDecoder();
-			//cout << "main(): 4 bitInByte = " << CodedImage::bitInByte << endl;
 		}
-		//cout << "main(): 1 codedImagePointer = " << CodedImage::codedImagePointer << endl;
-		//cout << "main(): 5 bitInByte = " << CodedImage::bitInByte << endl;
 		decoder2->decode(false, *prev2, imagenActual);
-		//cout << "main(): 2 codedImagePointer = " << CodedImage::codedImagePointer << endl;
-		//cout << "main(): 6 bitInByte = " << CodedImage::bitInByte << endl;
 	}
-	
-	//cout << "main(): 6 bitInByte = " << CodedImage::bitInByte << endl;
+
 	codedImage->flushDecoder();
-	//cout << "main(): 7 bitInByte = " << CodedImage::bitInByte << endl;
     return 0;
 }
