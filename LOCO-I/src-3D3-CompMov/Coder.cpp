@@ -22,12 +22,15 @@
 #include <algorithm>
 
 #include <sstream>
+#include <string>
 
 #include <iomanip>
 #include <dirent.h>
 
 #include "Coder.h"
 #include "Decoder.h"
+#include "Writer.h"
+#include "Reader.h"
 
 namespace std {
 // PRUEBA !
@@ -112,7 +115,7 @@ Image Coder::setInitialImage(){
 	return aux;
 }
 
- void Coder::code(bool vector, ofstream &salida){
+ void Coder::code(bool vector, Writer &writer){
 	v_ancho = 1+(image.width/bsize);
 	v_alto = 1+(image.heigth/bsize);
 	v_blanco = 255;
@@ -124,7 +127,7 @@ Image Coder::setInitialImage(){
 
 	cout << "// START CODER" << endl;
 
-	if (!vector) writeHeader(salida);
+	if (!vector) writeHeader(writer);
 	setContextsArray();
 
 	for (int imagen=0;imagen<cantidad_imagenes;imagen++){
@@ -154,7 +157,7 @@ Image Coder::setInitialImage(){
 			}
 
 			Coder* coderVec = new Coder(*imageH, *imageV, Nmax);
-			coderVec->code(1, salida);
+			coderVec->code(1, writer);
 		}
 
 		for(int prox=0;prox<image.heigth*image.width;prox++){
@@ -176,7 +179,7 @@ Image Coder::setInitialImage(){
 				int k= getK(contexto);	//calcula k para ese contexto
 				int error__=reduccionDeRango(error_);
 				int error =rice(error__, get_s(contexto),k);	//devuelve mapeo de rice del error
-				encode(error,k, salida,0,0);	//codifica el error
+				encode(error,k, writer,0,0);	//codifica el error
 				updateContexto(contexto, error_);	//actualiza los valores para el contexto
 			}
 			else {
@@ -184,8 +187,8 @@ Image Coder::setInitialImage(){
 				int largo= getRachaParams2(image2, prox, pxls.a, interruption);
 				int contexto=getContext_(prox, largo);
 				Racha racha(largo, interruption, pxls.a,contexto);
-				int cantidad_unos=encodeRacha2(racha);
-				encodeMuestraInterrupcion(racha, image2.image[prox+largo], prox+largo,salida,cantidad_unos);
+				int cantidad_unos=encodeRacha2(racha, writer);
+				encodeMuestraInterrupcion(racha, image2.image[prox+largo], prox+largo,writer,cantidad_unos);
 				racha.updateContexto();
 				prox=prox+largo;
 				if ((racha.interruption))	prox--;	//
@@ -193,7 +196,7 @@ Image Coder::setInitialImage(){
 
 		} //pixeles
 	}//imagenes
-	flushEncoder(salida);	//termina de escribir los últimos bits que hayan quedado en el array de bits
+	//flushEncoder(salida);	//termina de escribir los últimos bits que hayan quedado en el array de bits
 }
 
  void Coder::CompMov(Image &imageH, Image &imageV){
@@ -355,7 +358,7 @@ int Coder::getKPrime(Racha &r){
 	return K_racha;
 }
 
-void Coder::encodeMuestraInterrupcion(Racha &racha, int siguiente, int prox_, ofstream &salida,int cantidad_unos){
+void Coder::encodeMuestraInterrupcion(Racha &racha, int siguiente, int prox_, Writer &writer,int cantidad_unos){
 	int error=0, error_=0, kPrime=1000;
 	int test;
 
@@ -373,9 +376,9 @@ void Coder::encodeMuestraInterrupcion(Racha &racha, int siguiente, int prox_, of
 		int map=0;
 		error=rice_rachas(error_,racha.contexto,kPrime,map);
 		updateContexto_(racha.contexto, error_,error,map,kPrime);
-		encode(error, kPrime, salida,1,cantidad_unos);
+		encode(error, kPrime, writer,1,cantidad_unos);
 	} else {
-		writeCode(salida);
+		//writeCode(salida);
 	}
 }
 
@@ -393,15 +396,16 @@ int Coder::rice_rachas(int error,int contexto, int k, int &map){
 	return retorno;
 }
 
-int Coder::encodeRacha2(Racha &racha){
+int Coder::encodeRacha2(Racha &racha, Writer &writer){
 	int aux;
 	int diferencia=racha.largo;
 	int ajuste;
 
 	while (diferencia >= (1 << J[RUNindex])) {
 	   //Agregar un 1 al tream
-		bitsToFile[bitsToFilePointer]=1;
-		bitsToFilePointer++;
+		writer.write(1, 1);
+		//bitsToFile[bitsToFilePointer]=1;
+		//bitsToFilePointer++;
 		diferencia = diferencia - (1 << J[RUNindex]);
 
 		if (RUNindex < 31) {
@@ -411,11 +415,13 @@ int Coder::encodeRacha2(Racha &racha){
 	}
 
 	if ((diferencia!=0)and(racha.interruption)) {
-		bitsToFile[bitsToFilePointer]=1;
-		bitsToFilePointer++;
+		writer.write(1, 1);
+		//bitsToFile[bitsToFilePointer]=1;
+		//bitsToFilePointer++;
 	} else if (!racha.interruption) {
-		bitsToFile[bitsToFilePointer]=0;
-		bitsToFilePointer++;
+		writer.write(0, 1);
+		//bitsToFile[bitsToFilePointer]=0;
+		//bitsToFilePointer++;
 
 		int potencia = 1;
 
@@ -428,8 +434,9 @@ int Coder::encodeRacha2(Racha &racha){
 		potencia=potencia/2;
 
 		for (int j=0;j<J[RUNindex];j++){
-			bitsToFile[bitsToFilePointer]=resto/potencia;
-			bitsToFilePointer++;
+			writer.write(resto/potencia, 1);
+			//bitsToFile[bitsToFilePointer]=resto/potencia;
+			//bitsToFilePointer++;
 			resto=resto%potencia;
 			potencia=potencia/2;
 		}
@@ -482,8 +489,7 @@ void Coder::updateContexto(int contexto, int error){
 	}
 }
 
-void Coder::flushEncoder(ofstream &salida){
-	/** Completa con ceros para poder escribir los últimos bits */
+/*void Coder::flushEncoder(Writer &writer){
 
 	if (bitsToFilePointer>0) {
 		bitset<8> temp_b;
@@ -492,9 +498,9 @@ void Coder::flushEncoder(ofstream &salida){
 		char temp=(char)temp_b.to_ulong();
 		salida.write(&temp, 1);
 	}
-}
+}*/
 
-void Coder::encode(int error, int k, ofstream &salida, int racha,int ajuste){
+void Coder::encode(int error, int k, Writer &writer, int racha,int ajuste){
 	/** Almacena en potencia el valor de 2^k
 	Calcula la parte entera del cociente entre el error y 2^k y lo guarda en "cociente" para codificación binaria
 	Calcula el resto de la división entera entre el error y 2^k y lo guarda en "resto" para codificación unaria */
@@ -520,30 +526,34 @@ void Coder::encode(int error, int k, ofstream &salida, int racha,int ajuste){
 		}
 
 		for (int j=0;j<cociente;j++){
-			bitsToFile[bitsToFilePointer]=0;
-			bitsToFilePointer++;
+			writer.write(0, 1);
+			//bitsToFile[bitsToFilePointer]=0;
+			//bitsToFilePointer++;
 		}
 
 		if(cociente==qMax){
 		} else {
-			bitsToFile[bitsToFilePointer]=1;
-			bitsToFilePointer++;
+			writer.write(1, 1);
+			//bitsToFile[bitsToFilePointer]=1;
+			//bitsToFilePointer++;
 		}
 
 		if (cociente==qMax)	{
 			cociente=qMax;
 			potencia=pow(2,beta-1);
 			for (int j=0;j<beta;j++){
-				bitsToFile[bitsToFilePointer]=error/potencia;
-				bitsToFilePointer++;
+				writer.write(error/potencia, 1);
+				//bitsToFile[bitsToFilePointer]=error/potencia;
+				//bitsToFilePointer++;
 				error=error%potencia;
 				potencia=potencia/2;
 			}
 		} else {
 			/*	Este loop calcula la expresión binaria del resto expresada con k bits, y lo guarda en array auxiliar bitsToFile */
 			for (int j=0;j<k;j++){
-				bitsToFile[bitsToFilePointer]=resto/potencia;
-				bitsToFilePointer++;
+				writer.write(resto/potencia, 1);
+				//bitsToFile[bitsToFilePointer]=resto/potencia;
+				//bitsToFilePointer++;
 				resto=resto%potencia;
 				potencia=potencia/2;
 			}
@@ -551,18 +561,19 @@ void Coder::encode(int error, int k, ofstream &salida, int racha,int ajuste){
 			y lo guarda en array auxiliar bitsToFile */
 		}
 	}
-	writeCode(salida);
+	//writeCode(salida);
 }
 
-void Coder::writeCode(ofstream &salida){
+
+//void Coder::writeCode(Writer &writer){
 	/** Si hay al menos un byte para escribir en bitsToFile se escriben tantos bytes como es posible,
 	esto es, el cociente de la división entera entre bitsToFilePointer y 8 */
-
+/*
 	if (bitsToFilePointer>7){
 		for(int k=0;k<(bitsToFilePointer/8);k++){
 			/* Para escribir el byte, se usa una estructura auxiliar, bitset,
 			se guarda en un bitset los próximos 8 bits a ser escritos,
-			luego se pasa este bitset a char, y por último se escribe el char */
+			luego se pasa este bitset a char, y por último se escribe el char
 			std::bitset<8> temp_b;
 
 			for(int j=0;j<8;j++){
@@ -570,20 +581,20 @@ void Coder::writeCode(ofstream &salida){
 			}
 
 			char temp=(char)temp_b.to_ulong();
-			salida.write(&temp, 1);
+			//salida.write(&temp, 1);
 		}
 		/* Todos los bits de la cola que no pudieron escribirse,
 		esto es, los últimos bitsToFilePointer%8 bits válidos, son corridos al principio de la fila,
-		para ser los primeros en escribirse cuando vuelva a invocarse este método */
+		para ser los primeros en escribirse cuando vuelva a invocarse este método
 
 		for(int k=8*(bitsToFilePointer/8);k<bitsToFilePointer;k++){
 			bitsToFile[k-8*(bitsToFilePointer/8)]=bitsToFile[k];
 		}
 
-		/* Se actualiza el valor del puntero */
+		/* Se actualiza el valor del puntero
 		bitsToFilePointer=bitsToFilePointer%8;
 	}//if
-}
+}*/
 
 int Coder::rice(int error, float s, int k){
 	/** Mapeo de rice del error */
@@ -879,28 +890,34 @@ Coder::pixels Coder::getPixels_(int current){
 	return pxls;
 }
 
-void Coder::writeHeader(ofstream &salida){
+void Coder::writeHeader(Writer &writer){
 	/** Escribe el encabezado de la imagen codificada,
 	para esto se sigue el mismo esquema presente en el archvo .pgm,
 	con el agregado de escribir también el valor de Nmax
 	los 5 métodos que se usan para escribir el encabezado, que se listan a continuación,
 	siguen la misma estructura interna general */
 
-	writeMagic(salida);
-	writeWidth(salida,false);
-	writeHeigth(salida,false);
-	writeWhite(salida,false);
-	writeNmax(salida);
-	writeCantidadImagenes(salida);
-	writeCompMov(salida,activarCompMov);
+	writeMagic(writer);
+	writeWidth(writer,false);
+	writeHeigth(writer,false);
+	writeWhite(writer,false);
+	writeNmax(writer);
+	writeCantidadImagenes(writer);
+	writeCompMov(writer,activarCompMov);
 }
 
-void Coder::writeCantidadImagenes(ofstream &salida){
+void Coder::writeCantidadImagenes(Writer &writer){
 	/** Se lleva el valor de Nmax a un double de la forma 0,Nmax
 	luego se multiplica entre 10 y se redondea para quedarse
 	con cada digito de Nmax y poder escribirlos como chars */
 
 	int nmax =cantidad_imagenes;
+
+	string temp = str_(nmax)+"\n";
+	int temp_l = temp.length();
+
+	writer.writeString(temp.c_str(),temp_l);
+	/*
 	double aux=(double)nmax;
 	int potencia=1;
 
@@ -930,15 +947,22 @@ void Coder::writeCantidadImagenes(ofstream &salida){
 		potencia=potencia/10;
 	}
 	temp_='\n';	//por último escribe un salto de línea
-	salida.write(&temp_,1);
+	salida.write(&temp_,1);*/
 }
 
-void Coder::writeNmax(ofstream &salida){
+void Coder::writeNmax(Writer &writer){
 	/** Se lleva el valor de Nmax a un double de la forma 0,Nmax
 	luego se multiplica entre 10 y se redondea para quedarse
 	con cada digito de Nmax y poder escribirlos como chars */
 
 	int nmax =Nmax;
+
+	string temp = str_(nmax)+"\n";
+	int temp_l = temp.length();
+
+	writer.writeString(temp.c_str(),temp_l);
+
+	/*
 	double aux=(double)nmax;
 	int potencia=1;
 
@@ -970,46 +994,57 @@ void Coder::writeNmax(ofstream &salida){
 	}
 
 	temp_='\n';	//por último escribe un salto de línea
-	salida.write(&temp_,1);
+	salida.write(&temp_,1);*/
 }
 
-void Coder::writeMagic(ofstream &salida){
+void Coder::writeMagic(Writer &writer){
 	/** Como solo se trabaja con imagenes tipo P5,
 	directamente se escriben estos caracteres*/
 
-	char temp='P';
+	writer.writeString("P5\n", 3);
+
+	/*char temp='P';
 	salida.write(&temp,1);
 	temp='5';
 	salida.write(&temp,1);
 	temp='\n';
-	salida.write(&temp,1);
+	salida.write(&temp,1);*/
 }
 
-void Coder::writeCompMov(ofstream &salida, bool compMov){
+void Coder::writeCompMov(Writer &writer, bool compMov){
 	/** Como solo se trabaja con imagenes tipo P5,
 	directamente se escriben estos caracteres*/
 	char temp;
 	if (compMov) {
-		temp='1';
-		salida.write(&temp,1);
-		temp='\n';
-		salida.write(&temp,1);
-		writeWidth(salida,compMov);
-		writeHeigth(salida,compMov);
-		writeWhite(salida,compMov);
+		//temp='1';
+		//salida.write(&temp,1);
+		//temp='\n';
+		//salida.write(&temp,1);
+		writer.writeString("1\n", 2);
+
+		writeWidth(writer,compMov);
+		writeHeigth(writer,compMov);
+		writeWhite(writer,compMov);
 	} else {
-		temp='0';
-		salida.write(&temp,1);
-		temp='\n';
-		salida.write(&temp,1);
+		writer.writeString("0\n", 2);
+
+		//temp='0';
+		//salida.write(&temp,1);
+		//temp='\n';
+		//salida.write(&temp,1);
 	}
 }
 
-void Coder::writeWidth(ofstream &salida,bool vector){
+void Coder::writeWidth(Writer &writer, bool vector){
 	/** Por descripción sobre el funcionamiento recurrir a writeNmax, es exactamente igual */
 
 	int ancho (vector ? v_ancho : image.width);
-	double aux=(double)ancho;
+	string temp = str_(ancho)+" ";
+	int temp_l = temp.length();
+
+	writer.writeString(temp.c_str(),temp_l);
+
+	/*double aux=(double)ancho;
 	int potencia=1;
 
 	while(aux>1){
@@ -1035,12 +1070,19 @@ void Coder::writeWidth(ofstream &salida,bool vector){
 	}
 
 	temp_=' ';
-	salida.write(&temp_,1);
+	salida.write(&temp_,1);*/
 }
-void Coder::writeHeigth(ofstream &salida, bool vector){
+void Coder::writeHeigth(Writer &writer, bool vector){
 	/** Por descripción sobre el funcionamiento recurrir a writeNmax, es exactamente igual */
 
 	int alto (vector ? v_alto : image.heigth);
+
+	string temp = str_(alto)+"\n";
+	int temp_l = temp.length();
+
+	writer.writeString(temp.c_str(),temp_l);
+
+	/*
 	double aux=(double)alto;
 	int potencia=1;
 
@@ -1068,13 +1110,20 @@ void Coder::writeHeigth(ofstream &salida, bool vector){
 	}
 
 	temp_='\n';
-	salida.write(&temp_,1);
+	salida.write(&temp_,1);*/
 }
 
-void Coder::writeWhite(ofstream &salida, bool vector){
+void Coder::writeWhite(Writer &writer, bool vector){
 	/** Por descripción sobre el funcionamiento recurrir a writeNmax, es exactamente igual */
 
 	int blanco (vector ? v_blanco : image.white);
+
+	string temp = str_(blanco)+"\n";
+	int temp_l = temp.length();
+
+	writer.writeString(temp.c_str(),temp_l);
+
+	/*
 	double aux=(double)blanco;
 	int potencia=1;
 
@@ -1102,7 +1151,7 @@ void Coder::writeWhite(ofstream &salida, bool vector){
 	}
 
 	temp_='\n';
-	salida.write(&temp_,1);
+	salida.write(&temp_,1);*/
 }
 
 int Coder::correctPredictedValue(int pred, int contexto){
@@ -1174,7 +1223,6 @@ int Coder::getPredictedValue(int modo, pixels3D pxls){
 	/** Calcula el valor predicho según expresión de las diapositivas del curso */
 
 	int pred;
-	int error;
 
 	if (modo == 0){
 		if ((pxls.c>=pxls.a)&&(pxls.c>=pxls.b)){
@@ -1213,6 +1261,14 @@ int Coder::getPredictedValue(int modo, pixels3D pxls){
 	}
 
 	return pred;
+}
+
+string Coder::str_(int n){
+	stringstream ss1;
+	ss1 << n;
+	string n_ = ss1.str();
+
+	return n_;
 }
 
 Coder::~Coder() {

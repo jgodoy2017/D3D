@@ -10,6 +10,8 @@
 #include "Decoder.h"
 #include "ContextRun.h"
 #include "math.h"
+#include "Writer.h"
+#include "Reader.h"
 #include <sstream>
 
 namespace std {

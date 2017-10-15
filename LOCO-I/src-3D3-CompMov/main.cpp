@@ -27,11 +27,12 @@
 #include "Decoder.h"
 #include "Image.h"
 
+#include "Writer.h"
+#include "Reader.h"
+
 using namespace std;
 
 string str_(int n){
-
-
 	stringstream ss1;
 	ss1 << n;
 	string n_ = ss1.str();
@@ -50,12 +51,13 @@ int main(int nargs, char *args[]){
 
 	string path_salida=path+"_coded_Nmax_"+str_(Nmax);
 
-	ofstream salida;
-	salida.open(path_salida.c_str(), ios::binary);
+	Writer* writer = new Writer();
+	writer->open(path_salida);
 
 	Coder * coder1 = new Coder(path,Nmax,1);
-	coder1->code(false,salida);
-	salida.close();
+	coder1->code(false,*writer);
+
+	writer->close();
 
 	CodedImage * codedImage = new CodedImage(path+"_coded_Nmax_"+str_(Nmax));
 
@@ -68,7 +70,7 @@ int main(int nargs, char *args[]){
 			Decoder * decoder1 = new Decoder(*codedImage, true);
 			decoder1->decode(true, *prev1, 0);
 			decoder1->decode(true, *prev1, 1);
-			codedImage->flushDecoder();
+			//codedImage->flushDecoder();
 		}
 		decoder2->decode(false, *prev2, imagenActual);
 	}

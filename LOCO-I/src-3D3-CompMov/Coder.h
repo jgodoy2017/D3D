@@ -13,6 +13,8 @@
 #include "Context.h"
 #include "Racha.h"
 #include "ContextRun.h"
+#include "Writer.h"
+#include "Reader.h"
 
 namespace std {
 
@@ -57,7 +59,7 @@ public:
 	Coder(string,int,int);
 
 	Image setInitialImage();
-	void code(bool, ofstream&);
+	void code(bool, Writer&);
 	void CompMov(Image&, Image&); // Compensación de movimiento
 	void itera(string, int&, int, int); // Compensación de movimiento
 	int selectMED(grad);
@@ -76,26 +78,26 @@ public:
 	int getKPrime(Racha&);
 	int rice(int,float,int);
 	int rice_rachas(int,int,int,int&);
-	void encode(int, int, ofstream&, int,int);
-	void encode_(int, int, ofstream&);
+	void encode(int, int, Writer&, int,int);
+	void encode_(int, int, Writer&);
 	void updateContexto(int, int);
 	void updateContexto_(int, int,int,int,int);
-	void writeCode(ofstream&);	/* writecode() y flushEncoder() son métodos reciclados de la (propia) tarea del curso de Compresión de Datos Sin Pérdida*/
-	void flushEncoder(ofstream&);
-	void writeHeader(ofstream&);
-	void writeHeaderVector(ofstream&); // Compensación de Movimiento
-	void writeWidth(ofstream&,bool);
-	void writeHeigth(ofstream&,bool);
-	void writeWhite(ofstream&,bool);
-	void writeMagic(ofstream&);
-	void writeCompMov(ofstream&, bool); // Compensación de Movimiento
-	void writeNmax(ofstream&);
-	void writeCantidadImagenes(ofstream&);
+	void writeCode(Writer&);	/* writecode() y flushEncoder() son métodos reciclados de la (propia) tarea del curso de Compresión de Datos Sin Pérdida*/
+	//void flushEncoder(Writer&);
+	void writeHeader(Writer&);
+	void writeHeaderVector(Writer&); // Compensación de Movimiento
+	void writeWidth(Writer&,bool);
+	void writeHeigth(Writer&,bool);
+	void writeWhite(Writer&,bool);
+	void writeMagic(Writer&);
+	void writeCompMov(Writer&, bool); // Compensación de Movimiento
+	void writeNmax(Writer&);
+	void writeCantidadImagenes(Writer&);
 	int getRachaParams(Image&, int, int, int&);
 	int getRachaParams2(Image&, int, int, int&);
 	int encodeRacha(Racha&);
-	int encodeRacha2(Racha&);
-	void encodeMuestraInterrupcion(Racha&, int,int, ofstream&, int);
+	int encodeRacha2(Racha&, Writer&);
+	void encodeMuestraInterrupcion(Racha&, int,int, Writer&, int);
 	int reduccionDeRango(int);
 	int fixPrediction(int,int, int);
 	bool hasEnding (std::string const &fullString, std::string const &ending);
@@ -118,6 +120,7 @@ public:
 	Image image;
 	Image image2;
 
+	//Writer writer;
 	int width, heigth, white, magic;
 	int Nmax;		//el valor de Nmax
 	int i;
@@ -185,7 +188,7 @@ public:
 		int *tempimage;
 		int *h_vector;
 		int *v_vector;
-		bool activarCompMov=false;
+		bool activarCompMov=true;
 		int vector_ind;
 		int v_ancho;
 		int v_alto;
