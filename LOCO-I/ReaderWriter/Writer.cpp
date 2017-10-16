@@ -84,7 +84,6 @@ void Writer::close(){
 }
 
 void Writer::flushByte(int cByte){
-	char* str = new char[8];
 	char* byteToFile = new char[1];
 	unsigned int num=0;
 	

@@ -46,8 +46,8 @@ int Reader::read(int bits){
 //		for(int cBit = pReader; cBit < pReader + bits; cBit++) cout << (((unsigned char)vReader & (1 << (7-cBit))) >> (7-cBit));
 //		cout << endl;
 		
-		pReader = (pReader + bits) % 8;
 		num = readBuffer(bits);
+		pReader = (pReader + bits) % 8;
 	}
 	
 	cout << "N=" << num << endl;
