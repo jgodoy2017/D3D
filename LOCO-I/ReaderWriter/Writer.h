@@ -21,6 +21,8 @@ private:
 	char* num2str(unsigned int);
 	void writeToFile();
 	void writeChar(char);
+	void flushByte(int);
+	
 	ofstream file;
 	int vWriter[32];
 	int pWriter=0;

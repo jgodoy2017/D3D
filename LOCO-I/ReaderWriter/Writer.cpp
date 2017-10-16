@@ -18,14 +18,15 @@ void Writer::write(int num, int bits){
 //	cout << "pWriter=" << pWriter << " bits=" << bits << endl;
 	
 	if(pWriter + bits < 32){
-		for(int cBit=pWriter; cBit < pWriter + bits; cBit++){
+		for(int cBit = pWriter; cBit < pWriter + bits; cBit++){
 			vWriter[cBit] = (numInBits & (1 << ((bits-1) - (cBit-pWriter)))) >> ((bits-1) - (cBit-pWriter));
 		}
 		pWriter += bits;
 	}else{
-		for(int cBit=pWriter; cBit < 32; cBit++){
+		for(int cBit = pWriter; cBit < 32; cBit++){
 			vWriter[cBit] = (numInBits & (1 << ((bits-1) - (cBit-pWriter)))) >> ((bits-1) - (cBit-pWriter));
 		}
+		
 		writeToFile();
 		
 //		cout << "numInBits=" << numInBits;
@@ -71,17 +72,27 @@ void Writer::writeToFile(){
 	file.write(str, 4);
 }
 
-void Writer::close(){	
-//	cout << "close() pWriter=" << pWriter << endl;
+void Writer::close(){
 	if(pWriter > 0){
+//		cout << "close(): pWriter=" << pWriter << endl;
 		for(int cBit=pWriter; cBit<32; cBit++) vWriter[cBit]=0;
-		writeToFile();		
-
-//		for(int cBit=0; cBit<32; cBit++) cout << vWriter[cBit];
-//		cout << endl;
+		for(int cByte = 0; cByte < 1 + pWriter/8; cByte++) flushByte(cByte);
 	}
 	
 	file.close();
+	
+}
+
+void Writer::flushByte(int cByte){
+	char* str = new char[8];
+	char* byteToFile = new char[1];
+	unsigned int num=0;
+	
+//	cout << "flushByte(): bits flusheados: " << 8 * cByte << "-" << 8 * cByte + 7 << endl;
+	for(int cBit = 8 * cByte; cBit < 8 * cByte + 8; cBit++) num = 2*num + vWriter[cBit];
+	
+	byteToFile[0] = (num & 0xFF);
+	file.write(byteToFile, 1);
 }
 
 Writer::~Writer(){}

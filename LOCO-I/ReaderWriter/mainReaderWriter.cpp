@@ -13,6 +13,10 @@ int main(int nargs, char *args[]){
 	Writer* writer = new Writer();
 	writer->open(path);
 	
+	// Prueba para el flush() de 1 byte
+	writer->write(0xFF, 31);  // Maximo 31
+	writer->write(0xAA, 8);
+/*	
 	// Ejemplo de escritura de String
 	writer->writeString("P5\n640 480\n255\n", 15);
 	
@@ -23,6 +27,7 @@ int main(int nargs, char *args[]){
 	writer->write(0,1);       // Escribe "0"
 	writer->write(0x01,1);    // Escribe "1"
 	writer->write(1,1);       // Tambien escribe "1"
+*/	
 	
 	writer->close();
 	
@@ -30,6 +35,11 @@ int main(int nargs, char *args[]){
 	Reader* reader = new Reader();
 	reader->open(path);
 	
+	// Prueba para el flush() de 1 byte
+	reader->read(31);       // Maximo 31
+	reader->read(8);
+
+/*	
 	// Ejemplo de lectura de String
 	string strVal = reader->readString(15);
 	cout << endl << "Texto: " << endl << strVal << endl;
@@ -39,6 +49,8 @@ int main(int nargs, char *args[]){
 	val = reader->read(10);
 	val = reader->read(9);
 	val = reader->read(1);   // Ejemplo de lectura de 1 bit
+*/
+	
 	reader->close();
 		
 	return 0;
