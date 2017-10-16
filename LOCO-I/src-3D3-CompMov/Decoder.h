@@ -99,7 +99,7 @@ public:
 
 		/* Este objeto representa la imagen codificada que está decodificando */
 		CodedImage codedImage;
-		int numberImgPath = 0;
+		static int numberImgPath;
 		int Nmax;
 		//int i;
 

@@ -15,7 +15,7 @@
 #include <sstream>
 
 namespace std {
-
+    int Decoder::numberImgPath=0;
 Decoder::~Decoder() {
 	// TODO Auto-generated destructor stub
 }

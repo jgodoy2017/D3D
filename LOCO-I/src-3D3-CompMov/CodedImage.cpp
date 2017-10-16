@@ -33,7 +33,7 @@ CodedImage::CodedImage(int heigth, int width) {
 CodedImage::CodedImage(Reader &reader){
 	//constructor
 
-	this->path=reader.path;
+	this->path="";
 	this->name="";
 	loadImage(reader);
 }

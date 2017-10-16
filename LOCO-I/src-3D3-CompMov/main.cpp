@@ -62,7 +62,7 @@ int main(int nargs, char *args[]){
 	Reader* reader = new Reader();
 	reader->open(path_salida);
 
-	CodedImage * codedImage = new CodedImage(*reader);
+	CodedImage * codedImage = new CodedImage(*reader,path_salida,"");
 
 	Decoder * decoder2 = new Decoder(*codedImage, false);
 	Image * prev2 = new Image();
