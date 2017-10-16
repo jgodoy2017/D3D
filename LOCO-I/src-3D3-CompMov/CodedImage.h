@@ -21,6 +21,7 @@
 #include <iomanip>
 
 #include <math.h>
+#include "Reader.h"
 
 namespace std {
 
@@ -28,18 +29,18 @@ class CodedImage {
 public:
 	CodedImage();
 	CodedImage(int, int);
-	CodedImage(string);
-	CodedImage(string, string);
+	CodedImage(Reader&);
+	CodedImage(Reader&, string, string);
 	virtual ~CodedImage();
 
-		void loadImage();
-		void setMagic(ifstream&,char&);
-		void setCompMov(ifstream&,char&);
-		void setWidth(ifstream&,char&,bool);
-		void setHeigth(ifstream&,char&,bool);
-		void setWhite(ifstream&,char&,bool);
-		void setNmax(ifstream&,char&);
-		void setCantidadImagenes(ifstream&,char&);
+		void loadImage(Reader&);
+		void setMagic(Reader&);
+		void setCompMov(Reader&);
+		void setWidth(Reader&,bool);
+		void setHeigth(Reader&,bool);
+		void setWhite(Reader&,bool);
+		void setNmax(Reader&);
+		void setCantidadImagenes(Reader&);
 
 		string path;
 		string name;

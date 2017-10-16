@@ -16,15 +16,17 @@ public:
 	int read(int);
 	string readString(int);
 	void close();
+	string path;
 	
+
 private:
 	int readBuffer(int);
 	int readFirstBits(char*, int);
 	char readChar();
 	
 	ifstream file;
-	int pReader=0;
-	char vReader = 0x00;
+	static int pReader;
+	static char vReader;
 };
 
 }

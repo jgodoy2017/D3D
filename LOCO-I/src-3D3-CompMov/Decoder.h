@@ -57,7 +57,7 @@ public:
 
 		Decoder(CodedImage&, bool);
 		virtual ~Decoder();
-		void decode(bool, Image&, int);
+		void decode(Reader&, bool, Image&, int);
 		pixels getPixels(int, Image&);
 		pixels getPixels_(int, Image&);
 		pixels3D getPixels3D(int,int, Image&);
@@ -82,12 +82,12 @@ public:
 		void updateImage(int, int,Image&);
 		int unRice(int,float,int);
 		int unrice_rachas(int,int,int);
-		int getError(int,int,int);
+		int getError(Reader&,int,int,int);
 		int getError_(int);
 		int getRachaParams(int, int&,int&);
-		int getRachaParams2(int, int&,int&);
+		int getRachaParams2(Reader&, int, int&,int&);
 		void updateImageRacha(Racha&, int, ofstream&, Image&);
-		void updateImageInterruption(Racha&, int,int, ofstream&, int, Image&);
+		void updateImageInterruption(Reader&, Racha&, int,int, ofstream&, int, Image&);
 		int reduccionDeRango(int, int,int);
 		int clipErrorEstadisticos(int);
 		Image setInitialImage();
@@ -99,7 +99,7 @@ public:
 
 		/* Este objeto representa la imagen codificada que está decodificando */
 		CodedImage codedImage;
-
+		int numberImgPath = 0;
 		int Nmax;
 		//int i;
 

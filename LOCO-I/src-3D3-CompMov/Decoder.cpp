@@ -52,8 +52,9 @@ Decoder::Decoder(CodedImage &ci, bool vector) {
 }
 
 
-void Decoder::decode(bool vector, Image &previa, int imgActual){
+void Decoder::decode(Reader &reader, bool vector, Image &previa, int imgActual){
 	cout << "// START DECODER" << endl;
+	numberImgPath++; // para diferenciar las imagenes
 
 	if(primeraImagen){
 		setContextsArray();
@@ -71,8 +72,10 @@ void Decoder::decode(bool vector, Image &previa, int imgActual){
 
 		ofstream salida;
 
-		string nombre = file + str_(CodedImage::codedImagePointer) + "_" + str_(imagen);
+		string nombre = file + "_" + str_(numberImgPath) + "_" + str_(imagen);
+		cout << "decode(): Path: " << nombre << endl;
 		salida.open(nombre.c_str(), ios::binary);
+
 		if(!vector) writeHeader(salida);	//escribe encabezado en el archivo de salida
 		Image image(alto,ancho);
 		image.white=blanco;
@@ -91,7 +94,7 @@ void Decoder::decode(bool vector, Image &previa, int imgActual){
 					int predicted = getPredictedValue(selectMED(gradients),pxls);	//calcula el valor pixel predicho
 					predicted=fixPrediction(predicted,signo, contexto);
 					int k= getK(contexto);	//calcula k
-					int error_=getError(k,0,0);	//lee el archivo para tener el valor del error codificado
+					int error_=getError(reader,k,0,0);	//lee el archivo para tener el valor del error codificado
 					int error=unRice(error_,get_s(contexto),k);	//deshace el mapeo de rice para recuperar el error real
 					error=reduccionDeRango(error,signo,predicted);
 					int pixel=predicted+error;	//calcula el pixel como la suma entre el predicho y el error
@@ -102,11 +105,11 @@ void Decoder::decode(bool vector, Image &previa, int imgActual){
 				} else {
 					int interruption=0;
 					int cantidad_unos=0;
-					int largo=getRachaParams2(contadorW, interruption,cantidad_unos);
+					int largo=getRachaParams2(reader, contadorW, interruption,cantidad_unos);
 					int contexto=getContext_(contador, largo,image);
 					Racha racha(largo, interruption, pxls.a,contexto);
 					updateImageRacha(racha, contador, salida,image);
-					if(contador+largo<alto*ancho) updateImageInterruption(racha, contador, contador+largo, salida, cantidad_unos, image);
+					if(contador+largo<alto*ancho) updateImageInterruption(reader, racha, contador, contador+largo, salida, cantidad_unos, image);
 					contadorW=contadorW+largo;
 					contador=contador+largo;
 					if (racha.interruption)	{
@@ -153,7 +156,7 @@ int Decoder::getProxImageAnterior(int prox, bool vector){
  		int bloqueV = (prox / ancho) / bsize;
  	 	int bloqueH = (prox % ancho) / bsize;
 		int ind = bloqueH + bloqueV * (1 + ancho / bsize);
-		proxAnt = prox + codedImage.vector_ancho[ind] + codedImage.vector_alto[ind] * ancho;
+		proxAnt = prox + codedImage.vector_ancho[ind]-128 + (codedImage.vector_alto[ind]-128) * ancho;
 	}
 	
 	return proxAnt;
@@ -300,12 +303,12 @@ int Decoder::unrice_rachas(int error,int contexto, int k){
 	 return retorno;
 }
 
-void Decoder::updateImageInterruption(Racha &racha, int contador,int prox_, ofstream &salida,int cantidad_unos, Image &image){
+void Decoder::updateImageInterruption(Reader &reader, Racha &racha, int contador,int prox_, ofstream &salida,int cantidad_unos, Image &image){
 	if (!racha.interruption){
 		int signo=1;
 		if (racha.contexto==0) signo=-1;
 		int kPrime=getKPrime(racha);
-		int error_=getError(kPrime,1,cantidad_unos);
+		int error_=getError(reader,kPrime,1,cantidad_unos);
 		int error = unrice_rachas(error_,racha.contexto,kPrime);
 
 		error=reduccionDeRango(error*signo,1,getPixels3D(0,prox_, image).b);
@@ -325,7 +328,7 @@ void Decoder::updateImageRacha(Racha &racha, int contador, ofstream &salida, Ima
 	}
 }
 
-int Decoder::getRachaParams2(int contadorW, int &interruption_, int &cantidad_unos){
+int Decoder::getRachaParams2(Reader &reader, int contadorW, int &interruption_, int &cantidad_unos){
 	int largo=0;
 	int bit;
 	int ajuste=0;
@@ -333,7 +336,8 @@ int Decoder::getRachaParams2(int contadorW, int &interruption_, int &cantidad_un
 	bool finDeRacha=false;
 
 	while (true){
-		bit=codedImage.getBit();
+		//bit=codedImage.getBit();
+		bit=reader.read(1);
 		if (bit==1){
 			if ((1 << J[RUNindex])>(-largo+ancho-(contadorW-1))){
 				largo=ancho-(contadorW-1);
@@ -349,7 +353,8 @@ int Decoder::getRachaParams2(int contadorW, int &interruption_, int &cantidad_un
 	if (bit==0) {
 	interruption_=0;
 	for (int j=0;j<J[RUNindex];j++){
-		largo=largo+(pow(2,J[RUNindex]-j-1))*codedImage.getBit();
+		//largo=largo+(pow(2,J[RUNindex]-j-1))*codedImage.getBit();
+		largo=largo+(pow(2,J[RUNindex]-j-1))*reader.read(1);
 	}
 	ajuste = J[RUNindex];
 	if (RUNindex>0) RUNindex--;
@@ -383,7 +388,7 @@ int Decoder::unRice(int error,float s, int k){
 	}
 }
 
-int Decoder::getError(int k, int racha, int ajuste){
+int Decoder::getError(Reader &reader, int k, int racha, int ajuste){
 	/** Devuelve como entero el error codificado */
 
 	int qMax;
@@ -402,22 +407,28 @@ int Decoder::getError(int k, int racha, int ajuste){
 
 	/* Obtiene la cantidad de ceros que le siguen antes del primer uno,
 	es la codificación unaria del cociente entre el error y 2^k */
-	while ((contador!=qMax)&&codedImage.getBit()!=1){
-			contador++;
+	//while ((contador!=qMax)&&codedImage.getBit()!=1){
+	//		contador++;
+	//}
+	while ((contador!=qMax)&&(reader.read(1)!=1)){
+		contador++;
 	}
+
 	if (contador!=qMax){
 		/* Convierte los siguientes k bits de fileToBits en un entero,
 		que corresponden a la parte binaria del error */
 		if ((debug4)and(racha)) cout<<" Parte binaria: "<<endl;
 		for (int j=0;j<k;j++){
-			bit=codedImage.getBit();
+			//bit=codedImage.getBit();
+			bit=reader.read(1);
 			potencia=potencia/2;
 			error=error+bit*potencia;
 		}
 	} else {
 		potencia=pow(2,beta);
 		for (int j=0;j<beta;j++){
-			bit=codedImage.getBit();
+			//bit=codedImage.getBit();
+			bit=reader.read(1);
 			potencia=potencia/2;
 			error=error+bit*potencia;
 		}

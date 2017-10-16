@@ -4,16 +4,18 @@
 #include "Reader.h"
 
 namespace std{
-	
+    int Reader::pReader=0;
+	char Reader::vReader = 0x00;
 Reader::Reader(){}
 
 void Reader::open(string path){
+	this->path=path;
+	cout<<"Open Path: "<<this->path<<endl;
 	file.open(path.c_str(), ios::binary);
 }
 
 int Reader::read(int bits){
 	int num, numBytes;
-	
 	if(pReader == 0){
 		char* buffer1 = new char[1];
 		file.read(buffer1, 1);
@@ -22,6 +24,7 @@ int Reader::read(int bits){
 	
 //	cout << "pReader=" << pReader << " bits=" << bits << endl;
 	if(pReader + bits > 8){
+
 		numBytes = 1 + (bits - (8-pReader) - 1)/8;
 		
 //		for(int cBit=pReader; cBit<8; cBit++) cout << (((unsigned char)vReader & (1 << (7-cBit))) >> (7-cBit));
@@ -43,14 +46,17 @@ int Reader::read(int bits){
 		
 //		cout << "numHi=" << numHi << " numLo=" << numLo << " num=" << num << " shift=" << shift << endl;			
 	}else{
+
 //		for(int cBit = pReader; cBit < pReader + bits; cBit++) cout << (((unsigned char)vReader & (1 << (7-cBit))) >> (7-cBit));
 //		cout << endl;
 		
-		pReader = (pReader + bits) % 8;
+		//pReader = (pReader + bits) % 8;
 		num = readBuffer(bits);
+		pReader = (pReader + bits) % 8;
 	}
 	
-	cout << "N=" << num << endl;
+	//cout << "N=" << num << endl;
+
 	return num;
 }
 
@@ -74,7 +80,7 @@ int Reader::readBuffer(int bits){
 		cBitVal = ((vReader & (1 << (7-cBit))) >> (7-cBit));
 		num = 2*num + cBitVal;
 	}
-	
+
 	return num;
 }
 

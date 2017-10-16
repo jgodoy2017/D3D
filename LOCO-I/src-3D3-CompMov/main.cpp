@@ -59,7 +59,10 @@ int main(int nargs, char *args[]){
 
 	writer->close();
 
-	CodedImage * codedImage = new CodedImage(path+"_coded_Nmax_"+str_(Nmax));
+	Reader* reader = new Reader();
+	reader->open(path_salida);
+
+	CodedImage * codedImage = new CodedImage(*reader);
 
 	Decoder * decoder2 = new Decoder(*codedImage, false);
 	Image * prev2 = new Image();
@@ -68,13 +71,13 @@ int main(int nargs, char *args[]){
 		if (codedImage->activarCompMov) {
 			Image * prev1 = new Image();
 			Decoder * decoder1 = new Decoder(*codedImage, true);
-			decoder1->decode(true, *prev1, 0);
-			decoder1->decode(true, *prev1, 1);
+			decoder1->decode(*reader, true, *prev1, 0);
+			decoder1->decode(*reader, true, *prev1, 1);
 			//codedImage->flushDecoder();
 		}
-		decoder2->decode(false, *prev2, imagenActual);
+		decoder2->decode(*reader, false, *prev2, imagenActual);
 	}
-
-	codedImage->flushDecoder();
+	reader->close();
+	//codedImage->flushDecoder();
     return 0;
 }

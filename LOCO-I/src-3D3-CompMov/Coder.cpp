@@ -151,10 +151,10 @@ Image Coder::setInitialImage(){
 
 			CompMov(*imageH, *imageV);
 
-			for(int i=0; i<v_ancho*v_alto; i++){
-				imageH->image[i]=0;
-				imageV->image[i]=0;
-			}
+			//for(int i=0; i<v_ancho*v_alto; i++){
+				//imageH->image[i]=0;
+				//imageV->image[i]=0;
+			//}
 
 			Coder* coderVec = new Coder(*imageH, *imageV, Nmax);
 			coderVec->code(1, writer);
@@ -263,8 +263,8 @@ Image Coder::setInitialImage(){
 				}
 			}
 
-			imageH.image[vector_ind] = hmin;
-			imageV.image[vector_ind] = vmin;
+			imageH.image[vector_ind] = hmin+128;
+			imageV.image[vector_ind] = vmin+128;
 			vector_ind++; // Muevo el puntero utilizado en los vectores
 		}
   	}
@@ -302,7 +302,7 @@ int Coder::getProxImageAnterior(int prox, bool vector, Image imagenH, Image imag
  		int bloqueV = (prox / image.width) / bsize;
  	 	int bloqueH = (prox % image.width) / bsize;
 		int ind = bloqueH + bloqueV * (1 + image.width / bsize);
-		proxAnt = prox + imagenH.image[ind] + imagenV.image[ind] * image.width;
+		proxAnt = prox + imagenH.image[ind]-128 + (imagenV.image[ind]-128) * image.width;
 	}
 	
 	return proxAnt;
