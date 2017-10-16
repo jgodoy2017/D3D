@@ -11,17 +11,38 @@
 
 #include "Image.h"
 #include "Context.h"
+#include "Racha.h"
+#include "ContextRun.h"
+#include "Writer.h"
+#include "Reader.h"
 
 namespace std {
 
 class Coder {
 public:
 
+	typedef struct pixels3D{
+
+				int a;
+				int b;
+				int c;
+				int d;
+				int a_;
+				int b_;
+				int c_;
+				int d_;
+				int e_;
+				int f_;
+				int g_;
+
+	} pixels3D;
+
 	typedef struct pixels{
 
 		int a;
 		int b;
 		int c;
+		int d;
 
 	} pixels;	//se define esta estructura para agrupar los píxeles a, b y c
 
@@ -34,35 +55,73 @@ public:
 	} grad;	//se define esta estructura para modelar el vector de gradientes
 
 	Coder();
-	Coder(Image,int);
-	void code();
+	Coder(Image,Image,int);
+	Coder(string,int,int);
+
+	Image setInitialImage();
+	void code(bool, Writer&);
+	void CompMov(Image&, Image&); // Compensación de movimiento
+	void itera(string, int&, int, int); // Compensación de movimiento
+	int selectMED(grad);
+	int getPredictedValue(int, pixels3D);
+	grad getGradients3D(int, pixels3D);
 	pixels getPixels(int);
+	pixels getPixels_(int);
+	pixels3D getPixels3D(int,int);
 	int getP(pixels);
-	grad setGradients(int, pixels);
+	grad setGradients(pixels);
 	void setContextsArray();
-	int getContext(grad);
+	int getContext(grad,grad, int&, bool&);
+	int getContext_(int, int);
 	int getPredictedValue(pixels);
 	int getK(int);
-	int rice(int);
-	void encode(int, int, ofstream&);
+	int getKPrime(Racha&);
+	int rice(int,float,int);
+	int rice_rachas(int,int,int,int&);
+	void encode(int, int, Writer&, int,int);
+	void encode_(int, int, Writer&);
 	void updateContexto(int, int);
-	void writeCode(ofstream&);	/* writecode() y flushEncoder() son métodos reciclados de la (propia) tarea del curso de Compresión de Datos Sin Pérdida*/
-	void flushEncoder(ofstream&);
-	void writeHeader(ofstream&);
-	void writeWidth(ofstream&);
-	void writeHeigth(ofstream&);
-	void writeWhite(ofstream&);
-	void writeMagic(ofstream&);
-	void writeNmax(ofstream&);
+	void updateContexto_(int, int,int,int,int);
+	void writeCode(Writer&);	/* writecode() y flushEncoder() son métodos reciclados de la (propia) tarea del curso de Compresión de Datos Sin Pérdida*/
+	//void flushEncoder(Writer&);
+	void writeHeader(Writer&);
+	void writeHeaderVector(Writer&); // Compensación de Movimiento
+	void writeWidth(Writer&,bool);
+	void writeHeigth(Writer&,bool);
+	void writeWhite(Writer&,bool);
+	void writeMagic(Writer&);
+	void writeCompMov(Writer&, bool); // Compensación de Movimiento
+	void writeNmax(Writer&);
+	void writeCantidadImagenes(Writer&);
+	int getRachaParams(Image&, int, int, int&);
+	int getRachaParams2(Image&, int, int, int&);
+	int encodeRacha(Racha&);
+	int encodeRacha2(Racha&, Writer&);
+	void encodeMuestraInterrupcion(Racha&, int,int, Writer&, int);
+	int reduccionDeRango(int);
+	int fixPrediction(int,int, int);
+	bool hasEnding (std::string const &fullString, std::string const &ending);
+	string str_(int n);
 
-	int fixPrediction(int, int);
+	int max(int, int);
 
 	int correctPredictedValue(int, int);
+
+	int getProxImageAnterior(int, bool, Image, Image);
 
 	virtual ~Coder();
 
 	/* Este objeto representa la imagen a ser codificada */
+
+	Image* images;
+
+	Image image_; //imagen vacía para tener los parámetros que nos interesan, largo, ancho, white, etc.
+
 	Image image;
+	Image image2;
+
+	//Writer writer;
+	int width, heigth, white, magic;
 	int Nmax;		//el valor de Nmax
 	int i;
 
@@ -70,7 +129,7 @@ public:
 
 
 
-	static const int CANTIDAD_MAXIMA_CONTEXTOS=9*9*5;
+	static const int CANTIDAD_MAXIMA_CONTEXTOS=9*9*9*9*9;
 
 	/* Array de contextos, cada entrada representa un contexto posible */
 	Context contexts[CANTIDAD_MAXIMA_CONTEXTOS];
@@ -83,6 +142,58 @@ public:
 
 	/* Puntero que señala el próximo lugar a escribir de code */
 	int bitsToFilePointer=0;
+
+	bool racha=false;
+
+	int J[32]={0,0,0,0,1,1,1,1,2,2,2,2,3,3,3,3,4,4,5,5,6,6,7,7,8,9,10,11,12,13,14,15};
+
+	int kr=0;
+	int m_r=1;
+
+	bool debug=false;
+	bool debug2=false;
+	bool debug3=false;
+	bool debug4=false;
+
+	int range;
+
+	bool aux;
+
+	/**
+	 *
+	 * CAMBIOS !
+	 *
+	 *
+	 */
+
+	int Lmax;	//agregados también al constructor de clase Coder(image, int, int)
+	int beta;
+	int qMax;
+	int qMax_;
+	int RUNcnt;
+	int RUNindex = 0;
+	bool golombLimitado(int);
+
+	int acum=0;
+
+	ContextRun cntx[2];    // Contextos especiales para rachas.
+	float get_s(int);
+
+	string path;
+
+	int cantidad_imagenes;
+	/** Compensación de movimiento
+		 *
+		 */
+		int *tempimage;
+		int *h_vector;
+		int *v_vector;
+		bool activarCompMov=true;
+		int vector_ind;
+		int v_ancho;
+		int v_alto;
+		int v_blanco;
+		int bsize = 10; // Tamaño del Macrobloque cuadrado
 };
 
 } /* namespace std */
