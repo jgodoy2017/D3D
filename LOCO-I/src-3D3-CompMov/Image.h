@@ -40,6 +40,10 @@ public:
 	void setHeigth(ifstream&,char&);
 	void setWhite(ifstream&,char&);
 	int binaryToInt(char);
+	int getPixel(int,int);
+	void setPixel(int,int,int);
+	void vectorToCoords(int,int&,int&);
+	int coordsToVector(int,int);
 
 	string path;
 

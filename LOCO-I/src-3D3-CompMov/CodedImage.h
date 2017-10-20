@@ -41,6 +41,10 @@ public:
 		void setWhite(Reader&,bool);
 		void setNmax(Reader&);
 		void setCantidadImagenes(Reader&);
+		int getPixelAlto(int,int);
+		void setPixelAlto(int,int,int);
+		int getPixelAncho(int,int);
+		void setPixelAncho(int,int,int);
 
 		string path;
 		string name;

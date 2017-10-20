@@ -65,64 +65,60 @@ void Decoder::decode(Reader &reader, bool vector, Image &previa, int imgActual){
 
 	if (vector) cout << "decode(): Modo VECTORES" << endl; else cout << "decode(): Modo IMAGEN" << endl;
 		
-	for (int imagen=imgActual; imagen < imgActual + 1; imagen++){
-		if (vector) cout << "decode(): imagen vector: " << imagen << endl; else cout << "decode(): imagen deco: " << imagen << endl;
+for (int imagen=imgActual; imagen < imgActual + 1; imagen++){
 
-		int contadorH=1,contadorW=1,contador=0;
+	if (vector) cout << "decode(): imagen vector: " << imgActual << endl; else cout << "decode(): imagen deco: " << imgActual << endl;
 
-		ofstream salida;
+	//int contadorH=1,contadorW=1,contador=0;
 
-		string nombre = file + "_" + str_(numberImgPath) + "_" + str_(imagen);
-		cout << "decode(): Path: " << nombre << endl;
-		salida.open(nombre.c_str(), ios::binary);
+	ofstream salida;
 
-		if(!vector) writeHeader(salida);	//escribe encabezado en el archivo de salida
-		Image image(alto,ancho);
-		image.white=blanco;
-			
-		while (contadorH < alto + 1){
-			contadorW=1;
-			while (contadorW < ancho + 1){// había un !=
-				int signo;
-				bool esRacha;
-				int prox_image_anterior=getProxImageAnterior(contador,vector);
-				pixels3D pxls = getPixels3D(prox_image_anterior,contador,image);
-				grad gradients = getGradients3D(1,pxls);
-				int contexto = getContext(getGradients3D(0,pxls), getGradients3D(4,pxls), signo, esRacha);
+	string nombre = file + "_" + str_(numberImgPath) + "_" + str_(imgActual);
+	cout << "decode(): Path: " << nombre << endl;
+	salida.open(nombre.c_str(), ios::binary);
 
-				if (!esRacha){
-					int predicted = getPredictedValue(selectMED(gradients),pxls);	//calcula el valor pixel predicho
-					predicted=fixPrediction(predicted,signo, contexto);
-					int k= getK(contexto);	//calcula k
-					int error_=getError(reader,k,0,0);	//lee el archivo para tener el valor del error codificado
-					int error=unRice(error_,get_s(contexto),k);	//deshace el mapeo de rice para recuperar el error real
-					error=reduccionDeRango(error,signo,predicted);
-					int pixel=predicted+error;	//calcula el pixel como la suma entre el predicho y el error
-					updateImage(pixel,contador,image);	//va formando el array que representa la imagen con cada pixel decodificado
-					char pixel_ =pixel+'\0';
-					salida.write(&pixel_,1);	//escribe el pixel en el archivo
-					updateContexto(contexto,error*signo);	//actualiza A y N del contexto
-				} else {
-					int interruption=0;
-					int cantidad_unos=0;
-					int largo=getRachaParams2(reader, contadorW, interruption,cantidad_unos);
-					int contexto=getContext_(contador, largo,image);
-					Racha racha(largo, interruption, pxls.a,contexto);
-					updateImageRacha(racha, contador, salida,image);
-					if(contador+largo<alto*ancho) updateImageInterruption(reader, racha, contador, contador+largo, salida, cantidad_unos, image);
-					contadorW=contadorW+largo;
-					contador=contador+largo;
-					if (racha.interruption)	{
-						contadorW--;
-						contador--;
-					}
+	if(!vector) writeHeader(salida);	//escribe encabezado en el archivo de salida
+	Image image(alto,ancho);
+	image.white=blanco;
+	int y=0;
+	int x=0;
+	int x_prev,y_prev;
+	for(y=0;y<alto;y++){
+		for(x=0;x<ancho;x++){
+			int signo;
+			bool esRacha;
+			getProxImageAnterior(x,y,x_prev,y_prev,vector);
+			pixels3D pxls = getPixels3D(x_prev,y_prev,x,y,image);
+			grad gradients = getGradients3D(1,pxls);
+			int contexto = getContext(getGradients3D(0,pxls), getGradients3D(4,pxls), signo, esRacha);
+
+			if (!esRacha){
+				int predicted = getPredictedValue(selectMED(gradients),pxls);	//calcula el valor pixel predicho
+				predicted=fixPrediction(predicted,signo, contexto);
+				int k= getK(contexto);	//calcula k
+				int error_=getError(reader,k,0,0);	//lee el archivo para tener el valor del error codificado
+				int error=unRice(error_,get_s(contexto),k);	//deshace el mapeo de rice para recuperar el error real
+				error=reduccionDeRango(error,signo,predicted);
+				int pixel=predicted+error;	//calcula el pixel como la suma entre el predicho y el error
+				updateImage(pixel,x,y,image);	//va formando el array que representa la imagen con cada pixel decodificado
+				char pixel_ =pixel+'\0';
+				salida.write(&pixel_,1);	//escribe el pixel en el archivo
+				updateContexto(contexto,error*signo);	//actualiza A y N del contexto
+			} else {
+				int interruption=0;
+				int cantidad_unos=0;
+				int largo=getRachaParams2(reader, x,interruption,cantidad_unos);
+				int contexto=getContext_(x,y, largo,image);
+				Racha racha(largo, interruption, pxls.a,contexto);
+				updateImageRacha(racha, x,y, salida,image);
+				updateImageInterruption(reader, racha, x,y, x+largo, salida, cantidad_unos, image);
+				x=x+largo;
+				if (racha.interruption)	{
+					x--;
 				}
-
-				contador++;
-				contadorW++;
 			}
-			contadorH++;
 		}
+	}
 		salida.close();
 		previa=image;
 
@@ -149,24 +145,24 @@ string Decoder::str_(int n){
 	return n_;
 }
 
-int Decoder::getProxImageAnterior(int prox, bool vector){
-	int proxAnt=prox;
-	
+void Decoder::getProxImageAnterior(int x, int y, int &x_prev, int &y_prev, bool vector){
+	x_prev = x;
+	y_prev = y;
+
 	if (activarCompMov && !vector){
- 		int bloqueV = (prox / ancho) / bsize;
- 	 	int bloqueH = (prox % ancho) / bsize;
-		int ind = bloqueH + bloqueV * (1 + ancho / bsize);
-		proxAnt = prox + codedImage.vector_ancho[ind]-128 + (codedImage.vector_alto[ind]-128) * ancho;
+		int bloqueV = y / bsize;
+	 	int bloqueH = x / bsize;
+		x_prev = x + codedImage.getPixelAncho(bloqueH,bloqueV)-128;
+		y_prev = y + codedImage.getPixelAlto(bloqueH,bloqueV)-128;
 	}
-	
-	return proxAnt;
 }
 
-Decoder::pixels3D Decoder::getPixels3D(int current, int current2, Image &image2){
+Decoder::pixels3D Decoder::getPixels3D(int x_prev,int y_prev,int x,int y,Image &image2){
 	/** Devuelve los píxeles de la vecindad: a, b, c, d, a_, b_, c_, d_, e_, f_ y g_ */
 	/**  arreglar criterio para los píxeles que caen fuera de la imagen*/
 
-	Image image1=prev;
+	Image image=prev;
+
 	int a=-1;
 	int b=-1;
 	int c=-1;
@@ -179,70 +175,80 @@ Decoder::pixels3D Decoder::getPixels3D(int current, int current2, Image &image2)
 	int f_=-1;
 	int g_=-1;
 
-	if ((current2%image2.width)==0){
+	if (x==0){
 		/* Si estoy parado en un borde izquierdo, el valor de a y c tienen que ser "128",
 		o la mitad del valor de blanco de la imagen */
-		a = 1 + (image2.white >> 1);
-		c = 1 + (image2.white >> 1);
+		a = 1 + (blanco >> 1);
+		c = 1 + (blanco >> 1);
 	}
 
-	if ((current2%image2.width)==image1.width-1){
+	if (x==ancho-1){
 		/* Si estoy parado en un borde derecho, el valor de d tiene que ser "128",
 		o la mitad del valor de blanco de la imagen */
-		d = 1 + (image2.white >> 1);
+
+		d = 1 + (blanco >> 1);
 	}
 
-	if (current2<image2.width){
+	if (y==0){
 		/* Si estoy en la primer fila, b y c deben ser "128"
 		o la mitad del valor de blanco de la imagen */
-		if(b == -1) b = 1 + (image2.white >> 1);
-		if(c == -1) c = 1 + (image2.white >> 1);
-		if(d == -1) d = 1 + (image2.white >> 1);
+
+		if(b == -1) b = 1 + (blanco >> 1);
+		if(c == -1) c = 1 + (blanco >> 1);
+		if(d == -1) d = 1 + (blanco >> 1);
 	}
 
-	if ((current%image1.width)==0){
+	if (x_prev==0){
 		/* Si estoy parado en un borde izquierdo, el valor de a y c tienen que ser "128",
 		o la mitad del valor de blanco de la imagen */
-		a_ = 1 + (image1.white >> 1);
-		c_ = 1 + (image1.white >> 1);
+
+		a_ = 1 + (blanco >> 1);
+		c_ = 1 + (blanco >> 1);
 	}
 
-	if ((current%image1.width)==image1.width-1){
+	if (x_prev==ancho-1){
 		/* Si estoy parado en un borde derecho, el valor de d tiene que ser "128",
 		o la mitad del valor de blanco de la imagen */
-		d_ = 1 + (image1.white >> 1);
-		f_ = 1 + (image1.white >> 1);
+
+		d_ = 1 + (blanco >> 1);
+		f_ = 1 + (blanco >> 1);
 	}
 
-	if (current<image1.width){
+	if (y_prev==0){
 		/* Si estoy en la primer fila, b y c deben ser "128"
 		o la mitad del valor de blanco de la imagen */
-		if(b_ == -1) b_ = 1 + (image1.white >> 1);
-		if(c_ == -1) c_ = 1 + (image1.white >> 1);
-		if(d_ == -1) d_ = 1 + (image1.white >> 1);
+
+			if(b_ == -1) b_ = 1 + (blanco >> 1);
+			if(c_ == -1) c_ = 1 + (blanco >> 1);
+			if(d_ == -1) d_ = 1 + (blanco >> 1);
 	}
 
-	if (current>(image1.heigth-2)*image1.width){
+	if (y_prev>alto-2){
 		/* Si estoy en la última o penúltima fila, g debe ser "128"
 		o la mitad del valor de blanco de la imagen */
-		g_ = 1 + (image1.white >> 1);
+
+		g_ = 1 + (blanco >> 1);
 	}
 
 	/* Para cada a, b,c y d, si no se cumple una condición de borde, y por lo tanto no hubo asignación en los if que preceden,
 	se traen los valores de a, b,c y d de la imagen */
-	if (a==-1)  a=image2.image[current2-1];
-	if (b==-1)  b=image2.image[current2-image1.width];
-	if (c==-1)  c=image2.image[current2-image1.width-1];
-	if (d==-1)  d=image2.image[current2-image1.width+1];
-	if (a_==-1) a_=image1.image[current-1];
-	if (b_==-1) b_=image1.image[current-image1.width];
-	if (c_==-1) c_=image1.image[current-image1.width-1];
-	if (d_==-1) d_=image1.image[current-image1.width+1];
-	if (e_==-1) e_=image1.image[current];
-	if (f_==-1) f_=image1.image[current+1];
-	if (g_==-1) g_=image1.image[current+image1.width];
+
+	if (a==-1)  a=image2.getPixel(x-1,y);
+	if (b==-1)  b=image2.getPixel(x,y-1);
+	if (c==-1)  c=image2.getPixel(x-1,y-1);
+	if (d==-1)  d=image2.getPixel(x+1,y-1);
+	if (a_==-1) a_=image.getPixel(x_prev-1,y_prev);
+	if (b_==-1) b_=image.getPixel(x_prev,y_prev-1);
+	if (c_==-1) c_=image.getPixel(x_prev-1,y_prev-1);
+	if (d_==-1) d_=image.getPixel(x_prev+1,y_prev-1);
+	if (e_==-1) e_=image.getPixel(x_prev,y_prev);
+	if (f_==-1) f_=image.getPixel(x_prev+1,y_prev);
+	if (g_==-1) g_=image.getPixel(x_prev,y_prev+1);
+
 	
-	return {a,b,c,d,a_,b_,c_,d_,e_,f_,g_};
+	return {a,  b,  c,  d,
+			a_, b_, c_, d_,
+			e_, f_, g_};
 }
 
 Image Decoder::setInitialImage(){
@@ -303,7 +309,7 @@ int Decoder::unrice_rachas(int error,int contexto, int k){
 	 return retorno;
 }
 
-void Decoder::updateImageInterruption(Reader &reader, Racha &racha, int contador,int prox_, ofstream &salida,int cantidad_unos, Image &image){
+void Decoder::updateImageInterruption(Reader &reader, Racha &racha, int x,int y,int prox_, ofstream &salida,int cantidad_unos, Image &image){
 	if (!racha.interruption){
 		int signo=1;
 		if (racha.contexto==0) signo=-1;
@@ -311,24 +317,24 @@ void Decoder::updateImageInterruption(Reader &reader, Racha &racha, int contador
 		int error_=getError(reader,kPrime,1,cantidad_unos);
 		int error = unrice_rachas(error_,racha.contexto,kPrime);
 
-		error=reduccionDeRango(error*signo,1,getPixels3D(0,prox_, image).b);
+		error=reduccionDeRango(error*signo,1,getPixels3D(0,0,prox_,y, image).b);
 		int errorEstadisticos=clipErrorEstadisticos(error);
-		image.image[contador+racha.largo]=getPixels3D(0,prox_, image).b+error;
-		char pixel_ =getPixels3D(0,prox_, image).b+error+'\0';
+		image.setPixel(getPixels3D(0,0,prox_,y, image).b+error,x+racha.largo,y);
+		char pixel_ =getPixels3D(0,0,prox_,y, image).b+error+'\0';
 		salida.write(&pixel_,1);	//escribe el pixel en el archivo
 		updateContexto_(racha.contexto, unrice_rachas(error_,racha.contexto,kPrime),error_);
 	}
 }
 
-void Decoder::updateImageRacha(Racha &racha, int contador, ofstream &salida, Image &image){
+void Decoder::updateImageRacha(Racha &racha, int x,int y, ofstream &salida, Image &image){
 	for (int k=0;k<racha.largo;k++){
-		image.image[contador+k]=racha.pixel;
+		image.setPixel(racha.pixel,x+k,y);//image[contador+k]=racha.pixel;
 		char pixel_ =racha.pixel+'\0';
 		salida.write(&pixel_,1);	//escribe el pixel en el archivo
 	}
 }
 
-int Decoder::getRachaParams2(Reader &reader, int contadorW, int &interruption_, int &cantidad_unos){
+int Decoder::getRachaParams2(Reader &reader, int x,int &interruption_, int &cantidad_unos){
 	int largo=0;
 	int bit;
 	int ajuste=0;
@@ -336,16 +342,15 @@ int Decoder::getRachaParams2(Reader &reader, int contadorW, int &interruption_, 
 	bool finDeRacha=false;
 
 	while (true){
-		//bit=codedImage.getBit();
 		bit=reader.read(1);
 		if (bit==1){
-			if ((1 << J[RUNindex])>(-largo+ancho-(contadorW-1))){
-				largo=ancho-(contadorW-1);
+			if ((1 << J[RUNindex])>(-largo+ancho-(x))){
+				largo=ancho-(x);
 			} else {
 				largo=largo + (1 << J[RUNindex]);
 				if (RUNindex<31) RUNindex++;
 			}
-			if (largo==ancho-(contadorW-1)) break;
+			if (largo==ancho-(x)) break;
 		} else {
 			break;
 		}
@@ -353,7 +358,6 @@ int Decoder::getRachaParams2(Reader &reader, int contadorW, int &interruption_, 
 	if (bit==0) {
 	interruption_=0;
 	for (int j=0;j<J[RUNindex];j++){
-		//largo=largo+(pow(2,J[RUNindex]-j-1))*codedImage.getBit();
 		largo=largo+(pow(2,J[RUNindex]-j-1))*reader.read(1);
 	}
 	ajuste = J[RUNindex];
@@ -365,10 +369,10 @@ int Decoder::getRachaParams2(Reader &reader, int contadorW, int &interruption_, 
 	return largo;
 }
 
-void Decoder::updateImage(int pixel, int contador, Image &image){
+void Decoder::updateImage(int pixel, int x,int y, Image &image){
 	/** Agrega el pixel decodificado al array que representa la imagen */
 
-	image.image[contador]=pixel;
+	image.setPixel(pixel,x,y);
 }
 
 int Decoder::unRice(int error,float s, int k){
@@ -815,8 +819,8 @@ int Decoder::getP(pixels pxls){
 	return floor((double)(2*pxls.a+2*pxls.b+2*pxls.c+3)/(double)6);
 }
 
-int Decoder::getContext_(int pos, int lar, Image &image){
-	return (getPixels3D(0,pos,image).a==getPixels3D(0,pos+lar,image).b);
+int Decoder::getContext_(int x,int y, int lar, Image &image){
+	return (getPixels3D(0,0,x,y,image).a==getPixels3D(0,0,x+lar,y,image).b);
 }
 
 void Decoder::updateContexto_(int c, int err,int err_){
