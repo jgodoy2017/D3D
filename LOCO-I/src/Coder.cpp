@@ -9,28 +9,22 @@
 
 #include "Coder.h"
 #include "ContextRun.h"
+#include "Coder.h"
+#include "Decoder.h"
+#include "Writer.h"
+#include "Reader.h"
 #include <sstream>
 #include <math.h>
-
-#include <sstream>
 #include <cstdlib>
 #include <iostream>
 #include <fstream>
 #include <bitset>
 #include <unistd.h>
-
 #include <algorithm>
-
-#include <sstream>
 #include <string>
-
 #include <iomanip>
 #include <dirent.h>
 
-#include "Coder.h"
-#include "Decoder.h"
-#include "Writer.h"
-#include "Reader.h"
 
 namespace std {
 // PRUEBA !
@@ -151,52 +145,48 @@ Image Coder::setInitialImage(){
 
 			CompMov(*imageH, *imageV);
 
-			//for(int i=0; i<v_ancho*v_alto; i++){
-				//imageH->image[i]=0;
-				//imageV->image[i]=0;
-			//}
-
 			Coder* coderVec = new Coder(*imageH, *imageV, Nmax);
 			coderVec->code(1, writer);
 		}
 
-		for(int prox=0;prox<image.heigth*image.width;prox++){
-			//bucle principal que recorre la imagen y va codificando cada pixel
+		//for(int prox=0;prox<image.heigth*image.width;prox++){
+		for(int y = 0; y<image.heigth;y++){
+			for(int x = 0; x<image.width;x++){
+				//bucle principal que recorre la imagen y va codificando cada pixel
+				int x_prev,y_prev;
+				int signo;
+				bool esRacha;
+				int currentPixel=image2.getPixel(x,y); //valor del pixel actual
+				getProxImageAnterior(x,y,x_prev,y_prev,vector,*imageH,*imageV);
+				pixels3D pxls = getPixels3D(x_prev,y_prev,x,y);
+				grad gradients=getGradients3D(1,pxls); //calcula los gradientes
+				int contexto = getContext(getGradients3D(0,pxls),getGradients3D(4,pxls), signo, esRacha);
 
-			int signo;
-			bool esRacha;
-			int currentPixel=image2.image[prox]; //valor del pixel actual
-			int prox_image_anterior=getProxImageAnterior(prox,vector, *imageH, *imageV);
-			pixels3D pxls = getPixels3D(prox_image_anterior,prox);
-			grad gradients=getGradients3D(1,pxls); //calcula los gradientes
-			int contexto = getContext(getGradients3D(0,pxls),getGradients3D(4,pxls), signo, esRacha);
-
-			if (!esRacha){
-				int predicted = getPredictedValue(selectMED(gradients),pxls);	//calcula el valor pixel predicho
-				predicted=fixPrediction(predicted,signo, contexto);
-				int error_s= currentPixel-predicted;	//calcula el error como la resta entre el valor actual y el valor predicho
-				int error_=error_s*signo;
-				int k= getK(contexto);	//calcula k para ese contexto
-				int error__=reduccionDeRango(error_);
-				int error =rice(error__, get_s(contexto),k);	//devuelve mapeo de rice del error
-				encode(error,k, writer,0,0);	//codifica el error
-				updateContexto(contexto, error_);	//actualiza los valores para el contexto
+				if (!esRacha){
+					int predicted = getPredictedValue(selectMED(gradients),pxls);	//calcula el valor pixel predicho
+					predicted=fixPrediction(predicted,signo, contexto);
+					int error_s= currentPixel-predicted;	//calcula el error como la resta entre el valor actual y el valor predicho
+					int error_=error_s*signo;
+					int k= getK(contexto);	//calcula k para ese contexto
+					int error__=reduccionDeRango(error_);
+					int error =rice(error__, get_s(contexto),k);	//devuelve mapeo de rice del error
+					encode(error,k, writer,0,0);	//codifica el error
+					updateContexto(contexto, error_);	//actualiza los valores para el contexto
+				}
+				else {
+					int interruption=0;
+					int largo= getRachaParams2(image2,x,y,pxls.a,interruption);
+					int contexto=getContext_(x,y,largo);
+					Racha racha(largo,interruption,pxls.a,contexto);
+					int cantidad_unos=encodeRacha2(racha, writer);
+					encodeMuestraInterrupcion(racha, image2.getPixel(x+largo,y), x+largo,y,writer,cantidad_unos);
+					racha.updateContexto();
+					x=x+largo;
+					if ((racha.interruption))	x--;	//
+				}
 			}
-			else {
-				int interruption=0;
-				int largo= getRachaParams2(image2, prox, pxls.a, interruption);
-				int contexto=getContext_(prox, largo);
-				Racha racha(largo, interruption, pxls.a,contexto);
-				int cantidad_unos=encodeRacha2(racha, writer);
-				encodeMuestraInterrupcion(racha, image2.image[prox+largo], prox+largo,writer,cantidad_unos);
-				racha.updateContexto();
-				prox=prox+largo;
-				if ((racha.interruption))	prox--;	//
-			}
-
 		} //pixeles
 	}//imagenes
-	//flushEncoder(salida);	//termina de escribir los últimos bits que hayan quedado en el array de bits
 }
 
  void Coder::CompMov(Image &imageH, Image &imageV){
@@ -249,9 +239,13 @@ Image Coder::setInitialImage(){
 					for(int j=0;j<bv;j++){
 						for(int i=0;i<bh;i++){
 							// Estos FOR son para moverse por todos los pixeles del Macrobloque
-							int pix  = (i + j*image.width)  + (h + v*image.width) + (bloqueH*bsize + bloqueV*bsize*(image.width));
-							int pix2 = (i + j*image2.width) + (bloqueH*bsize + bloqueV*bsize*(image2.width));
-							itera("ERROR",s,pix,pix2);
+							int x1 = i + h + bloqueH*bsize;
+							int y1 = j + v + bloqueV*bsize;
+
+							int x2 = i + bloqueH*bsize;
+							int y2 = j + bloqueV*bsize;
+
+							itera("MED3D",s,x1,y1,x2,y2);
 						}
 					}
 					if (s < smin){
@@ -262,16 +256,14 @@ Image Coder::setInitialImage(){
 					}
 				}
 			}
-
-			imageH.image[vector_ind] = hmin+128;
-			imageV.image[vector_ind] = vmin+128;
-			vector_ind++; // Muevo el puntero utilizado en los vectores
+ 			imageH.setPixel(hmin+128,bloqueH,bloqueV);
+  			imageV.setPixel(vmin+128,bloqueH,bloqueV);
 		}
   	}
  	cout <<"Salgo CompMov"<< endl;
 }
 
- void Coder::itera(string function, int &s, int pix, int pix2){
+ void Coder::itera(string function, int &s, int x1, int y1, int x2, int y2){
   	/* Valores válidos para Function:
   	 * 	"MED3D": Utilizando el predictor 3D
   	 * 	"ERROR": Utilizando la diferencia entre pixeles
@@ -279,33 +271,30 @@ Image Coder::setInitialImage(){
   	 */
 
 	if (function == "MED3D"){
-  		pixels3D pxls = getPixels3D(pix, pix2);
+  		pixels3D pxls = getPixels3D(x1,y1,x2,y2);
   		grad gradientes = getGradients3D(1,pxls);
-  		s = s + abs(getPredictedValue(selectMED(gradientes),pxls)-image2.image[pix2]);
+  		s = s + abs(getPredictedValue(selectMED(gradientes),pxls)-image2.getPixel(x2,y2));
   	}
 
 	if (function == "ERROR"){
-  		s = s + abs(image.image[pix]-image2.image[pix2]);
+  		s = s + abs(image.getPixel(x1,y1)-image2.getPixel(x2,y2));
   	}
 
 	if (function == "LAPLACE"){
-  		int c = pix%image.width;
-  		int f = ceil(pix/image.width);
-  		s = s + abs((image.image[min(pix+1,(f+1)*image.width-1)]+image.image[max(pix-1,f*image.width)]+image.image[max(pix-image.width,c)]+image.image[min(pix+image.width,(image.heigth-1)*image.width+c)]-4*image.image[pix])-(image2.image[min(pix+1,(f+1)*image2.width-1)]+image2.image[max(pix-1,f*image2.width)]+image2.image[max(pix-image2.width,c)]+image2.image[min(pix+image2.width,(image2.heigth-1)*image2.width+c)]-4*image2.image[pix]));
-  	}
+		s = s + abs(image.getPixel(min(x1+1,image.width-1),y1)+image.getPixel(max(x1-1,0),y1)+image.getPixel(x1,max(y1-1,0))+image.getPixel(x1,min(y1+1,image.heigth-1))-4*image.getPixel(x1,y1) - (image2.getPixel(min(x2+1,image2.width-1),y2)+image2.getPixel(max(x2-1,0),y2)+image2.getPixel(x2,max(y2-1,0))+image2.getPixel(x2,min(y2+1,image2.heigth-1))-4*image2.getPixel(x2,y2)));
+	}
 }
 
-int Coder::getProxImageAnterior(int prox, bool vector, Image imagenH, Image imagenV){
-	int proxAnt=prox;
+void Coder::getProxImageAnterior(int x, int y, int &x_prev, int &y_prev, bool vector, Image imagenH, Image imagenV){
+	x_prev = x;
+	y_prev = y;
 
 	if (activarCompMov && !vector){
- 		int bloqueV = (prox / image.width) / bsize;
- 	 	int bloqueH = (prox % image.width) / bsize;
-		int ind = bloqueH + bloqueV * (1 + image.width / bsize);
-		proxAnt = prox + imagenH.image[ind]-128 + (imagenV.image[ind]-128) * image.width;
+ 		int bloqueV = y / bsize;
+ 	 	int bloqueH = x / bsize;
+		x_prev = x + imagenH.getPixel(bloqueH,bloqueV)-128;
+		y_prev = y + imagenV.getPixel(bloqueH,bloqueV)-128;
 	}
-	
-	return proxAnt;
 }
 
 int Coder::max(int uno, int dos){
@@ -317,13 +306,13 @@ float Coder::get_s(int contexto){
 	 return float(float(contexts[contexto].B)/float(contexts[contexto].N)); //es N o N_?
 }
 
-int Coder::getRachaParams2(Image &image, int prox, int anterior, int &interruption_){
+int Coder::getRachaParams2(Image &image, int x, int y, int anterior, int &interruption_){
  	int largo=0;
  	interruption_=0;
 
- 	while(anterior==image.image[prox+largo]){
+ 	while(anterior==image.getPixel(x+largo,y)){
  		largo++;
- 		if((prox+largo)%(image.width)==0) {
+ 		if((x+largo)==image.width) {
  			interruption_=1;
  			break;
  		}
@@ -358,17 +347,14 @@ int Coder::getKPrime(Racha &r){
 	return K_racha;
 }
 
-void Coder::encodeMuestraInterrupcion(Racha &racha, int siguiente, int prox_, Writer &writer,int cantidad_unos){
+void Coder::encodeMuestraInterrupcion(Racha &racha, int siguiente, int x, int y, Writer &writer,int cantidad_unos){
 	int error=0, error_=0, kPrime=1000;
-	int test;
 
 	if (!racha.interruption){
 		if (racha.contexto==0){
-			error_=(siguiente-getPixels3D(0,prox_).b)*(-1);
-			test=(siguiente-getPixels3D(0,prox_).b)*(-1);
+			error_=(siguiente-getPixels3D(0,0,x,y).b)*(-1);
 		} else {
-		error_=(siguiente-getPixels3D(0,prox_).b);
-		test=(siguiente-getPixels3D(0,prox_).b);
+		error_=(siguiente-getPixels3D(0,0,x,y).b);
 		}
 
 		kPrime=getKPrime(racha);
@@ -378,7 +364,6 @@ void Coder::encodeMuestraInterrupcion(Racha &racha, int siguiente, int prox_, Wr
 		updateContexto_(racha.contexto, error_,error,map,kPrime);
 		encode(error, kPrime, writer,1,cantidad_unos);
 	} else {
-		//writeCode(salida);
 	}
 }
 
@@ -397,15 +382,13 @@ int Coder::rice_rachas(int error,int contexto, int k, int &map){
 }
 
 int Coder::encodeRacha2(Racha &racha, Writer &writer){
-	int aux;
 	int diferencia=racha.largo;
 	int ajuste;
 
 	while (diferencia >= (1 << J[RUNindex])) {
 	   //Agregar un 1 al tream
 		writer.write(1, 1);
-		//bitsToFile[bitsToFilePointer]=1;
-		//bitsToFilePointer++;
+
 		diferencia = diferencia - (1 << J[RUNindex]);
 
 		if (RUNindex < 31) {
@@ -416,12 +399,8 @@ int Coder::encodeRacha2(Racha &racha, Writer &writer){
 
 	if ((diferencia!=0)and(racha.interruption)) {
 		writer.write(1, 1);
-		//bitsToFile[bitsToFilePointer]=1;
-		//bitsToFilePointer++;
 	} else if (!racha.interruption) {
 		writer.write(0, 1);
-		//bitsToFile[bitsToFilePointer]=0;
-		//bitsToFilePointer++;
 
 		int potencia = 1;
 
@@ -429,14 +408,12 @@ int Coder::encodeRacha2(Racha &racha, Writer &writer){
 			potencia=potencia*2;
 		}
 
-		int cociente=diferencia/potencia;
 		int resto=diferencia%potencia;
 		potencia=potencia/2;
 
 		for (int j=0;j<J[RUNindex];j++){
 			writer.write(resto/potencia, 1);
-			//bitsToFile[bitsToFilePointer]=resto/potencia;
-			//bitsToFilePointer++;
+
 			resto=resto%potencia;
 			potencia=potencia/2;
 		}
@@ -489,17 +466,6 @@ void Coder::updateContexto(int contexto, int error){
 	}
 }
 
-/*void Coder::flushEncoder(Writer &writer){
-
-	if (bitsToFilePointer>0) {
-		bitset<8> temp_b;
-
-		for(int j=0;j<bitsToFilePointer;j++) temp_b[7-j]=bitsToFile[j];
-		char temp=(char)temp_b.to_ulong();
-		salida.write(&temp, 1);
-	}
-}*/
-
 void Coder::encode(int error, int k, Writer &writer, int racha,int ajuste){
 	/** Almacena en potencia el valor de 2^k
 	Calcula la parte entera del cociente entre el error y 2^k y lo guarda en "cociente" para codificación binaria
@@ -527,15 +493,11 @@ void Coder::encode(int error, int k, Writer &writer, int racha,int ajuste){
 
 		for (int j=0;j<cociente;j++){
 			writer.write(0, 1);
-			//bitsToFile[bitsToFilePointer]=0;
-			//bitsToFilePointer++;
 		}
 
 		if(cociente==qMax){
 		} else {
 			writer.write(1, 1);
-			//bitsToFile[bitsToFilePointer]=1;
-			//bitsToFilePointer++;
 		}
 
 		if (cociente==qMax)	{
@@ -543,8 +505,6 @@ void Coder::encode(int error, int k, Writer &writer, int racha,int ajuste){
 			potencia=pow(2,beta-1);
 			for (int j=0;j<beta;j++){
 				writer.write(error/potencia, 1);
-				//bitsToFile[bitsToFilePointer]=error/potencia;
-				//bitsToFilePointer++;
 				error=error%potencia;
 				potencia=potencia/2;
 			}
@@ -552,8 +512,6 @@ void Coder::encode(int error, int k, Writer &writer, int racha,int ajuste){
 			/*	Este loop calcula la expresión binaria del resto expresada con k bits, y lo guarda en array auxiliar bitsToFile */
 			for (int j=0;j<k;j++){
 				writer.write(resto/potencia, 1);
-				//bitsToFile[bitsToFilePointer]=resto/potencia;
-				//bitsToFilePointer++;
 				resto=resto%potencia;
 				potencia=potencia/2;
 			}
@@ -561,40 +519,7 @@ void Coder::encode(int error, int k, Writer &writer, int racha,int ajuste){
 			y lo guarda en array auxiliar bitsToFile */
 		}
 	}
-	//writeCode(salida);
 }
-
-
-//void Coder::writeCode(Writer &writer){
-	/** Si hay al menos un byte para escribir en bitsToFile se escriben tantos bytes como es posible,
-	esto es, el cociente de la división entera entre bitsToFilePointer y 8 */
-/*
-	if (bitsToFilePointer>7){
-		for(int k=0;k<(bitsToFilePointer/8);k++){
-			/* Para escribir el byte, se usa una estructura auxiliar, bitset,
-			se guarda en un bitset los próximos 8 bits a ser escritos,
-			luego se pasa este bitset a char, y por último se escribe el char
-			std::bitset<8> temp_b;
-
-			for(int j=0;j<8;j++){
-				temp_b[7-j]=bitsToFile[k*8+j];
-			}
-
-			char temp=(char)temp_b.to_ulong();
-			//salida.write(&temp, 1);
-		}
-		/* Todos los bits de la cola que no pudieron escribirse,
-		esto es, los últimos bitsToFilePointer%8 bits válidos, son corridos al principio de la fila,
-		para ser los primeros en escribirse cuando vuelva a invocarse este método
-
-		for(int k=8*(bitsToFilePointer/8);k<bitsToFilePointer;k++){
-			bitsToFile[k-8*(bitsToFilePointer/8)]=bitsToFile[k];
-		}
-
-		/* Se actualiza el valor del puntero
-		bitsToFilePointer=bitsToFilePointer%8;
-	}//if
-}*/
 
 int Coder::rice(int error, float s, int k){
 	/** Mapeo de rice del error */
@@ -757,7 +682,7 @@ Coder::grad Coder::setGradients(pixels pxls){
 	return gradients;
 }
 
-Coder::pixels3D Coder::getPixels3D(int current, int current2){
+Coder::pixels3D Coder::getPixels3D(int x_prev, int y_prev, int x, int y){
 	/** Devuelve los píxeles de la vecindad: a, b, c, d, a_, b_, c_, d_, e_, f_ y g_ */
     // A mi por lo menos sin (double) y con (>> 1) me corre mucho mas rapido, para stacks grandes (200+) se empieza a notar.
 	/**  arreglar criterio para los píxeles que caen fuera de la imagen*/
@@ -774,21 +699,21 @@ Coder::pixels3D Coder::getPixels3D(int current, int current2){
 	int f_=-1;
 	int g_=-1;
 
-	if ((current2%image2.width)==0){
+	if (x==0){
 		/* Si estoy parado en un borde izquierdo, el valor de a y c tienen que ser "128",
 		o la mitad del valor de blanco de la imagen */
 		a = 1 + (image2.white >> 1);
 		c = 1 + (image2.white >> 1);
 	}
 
-	if ((current2%image2.width)==image.width-1){
+	if (x==image.width-1){
 		/* Si estoy parado en un borde derecho, el valor de d tiene que ser "128",
 		o la mitad del valor de blanco de la imagen */
 
 		d = 1 + (image2.white >> 1);
 	}
 
-	if (current2<image2.width){
+	if (y==0){
 		/* Si estoy en la primer fila, b y c deben ser "128"
 		o la mitad del valor de blanco de la imagen */
 
@@ -797,7 +722,7 @@ Coder::pixels3D Coder::getPixels3D(int current, int current2){
 		if(d == -1) d = 1 + (image2.white >> 1);
 	}
 
-	if ((current%image.width)==0){
+	if (x_prev==0){
 		/* Si estoy parado en un borde izquierdo, el valor de a y c tienen que ser "128",
 		o la mitad del valor de blanco de la imagen */
 
@@ -805,7 +730,7 @@ Coder::pixels3D Coder::getPixels3D(int current, int current2){
 		c_ = 1 + (image.white >> 1);
 	}
 
-	if ((current%image.width)==image.width-1){
+	if (x_prev==image.width-1){
 		/* Si estoy parado en un borde derecho, el valor de d tiene que ser "128",
 		o la mitad del valor de blanco de la imagen */
 
@@ -813,7 +738,7 @@ Coder::pixels3D Coder::getPixels3D(int current, int current2){
 		f_ = 1 + (image.white >> 1);
 	}
 
-	if (current<image.width){
+	if (y_prev==0){
 		/* Si estoy en la primer fila, b y c deben ser "128"
 		o la mitad del valor de blanco de la imagen */
 			
@@ -822,7 +747,7 @@ Coder::pixels3D Coder::getPixels3D(int current, int current2){
 			if(d_ == -1) d_ = 1 + (image.white >> 1);
 	}
 
-	if (current>(image.heigth-2)*image.width){
+	if (y_prev>image.heigth-2){
 		/* Si estoy en la última o penúltima fila, g debe ser "128"
 		o la mitad del valor de blanco de la imagen */
 			
@@ -831,63 +756,23 @@ Coder::pixels3D Coder::getPixels3D(int current, int current2){
 
 	/* Para cada a, b,c y d, si no se cumple una condición de borde, y por lo tanto no hubo asignación en los if que preceden,
 	se traen los valores de a, b,c y d de la imagen */
-	if (a==-1)  a=image2.image[current2-1];
-	if (b==-1)  b=image2.image[current2-image.width];
-	if (c==-1)  c=image2.image[current2-image.width-1];
-	if (d==-1)  d=image2.image[current2-image.width+1];
-	if (a_==-1) a_=image.image[current-1];
-	if (b_==-1) b_=image.image[current-image.width];
-	if (c_==-1) c_=image.image[current-image.width-1];
-	if (d_==-1) d_=image.image[current-image.width+1];
-	if (e_==-1) e_=image.image[current];
-	if (f_==-1) f_=image.image[current+1];
-	if (g_==-1) g_=image.image[current+image.width];
+
+	if (a==-1)  a=image2.getPixel(x-1,y);
+	if (b==-1)  b=image2.getPixel(x,y-1);
+	if (c==-1)  c=image2.getPixel(x-1,y-1);
+	if (d==-1)  d=image2.getPixel(x+1,y-1);
+	if (a_==-1) a_=image.getPixel(x_prev-1,y_prev);
+	if (b_==-1) b_=image.getPixel(x_prev,y_prev-1);
+	if (c_==-1) c_=image.getPixel(x_prev-1,y_prev-1);
+	if (d_==-1) d_=image.getPixel(x_prev+1,y_prev-1);
+	if (e_==-1) e_=image.getPixel(x_prev,y_prev);
+	if (f_==-1) f_=image.getPixel(x_prev+1,y_prev);
+	if (g_==-1) g_=image.getPixel(x_prev,y_prev+1);
+
 	
 	return {a,  b,  c,  d,
 		    a_, b_, c_, d_,
 			e_, f_, g_};
-}
-
-Coder::pixels Coder::getPixels_(int current){
-	/** Devuelve los píxeles de la vecindad: a, b y c */
-
-	int a=-1;
-	int b=-1;
-	int c=-1;
-	int d=-1;
-
-	if (current==0){
-		//primer píxel
-		a=0;
-		b=0;
-		c=0;
-		d=0;
-	} else if ((current%image2.width)==0){
-		/* columna izquierda */
-		a=image2.image[current-image2.width];
-		c=getPixels_(current-image2.width).a;
-	}
-
-	if (current<image2.width){
-		//primer fila
-		if (b==-1) b=0;
-		if (c==-1) c=0;
-		if (d==-1) d=0;
-	} else if ((current%image2.width)==image2.width-1){
-		/* columna derecha */
-		d=image2.image[current-image.width];
-	}
-	/* Para cada a, b,c y d, si no se cumple una condición de borde, y por lo tanto no hubo asignación en los if que preceden,
-	se traen los valores de a, b,c y d de la imagen */
-
-	if (a==-1) a=image2.image[current-1];
-	if (b==-1) b=image2.image[current-image.width];
-	if (c==-1) c=image2.image[current-image.width-1];
-	if (d==-1) d=image2.image[current-image.width+1];
-
-	pixels pxls={a,b,c,d};
-
-	return pxls;
 }
 
 void Coder::writeHeader(Writer &writer){
@@ -917,37 +802,6 @@ void Coder::writeCantidadImagenes(Writer &writer){
 	int temp_l = temp.length();
 
 	writer.writeString(temp.c_str(),temp_l);
-	/*
-	double aux=(double)nmax;
-	int potencia=1;
-
-	while(aux>=1){
-		aux=aux/10;
-		potencia=potencia*10;
-	}	//calcula cuál es el orden de Nmax, 10, 100, 1000, etc... y deja a aux (Nmax) en un valor entre 0 y 1
-
-	char temp_;
-	int temp=0;
-
-	while(potencia>1){
-		aux=aux-(double)temp;	//luego de que ya fue escrito el digito anterior,
-								//se hace esta resta para eliminar del decimal el valor que ya fue escrito,
-								//por ejemplo, si de 0.256 pasamos a 2.56, luego de la resta se tiene el
-								//número 0.56, para que pueda volver a ser multiplicado por 10, escribir el 5 y así siguiendo...
-		aux=aux*double(10);
-		if (double(ceil(aux))-(double)aux<(double)0.00001)
-						temp=ceil(aux);			//parche artesanal, algunos números uno los ve como
-												//cierto valor, pero al tomar el floor te da el entero
-												//anterior, suponemos que si bien uno lo ve como el número n
-												//para la máquina es (n-1),9999999999
-		else temp=floor(aux);
-
-		temp_=temp+'0';	//pasa el entero a char para escribirlo
-		salida.write(&temp_,1);
-		potencia=potencia/10;
-	}
-	temp_='\n';	//por último escribe un salto de línea
-	salida.write(&temp_,1);*/
 }
 
 void Coder::writeNmax(Writer &writer){
@@ -961,40 +815,6 @@ void Coder::writeNmax(Writer &writer){
 	int temp_l = temp.length();
 
 	writer.writeString(temp.c_str(),temp_l);
-
-	/*
-	double aux=(double)nmax;
-	int potencia=1;
-
-	while(aux>1){
-		aux=aux/10;
-		potencia=potencia*10;
-	}	//calcula cuál es el orden de Nmax, 10, 100, 1000, etc... y deja a aux (Nmax) en un valor entre 0 y 1
-
-	char temp_;
-	int temp=0;
-
-	while(potencia>1){
-		aux=aux-(double)temp;	//luego de que ya fue escrito el digito anterior,
-								//se hace esta resta para eliminar del decimal el valor que ya fue escrito,
-								//por ejemplo, si de 0.256 pasamos a 2.56, luego de la resta se tiene el
-								//número 0.56, para que pueda volver a ser multiplicado por 10, escribir el 5 y así siguiendo...
-		aux=aux*double(10);
-
-		if (double(ceil(aux))-(double)aux<(double)0.00001)
-			temp=ceil(aux);			//parche artesanal, algunos números uno los ve como
-								//cierto valor, pero al tomar el floor te da el entero
-								//anterior, suponemos que si bien uno lo ve como el número n
-								//para la máquina es (n-1),9999999999
-		else temp=floor(aux);
-
-		temp_=temp+'0';	//pasa el entero a char para escribirlo
-		salida.write(&temp_,1);
-		potencia=potencia/10;
-	}
-
-	temp_='\n';	//por último escribe un salto de línea
-	salida.write(&temp_,1);*/
 }
 
 void Coder::writeMagic(Writer &writer){
@@ -1002,24 +822,13 @@ void Coder::writeMagic(Writer &writer){
 	directamente se escriben estos caracteres*/
 
 	writer.writeString("P5\n", 3);
-
-	/*char temp='P';
-	salida.write(&temp,1);
-	temp='5';
-	salida.write(&temp,1);
-	temp='\n';
-	salida.write(&temp,1);*/
 }
 
 void Coder::writeCompMov(Writer &writer, bool compMov){
 	/** Como solo se trabaja con imagenes tipo P5,
 	directamente se escriben estos caracteres*/
-	char temp;
+
 	if (compMov) {
-		//temp='1';
-		//salida.write(&temp,1);
-		//temp='\n';
-		//salida.write(&temp,1);
 		writer.writeString("1\n", 2);
 
 		writeWidth(writer,compMov);
@@ -1027,11 +836,6 @@ void Coder::writeCompMov(Writer &writer, bool compMov){
 		writeWhite(writer,compMov);
 	} else {
 		writer.writeString("0\n", 2);
-
-		//temp='0';
-		//salida.write(&temp,1);
-		//temp='\n';
-		//salida.write(&temp,1);
 	}
 }
 
@@ -1043,35 +847,8 @@ void Coder::writeWidth(Writer &writer, bool vector){
 	int temp_l = temp.length();
 
 	writer.writeString(temp.c_str(),temp_l);
-
-	/*double aux=(double)ancho;
-	int potencia=1;
-
-	while(aux>1){
-		aux=aux/10;
-		potencia=potencia*10;
-	}
-
-	char temp_;
-	int temp=0;
-
-	while(potencia>1){
-		aux=aux-(double)temp;
-		aux=aux*double(10);
-		if (double(ceil(aux))-(double)aux<(double)0.00001)
-			temp=ceil(aux);			//parche artesanal, algunos números uno los ve como
-									//cierto valor, pero al tomar el floor te da el entero
-									//anterior, suponemos que si bien uno lo ve como el número n
-									//para la máquina es (n-1),9999999999
-		else temp=floor(aux);
-		temp_=temp+'0';
-		salida.write(&temp_,1);
-		potencia=potencia/10;
-	}
-
-	temp_=' ';
-	salida.write(&temp_,1);*/
 }
+
 void Coder::writeHeigth(Writer &writer, bool vector){
 	/** Por descripción sobre el funcionamiento recurrir a writeNmax, es exactamente igual */
 
@@ -1081,36 +858,6 @@ void Coder::writeHeigth(Writer &writer, bool vector){
 	int temp_l = temp.length();
 
 	writer.writeString(temp.c_str(),temp_l);
-
-	/*
-	double aux=(double)alto;
-	int potencia=1;
-
-	while(aux>1){
-		aux=aux/10;
-		potencia=potencia*10;
-	}
-
-	char temp_;
-	int temp=0;
-
-	while(potencia>1){
-		aux=aux-(double)temp;
-		aux=aux*double(10);
-		if (double(ceil(aux))-(double)aux<(double)0.00001)
-				temp=ceil(aux);			//parche artesanal, algunos números uno los ve como
-										//cierto valor, pero al tomar el floor te da el entero
-										//anterior, suponemos que si bien uno lo ve como el número n
-										//para la máquina es (n-1),9999999999
-		else temp=floor(aux);
-
-		temp_=temp+'0';
-		salida.write(&temp_,1);
-		potencia=potencia/10;
-	}
-
-	temp_='\n';
-	salida.write(&temp_,1);*/
 }
 
 void Coder::writeWhite(Writer &writer, bool vector){
@@ -1122,36 +869,6 @@ void Coder::writeWhite(Writer &writer, bool vector){
 	int temp_l = temp.length();
 
 	writer.writeString(temp.c_str(),temp_l);
-
-	/*
-	double aux=(double)blanco;
-	int potencia=1;
-
-	while(aux>1){
-		aux=aux/10;
-		potencia=potencia*10;
-	}
-
-	char temp_;
-	int temp=0;
-
-	while(potencia>1){
-		aux=aux-(double)temp;
-		aux=aux*double(10);
-		if (double(ceil(aux))-(double)aux<(double)0.00001)
-			temp=ceil(aux);			//parche artesanal, algunos números uno los ve como
-									//cierto valor, pero al tomar el floor te da el entero
-									//anterior, suponemos que si bien uno lo ve como el número n
-									//para la máquina es (n-1),9999999999
-		else temp=floor(aux);
-
-		temp_=temp+'0';
-		salida.write(&temp_,1);
-		potencia=potencia/10;
-	}
-
-	temp_='\n';
-	salida.write(&temp_,1);*/
 }
 
 int Coder::correctPredictedValue(int pred, int contexto){
@@ -1159,9 +876,9 @@ int Coder::correctPredictedValue(int pred, int contexto){
 	return pred + contexts[contexto].C;
 }
 
-int Coder::getContext_(int pos, int lar){
+int Coder::getContext_(int x, int y, int lar){
 
-	return (getPixels3D(0,pos).a==getPixels3D(0,pos+lar).b);
+	return (getPixels3D(0,0,x,y).a==getPixels3D(0,0,x+lar,y).b);
 }
 
 void Coder::updateContexto_(int c, int err,int err_,int map,int k){

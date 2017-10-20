@@ -61,18 +61,18 @@ public:
 	Image setInitialImage();
 	void code(bool, Writer&);
 	void CompMov(Image&, Image&); // Compensación de movimiento
-	void itera(string, int&, int, int); // Compensación de movimiento
+	void itera(string, int&, int, int, int, int); // Compensación de movimiento
 	int selectMED(grad);
 	int getPredictedValue(int, pixels3D);
 	grad getGradients3D(int, pixels3D);
 	pixels getPixels(int);
 	pixels getPixels_(int);
-	pixels3D getPixels3D(int,int);
+	pixels3D getPixels3D(int,int,int,int);
 	int getP(pixels);
 	grad setGradients(pixels);
 	void setContextsArray();
 	int getContext(grad,grad, int&, bool&);
-	int getContext_(int, int);
+	int getContext_(int,int,int);
 	int getPredictedValue(pixels);
 	int getK(int);
 	int getKPrime(Racha&);
@@ -94,10 +94,10 @@ public:
 	void writeNmax(Writer&);
 	void writeCantidadImagenes(Writer&);
 	int getRachaParams(Image&, int, int, int&);
-	int getRachaParams2(Image&, int, int, int&);
+	int getRachaParams2(Image&, int, int, int, int&);
 	int encodeRacha(Racha&);
 	int encodeRacha2(Racha&, Writer&);
-	void encodeMuestraInterrupcion(Racha&, int,int, Writer&, int);
+	void encodeMuestraInterrupcion(Racha&, int,int, int,Writer&, int);
 	int reduccionDeRango(int);
 	int fixPrediction(int,int, int);
 	bool hasEnding (std::string const &fullString, std::string const &ending);
@@ -107,7 +107,7 @@ public:
 
 	int correctPredictedValue(int, int);
 
-	int getProxImageAnterior(int, bool, Image, Image);
+	void getProxImageAnterior(int, int, int&, int&, bool, Image, Image);
 
 	virtual ~Coder();
 
@@ -188,7 +188,7 @@ public:
 		int *tempimage;
 		int *h_vector;
 		int *v_vector;
-		bool activarCompMov=true;
+		bool activarCompMov=false;
 		int vector_ind;
 		int v_ancho;
 		int v_alto;
