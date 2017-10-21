@@ -25,59 +25,83 @@
 
 #include "Coder.h"
 #include "Decoder.h"
-#include "Image.h"
-
-#include "Writer.h"
-#include "Reader.h"
 
 using namespace std;
 
-string str_(int n){
-	stringstream ss1;
-	ss1 << n;
-	string n_ = ss1.str();
-
-	return n_;
-}
-
 int main(int nargs, char *args[]){
 
-/**		suposiciones: todas las imágenes del stack tienen el mismo ancho, mismo largo		*/
+	string path="/home/felipe/Documents/ATIPI/img_prueba/kodim20.pgm";
+	int Nmax=256;
 
-//  string path="/home/felipe/Desktop/buenas/TCGA-VR-A8EO/";
- 	string path=args[1];
-	
-	int Nmax=64;
+	Image image(path);
 
-	string path_salida=path+"_coded_Nmax_"+str_(Nmax);
+	Coder coder(image,Nmax);
+	coder.code();
 
-	Writer* writer = new Writer();
-	writer->open(path_salida);
+	stringstream ss1;
+	ss1 << Nmax;
+	string nmax = ss1.str();
 
-	Coder * coder1 = new Coder(path,Nmax,1);
-	coder1->code(false,*writer);
+	CodedImage codedImage(path+"_coded_Nmax_"+nmax+"_region_3___");
 
-	writer->close();
+	Decoder decoder(codedImage);
+	decoder.decode();
 
-	Reader* reader = new Reader();
-	reader->open(path_salida);
 
-	CodedImage * codedImage = new CodedImage(*reader,path_salida,"");
 
-	Decoder * decoder2 = new Decoder(*codedImage, false);
-	Image * prev2 = new Image();
-
-	for (int imagenActual = 0; imagenActual<codedImage->cantidad_imagenes; imagenActual++){
-		if (codedImage->activarCompMov) {
-			Image * prev1 = new Image();
-			Decoder * decoder1 = new Decoder(*codedImage, true);
-			decoder1->decode(*reader, true, *prev1, 0);
-			decoder1->decode(*reader, true, *prev1, 1);
-			//codedImage->flushDecoder();
-		}
-		decoder2->decode(*reader, false, *prev2, imagenActual);
+	/***
+	if (nargs<3)	{
+		cout<<"error...! parámetros insuficientes !"<<endl;
 	}
-	reader->close();
-	//codedImage->flushDecoder();
+	else{
+
+		cout<<"ejecutando..."<<endl;
+
+		string mode=args[1];
+		string path=args[2];
+
+		if (mode.compare("-c")==0){
+
+			string aux= args[3]; int Nmax=atoi(aux.c_str());
+
+			cout<<path<<" "<<Nmax<<endl;
+
+
+			Image image(path);
+
+			Coder coder(image,Nmax);
+			coder.code();
+
+		}else if (mode.compare("-d")==0){
+
+
+			CodedImage codedImage(path);
+
+			Decoder decoder(codedImage);
+			decoder.decode();
+
+		}else if (mode.compare("-cd")==0){
+
+			string aux= args[3]; int Nmax=atoi(aux.c_str());
+
+			Image image(path);
+
+			Coder coder(image,Nmax);
+			coder.code();
+
+			CodedImage codedImage(path+"_coded_Nmax_"+aux+"_region_3");
+
+			Decoder decoder(codedImage);
+			decoder.decode();
+
+		}else cout<<"error...! comando no encontrado !"<<endl;
+
+	}
+
+
+***/
+
     return 0;
+
+
 }

@@ -13,8 +13,6 @@
 #include "CodedImage.h"
 #include "Image.h"
 #include "Context.h"
-#include "ContextRun.h"
-#include "Racha.h"
 
 namespace std {
 
@@ -27,7 +25,6 @@ public:
 			int a;
 			int b;
 			int c;
-			int d;
 
 		} pixels;
 
@@ -39,111 +36,54 @@ public:
 
 		} grad;
 
-		typedef struct pixels3D{
-
-						int a;
-						int b;
-						int c;
-						int d;
-						int a_;
-						int b_;
-						int c_;
-						int d_;
-						int e_;
-						int f_;
-						int g_;
-
-			} pixels3D;
-
-		Decoder(CodedImage&, bool);
-		virtual ~Decoder();
-		void decode(Reader&, bool, Image&, int);
-		pixels getPixels(int, Image&);
-		pixels getPixels_(int, Image&);
-		pixels3D getPixels3D(int,int, int,int,Image&);
+		Decoder(CodedImage);
+			virtual ~Decoder();
+			void decode();
+		pixels getPixels(int);
 		int getP(pixels);
-		grad setGradients(pixels);
-		grad getGradients3D(int,pixels3D);
+		grad setGradients(int, pixels);
 		void setContextsArray();
-		int getContext(grad, int&);
-		int getContext_(int, int, int, Image&);
-		int getContext(grad,grad, int&, bool&);
+		int getContext(grad);
 		int getPredictedValue(pixels);
-		int getPredictedValue(int, pixels3D);
 		int getK(int);
-		int getKPrime(Racha&);
 		void updateContexto(int, int);
-		void updateContexto_(int, int,int);
 		void writeHeader(ofstream&);
 		void writeWidth(ofstream&);
 		void writeHeigth(ofstream&);
 		void writeWhite(ofstream&);
 		void writeMagic(ofstream&);
-		void updateImage(int, int,int,Image&);
-		int unRice(int,float,int);
-		int unrice_rachas(int,int,int);
-		int getError(Reader&,int,int,int);
-		int getError_(int);
-		int getRachaParams(int, int&,int&);
-		int getRachaParams2(Reader&, int, int&,int&);
-		void updateImageRacha(Racha&, int,int, ofstream&, Image&);
-		void updateImageInterruption(Reader&, Racha&, int,int,int, ofstream&, int, Image&);
-		int reduccionDeRango(int, int,int);
-		int clipErrorEstadisticos(int);
-		Image setInitialImage();
-		int fixPrediction(int,int, int);
-		float get_s(int);
-		void getProxImageAnterior(int,int,int&,int&,bool);
-		int selectMED(grad);
-		string str_(int n);
+		void updateImage(int, int);
+		int unRice(int);
+		void completaArray();
+		int getBit();
+		int getError(int);
+
+		int fixPrediction(int, int);
 
 		/* Este objeto representa la imagen codificada que está decodificando */
 		CodedImage codedImage;
-		static int numberImgPath;
+		/* Esta variable lleva la cuenta de los bytes leídos de codedImage */
+		int codedImagePointer=0;
 		int Nmax;
-		//int i;
+		int i;
 
-		static const int CANTIDAD_MAXIMA_CONTEXTOS=9*9*9*9*9;
+		static const int CANTIDAD_MAXIMA_CONTEXTOS=9*9*5;
 
 		Context contexts[CANTIDAD_MAXIMA_CONTEXTOS];
 
 
 	string file;
 
-	Image* images;
-	int cantidad_imagenes;
+	Image image;
 
-	Image prev;
+	/* Algún tamaño apropiado
+	Array auxiliar para poder trabajar con los bits individuales de la imagen codificada */
+	bool fileToBits[800];
 
-	bool racha;
+	/* Puntero que señala el próximo lugar a leer de decode */
+	int fileToBitsPointer=0;
+};
 
-	int J[32]={0,0,0,0,1,1,1,1,2,2,2,2,3,3,3,3,4,4,5,5,6,6,7,7,8,9,10,11,12,13,14,15};
-
-	int kr=0;
-	int m_r=1;
-
-	bool debug=false;
-	bool debug4=false;
-
-	int range;
-
-	int Lmax;	//agregados también al constructor de clase Coder(image, int, int)
-	int beta;
-	int qMax;
-	int qMax_;
-	int RUNcnt;
-	int RUNindex = 0;
-	bool golombLimitado(int);
-
-	ContextRun cntx[2];    // Contextos especiales para rachas.
-
-	bool activarCompMov=false;
-	bool primeraImagen=true;
-	int ancho;
-	int alto;
-	int blanco;
-	int bsize = 10;
-	};
-}
+} /* namespace std */
 
 #endif /* DECODER_H_ */

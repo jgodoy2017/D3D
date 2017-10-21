@@ -21,7 +21,6 @@
 #include <iomanip>
 
 #include <math.h>
-#include "Reader.h"
 
 namespace std {
 
@@ -29,36 +28,27 @@ class CodedImage {
 public:
 	CodedImage();
 	CodedImage(int, int);
-	CodedImage(Reader&);
-	CodedImage(Reader&, string, string);
+	CodedImage(string);
+	CodedImage(string, string);
 	virtual ~CodedImage();
 
-		void loadImage(Reader&);
-		void setMagic(Reader&);
-		void setCompMov(Reader&);
-		void setWidth(Reader&,bool);
-		void setHeigth(Reader&,bool);
-		void setWhite(Reader&,bool);
-		void setNmax(Reader&);
-		void setCantidadImagenes(Reader&);
-		int getPixelAlto(int,int);
-		void setPixelAlto(int,int,int);
-		int getPixelAncho(int,int);
-		void setPixelAncho(int,int,int);
+	void loadImage();
+		void setMagic(ifstream&,char&);
+		void setWidth(ifstream&,char&);
+		void setHeigth(ifstream&,char&);
+		void setWhite(ifstream&,char&);
+		void setNmax(ifstream&,char&);
 
 		string path;
+
 		string name;
+
 		string magic;
 
 		int width;
 		int heigth;
+
 		int white;
-
-		int v_width;
-		int v_heigth;
-		int v_white;
-
-		int cantidad_imagenes;
 
 		/* esta variable representa la imagen codificada, es un array de chars donde cada elemento es
 		cada byte leido del archivo */
@@ -66,17 +56,6 @@ public:
 
 		int Nmax;
 
-		bool activarCompMov=false;
-		int *vector_alto;
-		int *vector_ancho;
-
-		static bool fileToBits[800];
-		static unsigned int bitInByte;
-		static int fileToBitsPointer;		
-		static int codedImagePointer;
-		int getBit();
-		void completaArray();
-		void flushDecoder();
 };
 
 } /* namespace std */

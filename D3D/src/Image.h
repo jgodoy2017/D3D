@@ -29,15 +29,21 @@ public:
 	Image();
 	Image(int, int);
 	Image(string);
+	Image(string, int);
 	Image(string, string);
 	virtual ~Image();
 	void loadImage();
+	void loadParams();
 	void setImage();
 	void setMagic(ifstream&,char&);
 	void setWidth(ifstream&,char&);
 	void setHeigth(ifstream&,char&);
 	void setWhite(ifstream&,char&);
 	int binaryToInt(char);
+	int getPixel(int,int);
+	void setPixel(int,int,int);
+	void vectorToCoords(int,int&,int&);
+	int coordsToVector(int,int);
 
 	string path;
 

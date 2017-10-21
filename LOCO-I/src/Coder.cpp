@@ -8,985 +8,647 @@
 */
 
 #include "Coder.h"
-#include "ContextRun.h"
-#include "Coder.h"
-#include "Decoder.h"
-#include "Writer.h"
-#include "Reader.h"
 #include <sstream>
-#include <math.h>
-#include <cstdlib>
-#include <iostream>
-#include <fstream>
-#include <bitset>
-#include <unistd.h>
-#include <algorithm>
-#include <string>
-#include <iomanip>
-#include <dirent.h>
-
 
 namespace std {
-// PRUEBA !
+
+
+
 
 Coder::Coder() {
+
+
 }
 
-Coder::Coder(Image img1, Image img2, int Nmax) {
-	this->images = new Image[2];
-	this->images[0]=img1;
-	this->images[1]=img2;
-	this->cantidad_imagenes=2;
-	this->Nmax=Nmax;
-	this->width=img1.width;
-	this->heigth=img1.heigth;
-	this->white=img1.white;
-	this->image=setInitialImage();
-	this->beta=max(2, ceil(log2(this->image.white+1)));
-	this->Lmax=2*(max(2, ceil(log2(this->image.white+1)) )+max(8, max(2, ceil(log2(this->image.white+1)) )));
-	this->qMax=Lmax-beta-1;
-	this->qMax_=Lmax-beta-1;
-	this->range=this->image.white+1;
-}
+Coder::Coder(Image image, int Nmax) {
 
-Coder::Coder(string path, int Nmax, int aux) {
 		//constructor
 
 	this->Nmax=Nmax;
-	DIR *dir;
-	struct dirent *ent;
 
-	if ((dir = opendir (path.c_str())) != NULL) {
-		while ((ent = readdir (dir)) != NULL) if (hasEnding(ent->d_name,".pgm")) contador++;
-		closedir(dir);
-	}
-	
-	string* names = new string[contador];
-	this->images = new Image[contador];
-	int arch_actual=0;
-	
-	if ((dir = opendir (path.c_str())) != NULL) {
-		while ((ent = readdir (dir)) != NULL) if (hasEnding(ent->d_name,".pgm")) names[arch_actual++]=ent->d_name;
-		closedir(dir);
-	}
+	this->image=image;
 
-	sort(names, names+contador);
 
-	for (int k=0;k<contador;k++) this->images[k]=Image(path + names[k]);
-	
-	cantidad_imagenes=contador;
-	this->width=images[0].width;
-	this->heigth=images[0].heigth;
-	this->white=images[0].white;
-	this->image=setInitialImage();
-	this->path=path;
-	this->beta=max(2, ceil(log2(image.white+1)));
-	this->Lmax=2*(max(2, ceil(log2(image.white+1)) )+max(8, max(2, ceil(log2(image.white+1)) )));
-	this->qMax=Lmax-beta-1;
-	this->qMax_=Lmax-beta-1;
-	range=image.white+1;
+
+
 }
 
-bool Coder::hasEnding (std::string const &fullString, std::string const &ending) {
+ void Coder::code(){
 
-	if (fullString.length() >= ending.length()) {
-        return (0 == fullString.compare (fullString.length() - ending.length(), ending.length(), ending));
-    } else {
-        return false;
-    }
-}
-
-Image Coder::setInitialImage(){
-	Image aux=Image();
-	aux.image=(int*)malloc(width*heigth*sizeof(int));
-
-	for (int k=0;k<width*heigth;k++) aux.image[k]=0; //	definir algún criterio para esta imagen
-
-	aux.white=this->white;
-	aux.width=this->width;
-	aux.heigth=this->heigth;
-
-	return aux;
-}
-
- void Coder::code(bool vector, Writer &writer){
-	v_ancho = 1+(image.width/bsize);
-	v_alto = 1+(image.heigth/bsize);
-	v_blanco = 255;
 	stringstream ss1;
+
 	ss1 << Nmax;
 	string nmax = ss1.str();
-	Image* imageH = new Image();
-	Image* imageV = new Image();
 
-	cout << "// START CODER" << endl;
 
-	if (!vector) writeHeader(writer);
+
+	string path_salida=image.path+image.name+"_coded_Nmax_"+nmax+"_region_3___";
+	ofstream salida;
+	salida.open(path_salida.c_str(), ios::binary);
+
+	writeHeader(salida);
+
 	setContextsArray();
 
-	for (int imagen=0;imagen<cantidad_imagenes;imagen++){
-		cout << (vector ? "vector " : "imagen ") << "coder: " << imagen << endl;
+	for(int prox=0;prox<image.heigth*image.width;prox++){
+							//bucle principal que recorre la imagen y va codificando cada pixel
 
-		image2 = images[imagen];
-		if (imagen > 0) image = images[imagen-1];
+		int currentPixel=image.image[prox]; //valor del pixel actual
 
-		if(!vector) cout << "Procesando imagen >> " << image2.path << endl;
+		pixels pxls = getPixels(prox); //obtiene los píxeles de la vecindad: a,b y c
 
-		// ######## Compensación de movimiento
-		if (activarCompMov && !vector){
-			imageH->image=(int*)malloc(this->image.width*this->image.heigth*sizeof(int));
-			imageV->image=(int*)malloc(this->image.width*this->image.heigth*sizeof(int));
-			imageH->width=v_ancho;
-			imageV->width=v_ancho;
-			imageH->heigth=v_alto;
-			imageV->heigth=v_alto;
-			imageH->white=v_blanco;
-			imageV->white=v_blanco;
+		int p = getP(pxls);	//calcula p
 
-			CompMov(*imageH, *imageV);
+		grad gradients=setGradients(p,pxls); //calcula los gradientes
 
-			Coder* coderVec = new Coder(*imageH, *imageV, Nmax);
-			coderVec->code(1, writer);
-		}
+		int contexto = getContext(gradients);	//trae el contexto asociado a ese gradiente
 
-		//for(int prox=0;prox<image.heigth*image.width;prox++){
-		for(int y = 0; y<image.heigth;y++){
-			for(int x = 0; x<image.width;x++){
-				//bucle principal que recorre la imagen y va codificando cada pixel
-				int x_prev,y_prev;
-				int signo;
-				bool esRacha;
-				int currentPixel=image2.getPixel(x,y); //valor del pixel actual
-				getProxImageAnterior(x,y,x_prev,y_prev,vector,*imageH,*imageV);
-				pixels3D pxls = getPixels3D(x_prev,y_prev,x,y);
-				grad gradients=getGradients3D(1,pxls); //calcula los gradientes
-				int contexto = getContext(getGradients3D(0,pxls),getGradients3D(4,pxls), signo, esRacha);
+		int predicted = getPredictedValue(pxls);	//calcula el valor pixel predicho
 
-				if (!esRacha){
-					int predicted = getPredictedValue(selectMED(gradients),pxls);	//calcula el valor pixel predicho
-					predicted=fixPrediction(predicted,signo, contexto);
-					int error_s= currentPixel-predicted;	//calcula el error como la resta entre el valor actual y el valor predicho
-					int error_=error_s*signo;
-					int k= getK(contexto);	//calcula k para ese contexto
-					int error__=reduccionDeRango(error_);
-					int error =rice(error__, get_s(contexto),k);	//devuelve mapeo de rice del error
-					encode(error,k, writer,0,0);	//codifica el error
-					updateContexto(contexto, error_);	//actualiza los valores para el contexto
-				}
-				else {
-					int interruption=0;
-					int largo= getRachaParams2(image2,x,y,pxls.a,interruption);
-					int contexto=getContext_(x,y,largo);
-					Racha racha(largo,interruption,pxls.a,contexto);
-					int cantidad_unos=encodeRacha2(racha, writer);
-					encodeMuestraInterrupcion(racha, image2.getPixel(x+largo,y), x+largo,y,writer,cantidad_unos);
-					racha.updateContexto();
-					x=x+largo;
-					if ((racha.interruption))	x--;	//
-				}
-			}
-		} //pixeles
-	}//imagenes
-}
+		predicted=fixPrediction(predicted, contexto);
 
- void Coder::CompMov(Image &imageH, Image &imageV){
-	int bh = bsize; 	// Aquí se guardará el ancho del Macrobloque cuando sea menor al especificado
-    int bv = bsize; 	// Aquí se guardará el alto del Macrobloque cuando sea menor al especificado
-    int search = 6;	// Distancia de búsqueda hacia cada dirección
-  	int sIzq = 0; 		// Distancia que puede buscar hacia la izquierda, cerca de los bordes será menor a search
-  	int sDer = 0;		// Distancia que puede buscar hacia la derecha, cerca de los bordes será menor a search
-  	int sArr = 0;		// Distancia que puede buscar hacia la arriba, cerca de los bordes será menor a search
-  	int sAba = 0;		// Distancia que puede buscar hacia la abajo, cerca de los bordes será menor a search
-  	int restoV = 0;	// Variable temporal utilizada para calcular "bh" en el borde derecho
- 	int restoH = 0;	// Variable temporal utilizada para calcular "bv" en el borde inferior
- 	int derecha = 0;	// Variable temporal utilizada para calcular "sDer"
- 	int abajo = 0;		// Variable temporal utilizada para calcular "sAba"
+		int error_= currentPixel-predicted;	//calcula el error como la resta entre el valor actual y el valor predicho
 
- 	cout<<"Entro CompMov - "<<endl;
+		int k= getK(contexto);	//calcula k para ese contexto
 
- 	vector_ind = 0;// Inicializo en cero el índice para los vectores de movimiento
-    int s;
+		int error =rice(error_);	//devuelve mapeo de rice del error
 
-    for(int bloqueV=0;(bloqueV)*bsize<image2.heigth;bloqueV++){
-    	for(int bloqueH=0;(bloqueH)*bsize<image2.width;bloqueH++){
-    		// Con estos dos FOR se recorren todos los Macrobloques
-  			// Su posición es dada por (bloqueH, bloqueV)
-  			// Se inicializan valores en cada Macrobloque
-  			// -------------------------
-  			int smin = 429496729;
-  			int hmin = 0;
-  			int vmin = 0;
-  			// --------------------------
+		encode(error,k, salida);	//codifica el error
 
-  			// Se calcula cuánto se puede mover el search y el tamaño real del macrobloque
-  			// -----------------------------
-  			restoV = max((bloqueV+1)*bsize-image2.heigth, 0);
-  			restoH = max((bloqueH+1)*bsize-image2.width, 0);
-  			derecha = abs((bloqueH+1)*bsize - image2.width);
-  			abajo = abs((bloqueV+1)*bsize - image2.heigth);
-  			sIzq = min(search,bloqueH*bsize);
-  			sDer = min(search,derecha - restoH);
-  			sArr = min(search,bloqueV*bsize);
-  			sAba = min(search,abajo - restoV);
-  			bh = bsize - restoH;
-  			bv = bsize - restoV;
-  			// ------------------------------
+		updateContexto(contexto, error_);	//actualiza los valores para el contexto
 
-  			for(int v=-sArr;v<sAba+1;v++){
-  				for(int h=-sIzq;h<sDer+1;h++){
-  					// Estos FOR son para mover el macrobloque
-					s = 0; // Se inicializa la variable sobre la que se va a iterar en cada Matching
-					for(int j=0;j<bv;j++){
-						for(int i=0;i<bh;i++){
-							// Estos FOR son para moverse por todos los pixeles del Macrobloque
-							int x1 = i + h + bloqueH*bsize;
-							int y1 = j + v + bloqueV*bsize;
 
-							int x2 = i + bloqueH*bsize;
-							int y2 = j + bloqueV*bsize;
-
-							itera("MED3D",s,x1,y1,x2,y2);
-						}
-					}
-					if (s < smin){
-						// Se guardan los valores mínimos hasta el momento de este Macrobloque
-						smin = s;
-						hmin = h;
-						vmin = v;
-					}
-				}
-			}
- 			imageH.setPixel(hmin+128,bloqueH,bloqueV);
-  			imageV.setPixel(vmin+128,bloqueH,bloqueV);
-		}
-  	}
- 	cout <<"Salgo CompMov"<< endl;
-}
-
- void Coder::itera(string function, int &s, int x1, int y1, int x2, int y2){
-  	/* Valores válidos para Function:
-  	 * 	"MED3D": Utilizando el predictor 3D
-  	 * 	"ERROR": Utilizando la diferencia entre pixeles
-  	 * 	"LAPLACE": Utilizando laplaciano
-  	 */
-
-	if (function == "MED3D"){
-  		pixels3D pxls = getPixels3D(x1,y1,x2,y2);
-  		grad gradientes = getGradients3D(1,pxls);
-  		s = s + abs(getPredictedValue(selectMED(gradientes),pxls)-image2.getPixel(x2,y2));
-  	}
-
-	if (function == "ERROR"){
-  		s = s + abs(image.getPixel(x1,y1)-image2.getPixel(x2,y2));
-  	}
-
-	if (function == "LAPLACE"){
-		s = s + abs(image.getPixel(min(x1+1,image.width-1),y1)+image.getPixel(max(x1-1,0),y1)+image.getPixel(x1,max(y1-1,0))+image.getPixel(x1,min(y1+1,image.heigth-1))-4*image.getPixel(x1,y1) - (image2.getPixel(min(x2+1,image2.width-1),y2)+image2.getPixel(max(x2-1,0),y2)+image2.getPixel(x2,max(y2-1,0))+image2.getPixel(x2,min(y2+1,image2.heigth-1))-4*image2.getPixel(x2,y2)));
-	}
-}
-
-void Coder::getProxImageAnterior(int x, int y, int &x_prev, int &y_prev, bool vector, Image imagenH, Image imagenV){
-	x_prev = x;
-	y_prev = y;
-
-	if (activarCompMov && !vector){
- 		int bloqueV = y / bsize;
- 	 	int bloqueH = x / bsize;
-		x_prev = x + imagenH.getPixel(bloqueH,bloqueV)-128;
-		y_prev = y + imagenV.getPixel(bloqueH,bloqueV)-128;
-	}
-}
-
-int Coder::max(int uno, int dos){
-	 if (uno<dos) return dos;
-	 else return uno;
-}
-
-float Coder::get_s(int contexto){
-	 return float(float(contexts[contexto].B)/float(contexts[contexto].N)); //es N o N_?
-}
-
-int Coder::getRachaParams2(Image &image, int x, int y, int anterior, int &interruption_){
- 	int largo=0;
- 	interruption_=0;
-
- 	while(anterior==image.getPixel(x+largo,y)){
- 		largo++;
- 		if((x+largo)==image.width) {
- 			interruption_=1;
- 			break;
- 		}
- 	}
-
- 	return largo;
-}
-
-int Coder::reduccionDeRango(int error){
-
-	if (error>=(range+1)/2){
-		error=error -range;
-		if (debug) cout<<"error + predicted>255"<<endl;
-	} else if (error<-((range)/2)){
-	 		error=range+error;
-	 		if (debug) cout<<"error + predicted<0"<<endl;
-	} else {
-		if (debug) cout<<"return error"<<endl;
-	 		return error;
 	}
 
-	return error;
+	flushEncoder(salida);	//termina de escribir los últimos bits que hayan quedado en el array de bits
+
+	salida.close();
+
 }
 
-int Coder::getKPrime(Racha &r){
-	int T_racha, K_racha;
+int Coder::fixPrediction(int predicted, int contexto){
 
-	T_racha=cntx[r.contexto].A_racha+(cntx[r.contexto].N_racha>>1)*r.contexto;
-	if (debug) cout<<"T_racha: "<<T_racha<<endl;
-	for(K_racha=0; (cntx[r.contexto].N_racha<<K_racha)<T_racha; K_racha++);
-	
-	return K_racha;
-}
+	predicted=predicted+contexts[contexto].C;
 
-void Coder::encodeMuestraInterrupcion(Racha &racha, int siguiente, int x, int y, Writer &writer,int cantidad_unos){
-	int error=0, error_=0, kPrime=1000;
-
-	if (!racha.interruption){
-		if (racha.contexto==0){
-			error_=(siguiente-getPixels3D(0,0,x,y).b)*(-1);
-		} else {
-		error_=(siguiente-getPixels3D(0,0,x,y).b);
-		}
-
-		kPrime=getKPrime(racha);
-		error_=reduccionDeRango(error_);
-		int map=0;
-		error=rice_rachas(error_,racha.contexto,kPrime,map);
-		updateContexto_(racha.contexto, error_,error,map,kPrime);
-		encode(error, kPrime, writer,1,cantidad_unos);
-	} else {
-	}
-}
-
-int Coder::rice_rachas(int error,int contexto, int k, int &map){
-	map=0;
-
-	if ((k!=0)and(error<0))	map=1;
-
-	if ((k==0)and(error<0)and((float(cntx[contexto].Nn_racha)/float(cntx[contexto].N_racha))>=0.5))	map=1;
-
-	if ((k==0)and(error>0)and((float(cntx[contexto].Nn_racha)/float(cntx[contexto].N_racha))<0.5))	map=1;
-
-	int retorno=2*abs(error)-contexto-map;
-
-	return retorno;
-}
-
-int Coder::encodeRacha2(Racha &racha, Writer &writer){
-	int diferencia=racha.largo;
-	int ajuste;
-
-	while (diferencia >= (1 << J[RUNindex])) {
-	   //Agregar un 1 al tream
-		writer.write(1, 1);
-
-		diferencia = diferencia - (1 << J[RUNindex]);
-
-		if (RUNindex < 31) {
-			RUNindex++;
-			if (debug) cout << "inc"<<endl;
-		}
-	}
-
-	if ((diferencia!=0)and(racha.interruption)) {
-		writer.write(1, 1);
-	} else if (!racha.interruption) {
-		writer.write(0, 1);
-
-		int potencia = 1;
-
-		for (int j=0;j<J[RUNindex];j++){
-			potencia=potencia*2;
-		}
-
-		int resto=diferencia%potencia;
-		potencia=potencia/2;
-
-		for (int j=0;j<J[RUNindex];j++){
-			writer.write(resto/potencia, 1);
-
-			resto=resto%potencia;
-			potencia=potencia/2;
-		}
-
-		ajuste = J[RUNindex];
-		if (RUNindex > 0) RUNindex--;
-	}
-
-	return (ajuste+1);
-}
-
-int Coder::fixPrediction(int predicted,int signo, int contexto){
-	predicted=predicted+(contexts[contexto].C*signo);
-
-	if (predicted< 0) predicted=0;
-	if (predicted >range-1) predicted=range-1;
 
 	return predicted;
 }
 
 void Coder::updateContexto(int contexto, int error){
+
+
 	/** Actualiza los datos N y A del contexto */
+
 	/** Actualiza B y C */
 
-	contexts[contexto].B=contexts[contexto].B+error;
-	contexts[contexto].A=contexts[contexto].A+abs(error);
-
 	if (contexts[contexto].N==Nmax){
+
 		/* si el valor de N para ese contexto es igual a Nmax divide N y A entre 2 */
 		contexts[contexto].N=contexts[contexto].N/2;
-		contexts[contexto].N_=contexts[contexto].N_/2;
 		contexts[contexto].A=floor((double)contexts[contexto].A/(double)2);
+
 		contexts[contexto].B=floor((double)contexts[contexto].B/(double)2);
+
 	}
+	/* Actualiza A sumándole el valor absoluto de este error */
+	contexts[contexto].B=contexts[contexto].B+error;
+
+	contexts[contexto].A=contexts[contexto].A+abs(error);
 
 	contexts[contexto].N++;	//actualiza N
 
-	if (error<0) contexts[contexto].N_++;
-
-	/* Actualiza A sumándole el valor absoluto de este error */
-
 	if (contexts[contexto].B<=-contexts[contexto].N){
+
 		contexts[contexto].B=contexts[contexto].B+contexts[contexto].N;
+
 		if (contexts[contexto].C>-128) contexts[contexto].C=contexts[contexto].C-1;
 		if (contexts[contexto].B<=-contexts[contexto].N) contexts[contexto].B=-contexts[contexto].N+1;
-	} else if (contexts[contexto].B>0){
+
+
+
+	}
+
+	else if (contexts[contexto].B>0){
+
+
 		contexts[contexto].B=contexts[contexto].B-contexts[contexto].N;
-		if (contexts[contexto].C<127) contexts[contexto].C=contexts[contexto].C+1;
-		if (contexts[contexto].B>0) contexts[contexto].B=0;
+
+				if (contexts[contexto].C<127) contexts[contexto].C=contexts[contexto].C+1;
+				if (contexts[contexto].B>0) contexts[contexto].B=0;
+
+
+
+	}
+/*
+	if (!(contexts[contexto].C==0)){
+
+		cout<<"B: "<<contexts[contexto].B<<endl;
+		cout<<"C: "<<contexts[contexto].C<<endl;
+
+	}
+*/
+}
+
+void Coder::flushEncoder(ofstream &salida){
+
+	/** Completa con ceros para poder escribir los últimos bits */
+
+	if (bitsToFilePointer>0) {
+
+		bitset<8> temp_b;
+
+		for(int j=0;j<bitsToFilePointer;j++){
+
+			temp_b[7-j]=bitsToFile[j];
+
+			}//for j
+
+			char temp=(char)temp_b.to_ulong();
+
+			salida.write(&temp, 1);
+
 	}
 }
 
-void Coder::encode(int error, int k, Writer &writer, int racha,int ajuste){
-	/** Almacena en potencia el valor de 2^k
-	Calcula la parte entera del cociente entre el error y 2^k y lo guarda en "cociente" para codificación binaria
-	Calcula el resto de la división entera entre el error y 2^k y lo guarda en "resto" para codificación unaria */
+void Coder::encode(int error, int k, ofstream &salida){
 
-	int qMax;
+		/** Almacena en potencia el valor de 2^k
+		Calcula la parte entera del cociente entre el error y 2^k y lo guarda en "cociente" para codificación binaria
+		Calcula el resto de la división entera entre el error y 2^k y lo guarda en "resto" para codificación unaria */
 
-	if (racha) {
-		qMax=this->qMax_;
-		qMax=qMax-ajuste;
-	} else {
-		qMax=this->qMax;
+	int potencia = 1;
+
+	for (int j=0;j<k;j++){
+
+		potencia=potencia*2;
 	}
 
-	if (k!=1000){
-		int potencia = floor(pow(2,k));
-		if (potencia==0)	potencia=1;
-		int cociente=error/potencia;
-		int resto=error%potencia;
-		potencia=potencia/2;
+	int cociente=error/potencia;
+	int resto=error%potencia;
 
-		if (cociente>=qMax) {
-			cociente=qMax;
-		}
+	potencia=potencia/2;
 
-		for (int j=0;j<cociente;j++){
-			writer.write(0, 1);
-		}
+	/*	Este loop calcula la expresión binaria del resto expresada con k bits, y lo guarda en array auxiliar bitsToFile */
+	for (int j=0;j<k;j++){
 
-		if(cociente==qMax){
-		} else {
-			writer.write(1, 1);
-		}
+			bitsToFile[bitsToFilePointer]=resto/potencia;
 
-		if (cociente==qMax)	{
-			cociente=qMax;
-			potencia=pow(2,beta-1);
-			for (int j=0;j<beta;j++){
-				writer.write(error/potencia, 1);
-				error=error%potencia;
-				potencia=potencia/2;
-			}
-		} else {
-			/*	Este loop calcula la expresión binaria del resto expresada con k bits, y lo guarda en array auxiliar bitsToFile */
-			for (int j=0;j<k;j++){
-				writer.write(resto/potencia, 1);
-				resto=resto%potencia;
-				potencia=potencia/2;
-			}
-			/* Este loop calcula la expresión unaria del cociente, con tantos ceros como la variable "cociente"
-			y lo guarda en array auxiliar bitsToFile */
+			bitsToFilePointer++;
+
+			resto=resto%potencia;
+
+			potencia=potencia/2;
+
 		}
+	/* Este loop calcula la expresión unaria del cociente, con tantos ceros como la variable "cociente"
+	y lo guarda en array auxiliar bitsToFile */
+	for (int j=0;j<cociente;j++){
+
+		bitsToFile[bitsToFilePointer]=0;
+
+		bitsToFilePointer++;
+
 	}
+	/*	para indicar el fin del código de la parte unaria escribe un 1 al final */
+	bitsToFile[bitsToFilePointer]=1;
+
+	bitsToFilePointer++;
+
+	writeCode(salida);
+
 }
 
-int Coder::rice(int error, float s, int k){
+void Coder::writeCode(ofstream &salida){
+
+	/** Si hay al menos un byte para escribir en bitsToFile se escriben tantos bytes como es posible,
+	esto es, el cociente de la división entera entre bitsToFilePointer y 8 */
+
+	if (bitsToFilePointer>7){
+
+			for(int k=0;k<(bitsToFilePointer/8);k++){
+
+			/* Para escribir el byte, se usa una estructura auxiliar, bitset,
+			se guarda en un bitset los próximos 8 bits a ser escritos,
+			luego se pasa este bitset a char, y por último se escribe el char */
+			std::bitset<8> temp_b;
+
+			for(int j=0;j<8;j++){
+
+			temp_b[7-j]=bitsToFile[k*8+j];
+
+			}//for j
+
+			char temp=(char)temp_b.to_ulong();
+
+			salida.write(&temp, 1);
+
+			}//for k
+
+			/* Todos los bits de la cola que no pudieron escribirse,
+			esto es, los últimos bitsToFilePointer%8 bits válidos, son corridos al principio de la fila,
+			para ser los primeros en escribirse cuando vuelva a invocarse este método */
+			for(int k=8*(bitsToFilePointer/8);k<bitsToFilePointer;k++){
+
+				bitsToFile[k-8*(bitsToFilePointer/8)]=bitsToFile[k];
+
+			}//for k
+
+			/* Se actualiza el valor del puntero */
+			bitsToFilePointer=bitsToFilePointer%8;
+
+			}//if
+
+}
+
+
+int Coder::rice(int error){
+
 	/** Mapeo de rice del error */
-	/** falta reducción de rango para el error ***/
 
-	if ((k<=0)and(s<=-0.5)){
-		return rice(-error-1,0,1);	//en este caso llama al mapeo común de rice, con otro parámetro
-	} else {
-		int uno =1;
-		if (error>=0)uno=0;
-		return (2*abs(error)-uno);
-	}
+	int uno =1;
+
+	if (error>=0)uno=0;
+
+	return (2*abs(error)-uno);
 }
 
 int Coder::getK(int contexto){
+
 	/** Calcula k según la expresión de las diapositivas del curso */
 
-	double AdivN_=(double)contexts[contexto].A/(double)contexts[contexto].N;
+	double AdivN=(double)contexts[contexto].A/(double)contexts[contexto].N;
 
-	return round(log2(AdivN_));
+	return round(log2(AdivN));
 }
 
-int Coder::getContext(grad gradients1,grad gradients2, int &signo, bool &racha){
+int Coder::getPredictedValue(pixels pxls){
+
+	/** Calcula el valor predicho según expresión de las diapositivas del curso */
+
+	if ((pxls.c>=pxls.a)&&(pxls.c>=pxls.b)){
+
+		if (pxls.a>pxls.b)
+				return pxls.b;
+		else return pxls.a;
+
+	}else if ((pxls.c<=pxls.a)&&(pxls.c<=pxls.b)){
+
+		if (pxls.a>pxls.b)
+				return pxls.a;
+		else return pxls.b;
+
+	}else return (pxls.a+pxls.b-pxls.c);
+
+
+
+}
+
+int Coder::getContext(grad gradients){
+
 	/** Determina el contexto
 	Todos los contextos posibles se organizan en un array, donde cada elemento del array representa un contexto,
 	es posible definir un mapeo entre el espacio de todos los contextos posibles y los enteros,
 	para que dado un contexto haya una relación biunívoca con un elemento del array */
 
-	signo=1;
-	int contga, contgb,contgc,contgd,contge;
+	int contga, contgb,contgc;
 
-	if (gradients1.ga<=-21) contga=0;
-		else if (gradients1.ga<=-7) contga=1;
-		else if (gradients1.ga<=-3) contga=2;
-		else if (gradients1.ga<0) contga=3;
-		else if (gradients1.ga==0) contga=4;
-		else if (gradients1.ga<3) contga=5;
-		else if (gradients1.ga<7) contga=6;
-		else if (gradients1.ga<21) contga=7;
-		else contga=8;
+	if (gradients.ga<-21) contga=0;
+	else if (gradients.ga<-7) contga=1;
+	else if (gradients.ga<-3) contga=2;
+	else if (gradients.ga<0) contga=3;
+	else if (gradients.ga==0) contga=4;
+	else if (gradients.ga<=3) contga=5;
+	else if (gradients.ga<=7) contga=6;
+	else if (gradients.ga<=21) contga=7;
+	else contga=8;
 
-	if (gradients1.gb<=-21) contgb=0;
-		else if (gradients1.gb<=-7) contgb=1;
-		else if (gradients1.gb<=-3) contgb=2;
-		else if (gradients1.gb<0) contgb=3;
-		else if (gradients1.gb==0) contgb=4;
-		else if (gradients1.gb<3) contgb=5;
-		else if (gradients1.gb<7) contgb=6;
-		else if (gradients1.gb<21) contgb=7;
+	if (gradients.gb<-21) contgb=0;
+		else if (gradients.gb<-7) contgb=1;
+		else if (gradients.gb<-3) contgb=2;
+		else if (gradients.gb<0) contgb=3;
+		else if (gradients.gb==0) contgb=4;
+		else if (gradients.gb<=3) contgb=5;
+		else if (gradients.gb<=7) contgb=6;
+		else if (gradients.gb<=21) contgb=7;
 		else contgb=8;
 
-	if (gradients1.gc<=-21) contgc=0;
-		else if (gradients1.gc<=-7) contgc=1;
-		else if (gradients1.gc<=-3) contgc=2;
-		else if (gradients1.gc<0) contgc=3;
-		else if (gradients1.gc==0) contgc=4;
-		else if (gradients1.gc<3) contgc=5;
-		else if (gradients1.gc<7) contgc=6;
-		else if (gradients1.gc<21) contgc=7;
-		else contgc=8;
+	if (gradients.gc<-3) contgc=0;	//cambiar zonas
+		else if (gradients.gc<0) contgc=1;
+		else if (gradients.gc==0) contgc=2;
+		else if (gradients.gc<=3) contgc=3;
+		else contgc=4;
 
-	if (gradients2.gb<=-21) contgd=0;
-		else if (gradients2.gb<=-7) contgd=1;
-		else if (gradients2.gb<=-3) contgd=2;
-		else if (gradients2.gb<0) contgd=3;
-		else if (gradients2.gb==0) contgd=4;
-		else if (gradients2.gb<3) contgd=5;
-		else if (gradients2.gb<7) contgd=6;
-		else if (gradients2.gb<21) contgd=7;
-		else contgd=8;
-
-	if (gradients2.gc<=-21) contge=0;
-		else if (gradients2.gc<=-7) contge=1;
-		else if (gradients2.gc<=-3) contge=2;
-		else if (gradients2.gc<0) contge=3;
-		else if (gradients2.gc==0) contge=4;
-		else if (gradients2.gc<3) contge=5;
-		else if (gradients2.gc<7) contge=6;
-		else if (gradients2.gc<21) contge=7;
-		else contge=8;
-
-	if(contga<4){
-		contga=8-contga;
-		contgb=8-contgb;
-		contgc=8-contgc;
-		contgd=8-contgd;
-		contge=8-contge;
-
-		signo=-1;
-	} else if((contga==4)and(contgb<4)) {
-		contga=8-contga;
-		contgb=8-contgb;
-		contgc=8-contgc;
-		contgd=8-contgd;
-		contge=8-contge;
-
-		signo=-1;
-	} else if((contga==4)and(contgb==4)and(contgc<4)) {
-		contga=8-contga;
-		contgb=8-contgb;
-		contgc=8-contgc;
-		contgd=8-contgd;
-		contge=8-contge;
-
-		signo=-1;
-	}
-
-	else if((contga==4)and(contgb==4)and(contgc==4)and(contgd<4)) {
-		contga=8-contga;
-		contgb=8-contgb;
-		contgc=8-contgc;
-		contgd=8-contgd;
-		contge=8-contge;
-
-		signo=-1;
-	}
-
-	else if((contga==4)and(contgb==4)and(contgc==4)and(contgd==4)and(contge<4)) {
-		contga=8-contga;
-		contgb=8-contgb;
-		contgc=8-contgc;
-		contgd=8-contgd;
-		contge=8-contge;
-
-		signo=-1;
-	}
 	//mapeo elegido para representar los contextos
-	if ((9*9*9*9*contga)+(9*9*9*contgb)+(9*9*contgc)==29484) racha=true;
-		else racha=false;
 
-	return (9*9*9*9*contga)+(9*9*9*contgb)+(9*9*contgc)+(9*contgd)+contge;
+	return (5*9*contga)+(5*contgb)+(contgc);
 }
 
 void Coder::setContextsArray(){
+
 	/** Forma el array con todos los contextos posibles */
 
 	int indice=0;
 
 	for (int k=-4;k<5;k++){
+
 		for (int j=-4;j<5;j++){
-			for (int i=-4;i<5;i++){
-				for (int l=-4;l<5;l++){
-					for (int m=-4;m<5;m++){
-						Context contexto(k,j,i,l,m,image.white);
-						contexts[indice]=contexto;
-						indice++;
-					}
-				}
+
+			for (int i=-2;i<3;i++){
+
+					Context contexto(k,j,i);
+					contexts[indice]=contexto;
+					indice++;
+
 			}
+
 		}
+
 	}
+
 }
 
-Coder::grad Coder::setGradients(pixels pxls){
-	/** Dado p y los píxeles a, b, c y d de la vecindad,
+Coder::grad Coder::setGradients(int p,pixels pxls){
+
+	/** Dado p y los píxeles a, b y c de la vecindad,
 	forma el vector de gradientes */
 
-	grad gradients={pxls.d-pxls.b,pxls.b-pxls.c,pxls.c-pxls.a};
+	grad gradients={pxls.a-p,pxls.b-p,pxls.c-p};
 
 	return gradients;
 }
 
-Coder::pixels3D Coder::getPixels3D(int x_prev, int y_prev, int x, int y){
-	/** Devuelve los píxeles de la vecindad: a, b, c, d, a_, b_, c_, d_, e_, f_ y g_ */
-    // A mi por lo menos sin (double) y con (>> 1) me corre mucho mas rapido, para stacks grandes (200+) se empieza a notar.
-	/**  arreglar criterio para los píxeles que caen fuera de la imagen*/
+int Coder::getP(pixels pxls){
+
+	/** Devuelve el valor de p, según expresión de las diapositivas del curso */
+
+	return floor((double)(2*pxls.a+2*pxls.b+2*pxls.c+3)/(double)6);
+
+}
+
+Coder::pixels Coder::getPixels(int current){
+
+	/** Devuelve los píxeles de la vecindad: a, b y c */
 
 	int a=-1;
 	int b=-1;
 	int c=-1;
-	int d=-1;
-	int a_=-1;
-	int b_=-1;
-	int c_=-1;
-	int d_=-1;
-	int e_=-1;
-	int f_=-1;
-	int g_=-1;
 
-	if (x==0){
+	if ((current%image.width)==0){
+
 		/* Si estoy parado en un borde izquierdo, el valor de a y c tienen que ser "128",
 		o la mitad del valor de blanco de la imagen */
-		a = 1 + (image2.white >> 1);
-		c = 1 + (image2.white >> 1);
+		a=ceil((double)image.white/(double)2);
+		c=ceil((double)image.white/(double)2);
+
 	}
 
-	if (x==image.width-1){
-		/* Si estoy parado en un borde derecho, el valor de d tiene que ser "128",
-		o la mitad del valor de blanco de la imagen */
+	if (current<image.width){
 
-		d = 1 + (image2.white >> 1);
-	}
-
-	if (y==0){
 		/* Si estoy en la primer fila, b y c deben ser "128"
 		o la mitad del valor de blanco de la imagen */
-
-		if(b == -1) b = 1 + (image2.white >> 1);
-		if(c == -1) c = 1 + (image2.white >> 1);
-		if(d == -1) d = 1 + (image2.white >> 1);
+		if (b==-1) b=ceil((double)image.white/(double)2);
+		if (c==-1) c=ceil((double)image.white/(double)2);
 	}
 
-	if (x_prev==0){
-		/* Si estoy parado en un borde izquierdo, el valor de a y c tienen que ser "128",
-		o la mitad del valor de blanco de la imagen */
+	/* Para cada a, b y c, si no se cumple una condición de borde, y por lo tanto no hubo asignación en los if que preceden,
+	se traen los valores de a, b y c de la imagen */
+	if (a==-1) a=image.image[current-1];
+	if (b==-1) b=image.image[current-image.width];
+	if (c==-1) c=image.image[current-image.width-1];
 
-		a_ = 1 + (image.white >> 1);
-		c_ = 1 + (image.white >> 1);
-	}
+	pixels pxls={a,b,c};
 
-	if (x_prev==image.width-1){
-		/* Si estoy parado en un borde derecho, el valor de d tiene que ser "128",
-		o la mitad del valor de blanco de la imagen */
-
-		d_ = 1 + (image.white >> 1);
-		f_ = 1 + (image.white >> 1);
-	}
-
-	if (y_prev==0){
-		/* Si estoy en la primer fila, b y c deben ser "128"
-		o la mitad del valor de blanco de la imagen */
-			
-			if(b_ == -1) b_ = 1 + (image.white >> 1);
-			if(c_ == -1) c_ = 1 + (image.white >> 1);
-			if(d_ == -1) d_ = 1 + (image.white >> 1);
-	}
-
-	if (y_prev>image.heigth-2){
-		/* Si estoy en la última o penúltima fila, g debe ser "128"
-		o la mitad del valor de blanco de la imagen */
-			
-		g_ = 1 + (image.white >> 1);
-	}
-
-	/* Para cada a, b,c y d, si no se cumple una condición de borde, y por lo tanto no hubo asignación en los if que preceden,
-	se traen los valores de a, b,c y d de la imagen */
-
-	if (a==-1)  a=image2.getPixel(x-1,y);
-	if (b==-1)  b=image2.getPixel(x,y-1);
-	if (c==-1)  c=image2.getPixel(x-1,y-1);
-	if (d==-1)  d=image2.getPixel(x+1,y-1);
-	if (a_==-1) a_=image.getPixel(x_prev-1,y_prev);
-	if (b_==-1) b_=image.getPixel(x_prev,y_prev-1);
-	if (c_==-1) c_=image.getPixel(x_prev-1,y_prev-1);
-	if (d_==-1) d_=image.getPixel(x_prev+1,y_prev-1);
-	if (e_==-1) e_=image.getPixel(x_prev,y_prev);
-	if (f_==-1) f_=image.getPixel(x_prev+1,y_prev);
-	if (g_==-1) g_=image.getPixel(x_prev,y_prev+1);
-
-	
-	return {a,  b,  c,  d,
-		    a_, b_, c_, d_,
-			e_, f_, g_};
+		return pxls;
 }
 
-void Coder::writeHeader(Writer &writer){
+void Coder::writeHeader(ofstream &salida){
+
 	/** Escribe el encabezado de la imagen codificada,
 	para esto se sigue el mismo esquema presente en el archvo .pgm,
 	con el agregado de escribir también el valor de Nmax
+
 	los 5 métodos que se usan para escribir el encabezado, que se listan a continuación,
 	siguen la misma estructura interna general */
 
-	writeMagic(writer);
-	writeWidth(writer,false);
-	writeHeigth(writer,false);
-	writeWhite(writer,false);
-	writeNmax(writer);
-	writeCantidadImagenes(writer);
-	writeCompMov(writer,activarCompMov);
+	writeMagic(salida);
+	writeWidth(salida);
+	writeHeigth(salida);
+	writeWhite(salida);
+	writeNmax(salida);
+
 }
 
-void Coder::writeCantidadImagenes(Writer &writer){
-	/** Se lleva el valor de Nmax a un double de la forma 0,Nmax
-	luego se multiplica entre 10 y se redondea para quedarse
-	con cada digito de Nmax y poder escribirlos como chars */
+void Coder::writeNmax(ofstream &salida){
 
-	int nmax =cantidad_imagenes;
-
-	string temp = str_(nmax)+"\n";
-	int temp_l = temp.length();
-
-	writer.writeString(temp.c_str(),temp_l);
-}
-
-void Coder::writeNmax(Writer &writer){
 	/** Se lleva el valor de Nmax a un double de la forma 0,Nmax
 	luego se multiplica entre 10 y se redondea para quedarse
 	con cada digito de Nmax y poder escribirlos como chars */
 
 	int nmax =Nmax;
 
-	string temp = str_(nmax)+"\n";
-	int temp_l = temp.length();
+	double aux=(double)nmax;
 
-	writer.writeString(temp.c_str(),temp_l);
-}
+	int potencia=1;
 
-void Coder::writeMagic(Writer &writer){
-	/** Como solo se trabaja con imagenes tipo P5,
-	directamente se escriben estos caracteres*/
+	while(aux>1){
 
-	writer.writeString("P5\n", 3);
-}
+		aux=aux/10;
+		potencia=potencia*10;
+	}	//calcula cuál es el orden de Nmax, 10, 100, 1000, etc... y deja a aux (Nmax) en un valor entre 0 y 1
 
-void Coder::writeCompMov(Writer &writer, bool compMov){
-	/** Como solo se trabaja con imagenes tipo P5,
-	directamente se escriben estos caracteres*/
+	char temp_;
 
-	if (compMov) {
-		writer.writeString("1\n", 2);
+	int temp=0;
 
-		writeWidth(writer,compMov);
-		writeHeigth(writer,compMov);
-		writeWhite(writer,compMov);
-	} else {
-		writer.writeString("0\n", 2);
+	while(potencia>1){
+
+		aux=aux-(double)temp;	//luego de que ya fue escrito el digito anterior,
+								//se hace esta resta para eliminar del decimal el valor que ya fue escrito,
+								//por ejemplo, si de 0.256 pasamos a 2.56, luego de la resta se tiene el
+								//número 0.56, para que pueda volver a ser multiplicado por 10, escribir el 5 y así siguiendo...
+
+	aux=aux*double(10);
+
+	if (double(ceil(aux))-(double)aux<(double)0.00001)
+						temp=ceil(aux);			//parche artesanal, algunos números uno los ve como
+												//cierto valor, pero al tomar el floor te da el entero
+												//anterior, suponemos que si bien uno lo ve como el número n
+												//para la máquina es (n-1),9999999999
+	else temp=floor(aux);
+
+	temp_=temp+'0';	//pasa el entero a char para escribirlo
+
+	salida.write(&temp_,1);
+
+	potencia=potencia/10;
 	}
+
+	temp_='\n';	//por último escribe un salto de línea
+
+	salida.write(&temp_,1);
+
 }
 
-void Coder::writeWidth(Writer &writer, bool vector){
-	/** Por descripción sobre el funcionamiento recurrir a writeNmax, es exactamente igual */
+void Coder::writeMagic(ofstream &salida){
 
-	int ancho (vector ? v_ancho : image.width);
-	string temp = str_(ancho)+" ";
-	int temp_l = temp.length();
+	/** Como solo se trabaja con imagenes tipo P5,
+	directamente se escriben estos caracteres*/
 
-	writer.writeString(temp.c_str(),temp_l);
+	char temp='P';
+	salida.write(&temp,1);
+
+	temp='5';
+	salida.write(&temp,1);
+
+	temp='\n';
+	salida.write(&temp,1);
 }
 
-void Coder::writeHeigth(Writer &writer, bool vector){
+void Coder::writeWidth(ofstream &salida){
+
 	/** Por descripción sobre el funcionamiento recurrir a writeNmax, es exactamente igual */
 
-	int alto (vector ? v_alto : image.heigth);
+	int ancho =image.width;
 
-	string temp = str_(alto)+"\n";
-	int temp_l = temp.length();
+	double aux=(double)ancho;
 
-	writer.writeString(temp.c_str(),temp_l);
+	int potencia=1;
+
+	while(aux>1){
+
+		aux=aux/10;
+		potencia=potencia*10;
+	}
+
+	char temp_;
+	int temp=0;
+
+	while(potencia>1){
+
+		aux=aux-(double)temp;
+
+	aux=aux*double(10);
+
+	if (double(ceil(aux))-(double)aux<(double)0.00001)
+						temp=ceil(aux);			//parche artesanal, algunos números uno los ve como
+												//cierto valor, pero al tomar el floor te da el entero
+												//anterior, suponemos que si bien uno lo ve como el número n
+												//para la máquina es (n-1),9999999999
+	else temp=floor(aux);
+
+
+
+	temp_=temp+'0';
+
+
+
+	salida.write(&temp_,1);
+
+	potencia=potencia/10;
+	}
+
+	temp_=' ';
+
+	salida.write(&temp_,1);
 }
+void Coder::writeHeigth(ofstream &salida){
 
-void Coder::writeWhite(Writer &writer, bool vector){
 	/** Por descripción sobre el funcionamiento recurrir a writeNmax, es exactamente igual */
 
-	int blanco (vector ? v_blanco : image.white);
+	int alto =image.heigth;
 
-	string temp = str_(blanco)+"\n";
-	int temp_l = temp.length();
+	double aux=(double)alto;
 
-	writer.writeString(temp.c_str(),temp_l);
+	int potencia=1;
+
+	while(aux>1){
+
+		aux=aux/10;
+		potencia=potencia*10;
+	}
+
+	char temp_;
+
+	int temp=0;
+
+	while(potencia>1){
+
+		aux=aux-(double)temp;
+
+	aux=aux*double(10);
+
+	if (double(ceil(aux))-(double)aux<(double)0.00001)
+						temp=ceil(aux);			//parche artesanal, algunos números uno los ve como
+												//cierto valor, pero al tomar el floor te da el entero
+												//anterior, suponemos que si bien uno lo ve como el número n
+												//para la máquina es (n-1),9999999999
+	else temp=floor(aux);
+
+	temp_=temp+'0';
+
+	salida.write(&temp_,1);
+
+	potencia=potencia/10;
+	}
+
+	temp_='\n';
+
+	salida.write(&temp_,1);
+}
+void Coder::writeWhite(ofstream &salida){
+
+	/** Por descripción sobre el funcionamiento recurrir a writeNmax, es exactamente igual */
+
+	int blanco =image.white;
+
+	double aux=(double)blanco;
+
+	int potencia=1;
+
+	while(aux>1){
+
+		aux=aux/10;
+		potencia=potencia*10;
+	}
+
+	char temp_;
+
+	int temp=0;
+
+	while(potencia>1){
+
+
+		aux=aux-(double)temp;
+
+	aux=aux*double(10);
+
+	if (double(ceil(aux))-(double)aux<(double)0.00001)
+						temp=ceil(aux);			//parche artesanal, algunos números uno los ve como
+												//cierto valor, pero al tomar el floor te da el entero
+												//anterior, suponemos que si bien uno lo ve como el número n
+												//para la máquina es (n-1),9999999999
+	else temp=floor(aux);
+
+	temp_=temp+'0';
+
+	salida.write(&temp_,1);
+
+	potencia=potencia/10;
+	}
+
+	temp_='\n';
+
+	salida.write(&temp_,1);
+
 }
 
 int Coder::correctPredictedValue(int pred, int contexto){
 
 	return pred + contexts[contexto].C;
-}
 
-int Coder::getContext_(int x, int y, int lar){
-
-	return (getPixels3D(0,0,x,y).a==getPixels3D(0,0,x+lar,y).b);
-}
-
-void Coder::updateContexto_(int c, int err,int err_,int map,int k){
-	cntx[c].updateA((err_+1-c)>>1);
-	cntx[c].updateNn(err);
-
-	if(cntx[c].N_racha==RESET) {
-		cntx[c].reset();
-	}
-
-	cntx[c].updateN();
-}
-
-int Coder::selectMED(grad gradients){
-	int gz = abs(gradients.ga);
-	int gx = abs(gradients.gb);
-	int gy = abs(gradients.gc);
-	int modo = 3;
-
-	if ((gz>=gx)&&(gz>=gy)){
-		modo = 0;
-	}
-	if ((gx>=gz)&&(gx>=gy)){
-		modo = 2;
-	}
-
-	return modo;
-}
-
-Coder::grad Coder::getGradients3D(int modo, pixels3D pxls){
-	/** Devuelve los gradientes según el modo de funcionamiento elegido:
-	 * Modos:
-	 * 		1 = Devuelve los gradientes de elección de predictor
-	 * 		2 = Devuelve los gradientes del predictor filas-tiempo
-	 * 		3 = Devuelve los gradientes del predictor columnas-tiempo
-	 * 		0 o cualquier otros = Devuelve los gradientes del predictor filas-columnas
-	 *  */
-
-	grad gradients={pxls.d-pxls.b,pxls.b-pxls.c,pxls.c-pxls.a};
-
-	if (modo == 1){
-			gradients={pxls.a-pxls.a_,pxls.b-pxls.c,pxls.c-pxls.a};
-	}
-	if (modo == 2){
-			gradients={pxls.g_-pxls.e_,pxls.e_-pxls.b_,pxls.b_-pxls.b};
-	}
-	if (modo == 3){
-			gradients={pxls.f_-pxls.e_,pxls.e_-pxls.a_,pxls.a_-pxls.a};
-	}
-	if (modo == 4){
-				gradients={0,pxls.b-pxls.b_,pxls.a-pxls.a_};
-	}
-
-	return gradients;
 }
 
 
-int Coder::getPredictedValue(int modo, pixels3D pxls){
-	/** Calcula el valor predicho según expresión de las diapositivas del curso */
-
-	int pred;
-
-	if (modo == 0){
-		if ((pxls.c>=pxls.a)&&(pxls.c>=pxls.b)){
-			if (pxls.a>pxls.b)
-				pred = pxls.b;
-			else pred = pxls.a;
-		} else if ((pxls.c<=pxls.a)&&(pxls.c<=pxls.b)){
-			if (pxls.a>pxls.b)
-				pred = pxls.a;
-			else pred = pxls.b;
-		} else pred = (pxls.a+pxls.b-pxls.c);
-	}
-
-	if (modo == 2) {
-		if ((pxls.b_>=pxls.e_)&&(pxls.b_>=pxls.b)){
-			if (pxls.e_>pxls.b)
-				pred = pxls.b;
-			else pred = pxls.e_;
-		}else if ((pxls.b_<=pxls.e_)&&(pxls.b_<=pxls.b)){
-			if (pxls.e_>pxls.b)
-				pred = pxls.e_;
-			else pred = pxls.b;
-		}else pred = (pxls.e_+pxls.b-pxls.b_);
-	}
-
-	if (modo == 3){
-		if ((pxls.a_>=pxls.e_)&&(pxls.a_>=pxls.a)){
-				if (pxls.e_>pxls.a)
-					pred = pxls.a;
-				else pred = pxls.e_;
-			}else if ((pxls.a_<=pxls.e_)&&(pxls.a_<=pxls.a)){
-				if (pxls.e_>pxls.a)
-					pred = pxls.e_;
-				else pred = pxls.a;
-			}else pred = (pxls.e_+pxls.a-pxls.a_);
-	}
-
-	return pred;
-}
-
-string Coder::str_(int n){
-	stringstream ss1;
-	ss1 << n;
-	string n_ = ss1.str();
-
-	return n_;
-}
 
 Coder::~Coder() {
 

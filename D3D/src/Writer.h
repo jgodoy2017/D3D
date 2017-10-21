@@ -14,13 +14,14 @@ public:
 
 	void open(string);
 	void write(int, int);
+	void writeChar(char);
 	void writeString(const char*, int);
 	void close();
 	
 private:
 	char* num2str(unsigned int);
 	void writeToFile();
-	void writeChar(char);
+
 	void flushByte(int);
 	
 	ofstream file;
