@@ -167,7 +167,6 @@ void CodedImage::setCompMov(Reader &reader){
 	string temp = reader.readString(1);
 
 	if (temp=="1") {
-		cout<<"No tengo que entrar!!"<<endl;
 		activarCompMov=true;
 		temp = reader.readString(1);
 		setWidth(reader,true);

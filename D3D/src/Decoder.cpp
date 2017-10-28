@@ -114,7 +114,7 @@ void Decoder::decode(Reader &reader, bool vector, Image &previa, int imgActual){
 				int contexto=getContext_(x,y, largo,image);
 				Racha racha(largo, interruption, pxls.a,contexto);
 				updateImageRacha(racha, x,y, *writer,image);
-				updateImageInterruption(reader, racha, x,y, x+largo, *writer, cantidad_unos, image);
+				if(x + y*ancho + largo < ancho*alto) updateImageInterruption(reader, racha, x,y, x+largo, *writer, cantidad_unos, image);
 				x=x+largo;
 				if (racha.interruption)	{
 					x--;

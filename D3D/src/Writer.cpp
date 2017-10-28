@@ -76,11 +76,11 @@ void Writer::close(){
 	if(pWriter > 0){
 //		cout << "close(): pWriter=" << pWriter << endl;
 		for(int cBit=pWriter; cBit<32; cBit++) vWriter[cBit]=0;
-		for(int cByte = 0; cByte < 1 + pWriter/8; cByte++) flushByte(cByte);
+		for(int cByte = 0; cByte < 1 + (pWriter-1)/8; cByte++) flushByte(cByte);
 	}
 	
 	file.close();
-	
+
 }
 
 void Writer::flushByte(int cByte){

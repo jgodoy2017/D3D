@@ -179,7 +179,7 @@ Image Coder::setInitialImage(){
 					int contexto=getContext_(x,y,largo);
 					Racha racha(largo,interruption,pxls.a,contexto);
 					int cantidad_unos=encodeRacha2(racha, writer);
-					encodeMuestraInterrupcion(racha, image2.getPixel(x+largo,y), x+largo,y,writer,cantidad_unos);
+					if(x + y*width + largo < width*heigth) encodeMuestraInterrupcion(racha, image2.getPixel(x+largo,y), x+largo,y,writer,cantidad_unos);
 					racha.updateContexto();
 					x=x+largo;
 					if ((racha.interruption))	x--;	//

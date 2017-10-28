@@ -121,13 +121,13 @@ void Image::loadImage(){
 }
 
 int Image::getPixel(int x, int y){
-	if((x + y*width)>width*heigth) cout<<"Atención: getPixel - Fuera de la imagen"<<endl;
+	if(x + y*width >= width*heigth) cout<<"Atención: getPixel - Fuera de la imagen"<<endl;
 
 	return image[x + y*width];
 }
 
 void Image::setPixel(int pixel, int x, int y){
-	if((x + y*width)>width*heigth) cout<<"Atención: setPixel - Fuera de la imagen"<<endl;
+	if(x + y*width >= width*heigth) cout<<"Atención: setPixel - Fuera de la imagen"<<endl;
 	image[x + y*width] = pixel;
 }
 
@@ -137,7 +137,7 @@ void Image::vectorToCoords (int current, int &x, int &y){
 }
 
 int Image::coordsToVector (int x, int y){
-	if((x + y*width)>width*heigth) cout<<"Atención: coordsToVector - Fuera de la imagen"<<endl;
+	if(x + y*width >= width*heigth) cout<<"Atención: coordsToVector - Fuera de la imagen"<<endl;
 
 	return x + y*width;
 }
