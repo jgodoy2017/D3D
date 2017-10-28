@@ -14,13 +14,11 @@
 #include <fstream>
 #include <bitset>
 #include <unistd.h>
-
-
 #include <cstdlib>
 #include <iostream>
 #include <iomanip>
-
 #include <math.h>
+#include "Reader.h"
 
 namespace std {
 
@@ -35,25 +33,23 @@ public:
 	void loadImage();
 	void loadParams();
 	void setImage();
-	void setMagic(ifstream&,char&);
-	void setWidth(ifstream&,char&);
-	void setHeigth(ifstream&,char&);
-	void setWhite(ifstream&,char&);
-	int binaryToInt(char);
+
+	void setMagic(Reader&);
+	void setWidth(Reader&);
+	void setHeigth(Reader&);
+	void setWhite(Reader&);
+	
 	int getPixel(int,int);
 	void setPixel(int,int,int);
 	void vectorToCoords(int,int&,int&);
 	int coordsToVector(int,int);
 
 	string path;
-
 	string name;
-
 	string magic;
 
 	int width;
 	int heigth;
-
 	int white;
 
 	/* esta variable representa la imagen, es un array de enteros donde cada elemento es el

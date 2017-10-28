@@ -11,6 +11,7 @@
 */
 
 #include "Image.h"
+#include "Reader.h"
 
 namespace std {
 
@@ -62,17 +63,15 @@ void Image::loadParams(){
 	string some_name;
 	string absolute_path=path+name;
 
-	ifstream in;
-	in.open(absolute_path.c_str(), ios::binary);
+	Reader* reader = new Reader();
+	reader->open(absolute_path.c_str());
+	
+	setMagic(*reader);
+	setWidth(*reader);
+	setHeigth(*reader);
+	setWhite(*reader);
 
-	char temp='1';
-	setMagic(in,temp);	//recupera el valor de magic de la imagen y lo guarda en la variable "magic"
-						//procedimiento análogo para el width, heigth y white, cada uno es guardado
-						//en la variable correspondiente
-	setWidth(in,temp);
-	setHeigth(in,temp);
-	setWhite(in,temp);
-	in.close();
+	reader->close();
 }
 
 void Image::loadImage(){
@@ -80,44 +79,32 @@ void Image::loadImage(){
 	Es un array de una sola dimensión, donde se concatenan todas las filas de la imagen */
 
 	string absolute_path=path+name;
-
-	ifstream in;
-	in.open(absolute_path.c_str(), ios::binary);
-	/* Contadores para llevar la cuenta del valor de fila, columna y total de la imagen */
+	
+	Reader* reader = new Reader();
+	reader->open(absolute_path.c_str());
+		
 	int contadorW=1;
 	int contadorH=1;
 	int contador=0;
 
-	char temp='1';
-	setMagic(in,temp);	//recupera el valor de magic de la imagen y lo guarda en la variable "magic"
-						//procedimiento análogo para el width, heigth y white, cada uno es guardado
-						//en la variable correspondiente
-
-	setWidth(in,temp);
-	setHeigth(in,temp);
-	setWhite(in,temp);
+	setMagic(*reader);
+	setWidth(*reader);
+	setHeigth(*reader);
+	setWhite(*reader);
 
 	image=(int*)malloc(this->width*this->heigth*sizeof(int)); //reserva memoria para guardar toda la imagen
 
 	while (contadorH!=this->heigth+1){
 		contadorW=1;
 		while (contadorW!=this->width+1){
-			in.read(&temp,1);
-			string ascii="P3";
-			if (this->magic.compare("P3")==0){ //comprobación innecesaria, ya se nos dice por letra
-												//que todas las imágenes tendrán magic P5
-				int temp_=(int)temp;
-				image[contador]=temp_;
-			}else{
-				int temp_ =binaryToInt(temp);	//convierte a entero el valor binario de cada pixel leido
-				image[contador]=temp_;	//guarda valor entero de pixel, en la correspondiente entrada del array que representa la imagen
-			}
+			image[contador] = reader->read(8);			
 			contadorW++;
 			contador++;
 		}
 		contadorH++;
 	}
-	in.close();
+	
+	reader->close();
 }
 
 int Image::getPixel(int x, int y){
@@ -142,98 +129,51 @@ int Image::coordsToVector (int x, int y){
 	return x + y*width;
 }
 
-int Image::binaryToInt(char temp){
-	/** Convierte el valor binario de temp, en un entero,
-	Por ejemplo, si el byte ingresado es 01010101,
-	este método devuelve el entero 1+4+16+64 = 85 */
+void Image::setMagic(Reader& reader){
+	string lMagic = reader.readString(2);
+	reader.readString(1);
 
-	bitset<8> temp_(temp);
-	int indice=0;
-	int suma=0;
-	int potencia=1;
-
-	while (indice!=8){
-		suma=suma+temp_[indice]*potencia;
-		potencia=potencia*2;
-		indice++;
-	}
-	return suma;
+	this->magic = lMagic;
+	cout << "magic: " << this->magic << endl;
 }
 
-void Image::setMagic(ifstream &in,char &temp){
-	/** Lee el valor de magic de la imagen, en donde debería estar según el formato de las imágenes .pgm
-	esto es innecesario ya que se nos dice que todas serán P5 */
-
-	string magic="";
-
-	in.read(&temp,1);
-	magic=magic +temp;
-	in.read(&temp,1);
-	magic=magic+temp;
-	this->magic=magic;
-	in.read(&temp,1);
+void Image::setWidth(Reader& reader){
+	int lWidth = 0;
+	int cifra = reader.read(8);
+	
+	while(cifra != ' '){
+		lWidth = 10*lWidth + (cifra - '0');
+		cifra = reader.read(8);
+	}
+	
+	this->width = lWidth;
+	cout << "width: " << this->width << endl;
 }
 
-void Image::setWidth(ifstream &in,char &temp){
-	/** Lee el valor de width de la imagen, en donde debería estar según el formato de las imágenes .pgm
-	Va leyendo cada número que forma el width formando un decimal, luego multiplica por el orden del número
-	para tener el width, por ejemplo si el valor de ancho es 512, va leyendo el 5, el 1 y el 2,
-	formando primero el número 0,512, y luego multiplica por 1000, y guarda el número 512 en la variable width */
-
-	int contador=0;
-	double resultado=0.0;
-	int potencia=10;
-	in.read(&temp,1);
-
-	while (temp!=' '){
-		int temp_=temp-'0';
-		resultado = double(resultado)+(double)temp_/(double)potencia;
-		in.read(&temp,1);
-		contador++;
-		potencia=potencia*10;
+void Image::setHeigth(Reader& reader){
+	int lHeigth = 0;
+	int cifra = reader.read(8);
+	
+	while(cifra != '\n'){
+		lHeigth = 10*lHeigth + (cifra - '0');
+		cifra = reader.read(8);
 	}
-	resultado=(double)resultado*(double)potencia/10;
-	this->width=round(resultado);
+	
+	this->heigth = lHeigth;
+	cout << "heigth: " << this->heigth << endl;
 }
 
-void Image::setHeigth(ifstream &in,char &temp){
-	/** Obtiene el Height en el encabezado.
-	Funcionamiento análogo a setWidth */
-
-	int contador=0;
-	double resultado=0.0;
-	int potencia=10;
-	in.read(&temp,1);
-
-	while (temp!='\n'){
-		int temp_=temp-'0';
-		resultado = double(resultado)+(double)temp_/(double)potencia;
-		in.read(&temp,1);
-		contador++;
-		potencia=potencia*10;
+void Image::setWhite(Reader& reader){
+	int lWhite = 0;
+	int cifra = reader.read(8);
+	
+	while(cifra != '\n'){
+		lWhite = 10*lWhite + (cifra - '0');
+		cifra = reader.read(8);
 	}
-	resultado=(double)resultado*(double)potencia/10;
-	this->heigth=round(resultado);
-}
-
-void Image::setWhite(ifstream &in,char &temp){
-	/** Obtiene el Height en el encabezado.
-	Funcionamiento análogo a setWidth */
-
-	int contador=0;
-	double resultado=0.0;
-	int potencia=10;
-	in.read(&temp,1);
-
-	while (temp!='\n'){
-		int temp_=temp-'0';
-		resultado = double(resultado)+(double)temp_/(double)potencia;
-		in.read(&temp,1);
-		contador++;
-		potencia=potencia*10;
-	}
-	resultado=(double)resultado*(double)(potencia/10);
-	this->white=round(resultado);
+	
+	this->white = lWhite;
+	cout << "white: " << this->white << endl;
 }
 
 Image::~Image() {

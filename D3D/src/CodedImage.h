@@ -30,7 +30,7 @@ public:
 	CodedImage();
 	CodedImage(int, int);
 	CodedImage(Reader&);
-	CodedImage(Reader&, string, string);
+	CodedImage(Reader&, string);
 	virtual ~CodedImage();
 
 		void loadImage(Reader&);
@@ -59,27 +59,18 @@ public:
 		int v_heigth;
 		int v_white;
 
+		int Nmax;
+		int bsize;
 		int cantidad_imagenes;
 
 		/* esta variable representa la imagen codificada, es un array de chars donde cada elemento es
 		cada byte leido del archivo */
 		char *image;
 
-		int Nmax;
-
-		bool activarCompMov=false;
+//		bool activarCompMov=false;
+		bool activarCompMov;
 		int *vector_alto;
 		int *vector_ancho;
-
-		static bool fileToBits[800];
-		static unsigned int bitInByte;
-		static int fileToBitsPointer;		
-		static int codedImagePointer;
-		int getBit();
-		void completaArray();
-		void flushDecoder();
-
-		int bsize;
 };
 
 } /* namespace std */
