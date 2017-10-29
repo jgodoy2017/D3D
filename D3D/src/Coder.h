@@ -82,6 +82,7 @@ public:
 	void encode_(int, int, Writer&);
 	void updateContexto(int, int);
 	void updateContexto_(int, int,int,int,int);
+	float varianza(float,int,int[]);
 	void writeCode(Writer&);	/* writecode() y flushEncoder() son métodos reciclados de la (propia) tarea del curso de Compresión de Datos Sin Pérdida*/
 	//void flushEncoder(Writer&);
 	void writeHeader(Writer&);
@@ -190,11 +191,13 @@ public:
 		int *h_vector;
 		int *v_vector;
 		bool activarCompMov=true;
+		bool activarVarianza=true;
 		int vector_ind;
 		int v_ancho;
 		int v_alto;
 		int v_blanco;
 		int bsize = 10; // Tamaño del Macrobloque cuadrado
+		int search = 6;
 };
 
 } /* namespace std */

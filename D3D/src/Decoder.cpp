@@ -80,7 +80,7 @@ void Decoder::decode(Reader &reader, bool vector, Image &previa, int imgActual){
 	Writer* writer = new Writer();
 	writer->open(nombre);
 
-	if(!vector) writeHeader(*writer);	//escribe encabezado en el archivo de salida
+	writeHeader(*writer);	//escribe encabezado en el archivo de salida
 	Image image(alto,ancho);
 	image.white=blanco;
 	int y=0;

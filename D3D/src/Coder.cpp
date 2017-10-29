@@ -190,79 +190,119 @@ Image Coder::setInitialImage(){
 }
 
  void Coder::CompMov(Image &imageH, Image &imageV){
-	int bh = bsize; 	// Aquí se guardará el ancho del Macrobloque cuando sea menor al especificado
-    int bv = bsize; 	// Aquí se guardará el alto del Macrobloque cuando sea menor al especificado
-    int search = 6;	// Distancia de búsqueda hacia cada dirección
-  	int sIzq = 0; 		// Distancia que puede buscar hacia la izquierda, cerca de los bordes será menor a search
-  	int sDer = 0;		// Distancia que puede buscar hacia la derecha, cerca de los bordes será menor a search
-  	int sArr = 0;		// Distancia que puede buscar hacia la arriba, cerca de los bordes será menor a search
-  	int sAba = 0;		// Distancia que puede buscar hacia la abajo, cerca de los bordes será menor a search
-  	int restoV = 0;	// Variable temporal utilizada para calcular "bh" en el borde derecho
- 	int restoH = 0;	// Variable temporal utilizada para calcular "bv" en el borde inferior
- 	int derecha = 0;	// Variable temporal utilizada para calcular "sDer"
- 	int abajo = 0;		// Variable temporal utilizada para calcular "sAba"
+ 	int bh; 	// Aquí se guardará el ancho del Macrobloque cuando sea menor al especificado
+     int bv ; 	// Aquí se guardará el alto del Macrobloque cuando sea menor al especificado
+   	int sIzq = 0; 		// Distancia que puede buscar hacia la izquierda, cerca de los bordes será menor a search
+   	int sDer = 0;		// Distancia que puede buscar hacia la derecha, cerca de los bordes será menor a search
+   	int sArr = 0;		// Distancia que puede buscar hacia la arriba, cerca de los bordes será menor a search
+   	int sAba = 0;		// Distancia que puede buscar hacia la abajo, cerca de los bordes será menor a search
+   	int restoV = 0;	// Variable temporal utilizada para calcular "bh" en el borde derecho
+  	int restoH = 0;	// Variable temporal utilizada para calcular "bv" en el borde inferior
+  	int derecha = 0;	// Variable temporal utilizada para calcular "sDer"
+  	int abajo = 0;		// Variable temporal utilizada para calcular "sAba"
 
- 	cout<<"Entro CompMov - "<<endl;
+  	cout<<"Entro CompMov - "<<endl;
 
- 	vector_ind = 0;// Inicializo en cero el índice para los vectores de movimiento
-    int s;
+  	vector_ind = 0;// Inicializo en cero el índice para los vectores de movimiento
+     int s;
+     int cant;
+     int media;
+     float var;
 
-    for(int bloqueV=0;(bloqueV)*bsize<image2.heigth;bloqueV++){
-    	for(int bloqueH=0;(bloqueH)*bsize<image2.width;bloqueH++){
-    		// Con estos dos FOR se recorren todos los Macrobloques
-  			// Su posición es dada por (bloqueH, bloqueV)
-  			// Se inicializan valores en cada Macrobloque
-  			// -------------------------
-  			int smin = 429496729;
-  			int hmin = 0;
-  			int vmin = 0;
-  			// --------------------------
+     for(int bloqueV=0;(bloqueV)*bsize<image2.heigth;bloqueV++){
+     	for(int bloqueH=0;(bloqueH)*bsize<image2.width;bloqueH++){
+     		// Con estos dos FOR se recorren todos los Macrobloques
+   			// Su posición es dada por (bloqueH, bloqueV)
+   			// Se inicializan valores en cada Macrobloque
+   			// -------------------------
+   			int smin = 429496729;
+   			int hmin = 0;
+   			int vmin = 0;
+   			media=0;
+   			var=0;
+   			s = 0;
+   			// --------------------------
 
-  			// Se calcula cuánto se puede mover el search y el tamaño real del macrobloque
-  			// -----------------------------
-  			restoV = max((bloqueV+1)*bsize-image2.heigth, 0);
-  			restoH = max((bloqueH+1)*bsize-image2.width, 0);
-  			derecha = abs((bloqueH+1)*bsize - image2.width);
-  			abajo = abs((bloqueV+1)*bsize - image2.heigth);
-  			sIzq = min(search,bloqueH*bsize);
-  			sDer = min(search,derecha - restoH);
-  			sArr = min(search,bloqueV*bsize);
-  			sAba = min(search,abajo - restoV);
-  			bh = bsize - restoH;
-  			bv = bsize - restoV;
-  			// ------------------------------
+   			// Se calcula cuánto se puede mover el search y el tamaño real del macrobloque
+   			// -----------------------------
+   			restoV = max((bloqueV+1)*bsize-image2.heigth, 0);
+   			restoH = max((bloqueH+1)*bsize-image2.width, 0);
+   			derecha = abs((bloqueH+1)*bsize - image2.width);
+   			abajo = abs((bloqueV+1)*bsize - image2.heigth);
+   			sIzq = min(search,bloqueH*bsize);
+   			sDer = min(search,derecha - restoH);
+   			sArr = min(search,bloqueV*bsize);
+   			sAba = min(search,abajo - restoV);
+   			bh = bsize - restoH;
+   			bv = bsize - restoV;
+   			cant = bh*bv;
+   			int lista[cant];
+   			int h = -sIzq;
+   			int v = -sArr;
+   			// ------------------------------
 
-  			for(int v=-sArr;v<sAba+1;v++){
-  				for(int h=-sIzq;h<sDer+1;h++){
-  					// Estos FOR son para mover el macrobloque
-					s = 0; // Se inicializa la variable sobre la que se va a iterar en cada Matching
-					for(int j=0;j<bv;j++){
-						for(int i=0;i<bh;i++){
-							// Estos FOR son para moverse por todos los pixeles del Macrobloque
-							int x1 = i + h + bloqueH*bsize;
-							int y1 = j + v + bloqueV*bsize;
+ 			for(int j=0;j<bv;j++){
+ 				for(int i=0;i<bh;i++){
+ 					// Estos FOR son para moverse por todos los pixeles del primer Macrobloque
+ 					int x1 = i + h + bloqueH*bsize;
+ 					int y1 = j + v + bloqueV*bsize;
 
-							int x2 = i + bloqueH*bsize;
-							int y2 = j + bloqueV*bsize;
+ 					int x2 = i + bloqueH*bsize;
+ 					int y2 = j + bloqueV*bsize;
 
-							itera("MED3D",s,x1,y1,x2,y2);
-						}
-					}
-					if (s < smin){
-						// Se guardan los valores mínimos hasta el momento de este Macrobloque
-						smin = s;
-						hmin = h;
-						vmin = v;
-					}
-				}
-			}
- 			imageH.setPixel(hmin+128,bloqueH,bloqueV);
-  			imageV.setPixel(vmin+128,bloqueH,bloqueV);
-		}
-  	}
- 	cout <<"Salgo CompMov"<< endl;
+ 					itera("MED3D",s,x1,y1,x2,y2);
+
+ 					media = media + image2.getPixel(x2,y2)/cant;
+ 					lista[i+j*bh] = image2.getPixel(x2,y2);
+ 				}
+ 			}
+
+ 			var = varianza(media,cant,lista);
+
+ 			if (var > 500 || !activarVarianza) {
+ 				for(v=-sArr;v<sAba+1;v++){
+ 					for(h=-sIzq+1;h<sDer+1;h++){
+ 						// Estos FOR son para mover el macrobloque
+ 						s = 0; // Se inicializa la variable sobre la que se va a iterar en cada Matching
+ 						for(int j=0;j<bv;j++){
+ 							for(int i=0;i<bh;i++){
+ 								// Estos FOR son para moverse por todos los pixeles del Macrobloque
+ 								int x1 = i + h + bloqueH*bsize;
+ 								int y1 = j + v + bloqueV*bsize;
+
+ 								int x2 = i + bloqueH*bsize;
+ 								int y2 = j + bloqueV*bsize;
+
+ 								itera("MED3D",s,x1,y1,x2,y2);
+ 							}
+ 						}
+ 						if (s < smin){
+ 							// Se guardan los valores mínimos hasta el momento de este Macrobloque
+ 							smin = s;
+ 							hmin = h;
+ 							vmin = v;
+ 						}
+ 					}
+ 				}
+ 			} else {
+ 				hmin = 0;
+ 				vmin = 0;
+ 			}
+  			imageH.setPixel(hmin+128,bloqueH,bloqueV);
+   			imageV.setPixel(vmin+128,bloqueH,bloqueV);
+ 		}
+   	}
+  	cout <<"Salgo CompMov"<< endl;
 }
 
+float Coder::varianza(float media,int cant,int lista[]){
+  	float varianza = 0;
+  	for(int i=0;i<cant;i++){
+  		varianza = varianza + pow(lista[i]-media,2);
+  	}
+
+  	return varianza;
+}
  void Coder::itera(string function, int &s, int x1, int y1, int x2, int y2){
   	/* Valores válidos para Function:
   	 * 	"MED3D": Utilizando el predictor 3D
