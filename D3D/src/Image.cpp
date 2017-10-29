@@ -18,11 +18,14 @@ namespace std {
 Image::Image(){
 }
 
-Image::Image(int heigth, int width) {
+Image::Image(int heigth, int width, int white){
 	//constructor
 
-	this->heigth=heigth;
-	this->width=width;
+	this->heigth = heigth;
+	this->width  = width;
+	this->white  = white;
+	this->nBits  = ((white <= 0xFF) ? 8 : 16);
+	
 	image=(int*)malloc(this->width*this->heigth*sizeof(int));// Reserva memoria para guardar toda la imagen
 }
 
@@ -70,6 +73,8 @@ void Image::loadParams(){
 	setWidth(*reader);
 	setHeigth(*reader);
 	setWhite(*reader);
+	
+	this->nBits  = ((this->white <= 0xFF) ? 8 : 16);
 
 	reader->close();
 }
@@ -88,14 +93,21 @@ void Image::loadImage(){
 	setHeigth(*reader);
 	setWhite(*reader);
 
+	this->nBits  = ((this->white <= 0xFF) ? 8 : 16);
+
 	image=(int*)malloc(this->width*this->heigth*sizeof(int)); //reserva memoria para guardar toda la imagen
-	for(int contador=0; contador < this->width * this->heigth; contador++) image[contador] = reader->read(8);
 	
+//	for(int contador=0; contador < this->width * this->heigth; contador++) image[contador] = reader->read(8);
+	for(int contador=0; contador < this->width * this->heigth; contador++) image[contador] = reader->read(nBits);
+		
 	reader->close();
 }
 
 int Image::getPixel(int x, int y){
-	if(x + y*width >= width*heigth) cout<<"Atención: getPixel - Fuera de la imagen"<<endl;
+	if(x + y*width >= width*heigth){
+//		cout<<"Atención: getPixel - Fuera de la imagen"<<endl;
+		cout << "Image::getPixel(): FUERA DE RANGO> (x,y) = (" << x << "," << y << ") (w,h) = (" << width << "," << heigth << ") px = " << image[x + y*width] << endl;
+	}
 
 	return image[x + y*width];
 }

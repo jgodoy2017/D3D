@@ -15,19 +15,20 @@
 #include <sstream>
 
 namespace std {
-    int Decoder::numberImgPath=0;
-Decoder::~Decoder() {
-	// TODO Auto-generated destructor stub
-}
+int Decoder::numberImgPath=0;
+
+Decoder::~Decoder() {}
 
 Decoder::Decoder(CodedImage &ci, bool vector) {
 	this->codedImage=ci;
-	string tipo = (vector ? "_vector_" : "_decoded_");
+
+	string tipo = (vector ? "_vector_" : "_decoded_");	
 	this->file = ci.path + ci.name + tipo;
+		
 	ancho  = (vector ? ci.v_width  : ci.width);
 	alto   = (vector ? ci.v_heigth : ci.heigth);
 	blanco = (vector ? ci.v_white  : ci.white);
-	Nmax=ci.Nmax;
+	Nmax   = ci.Nmax;	
 
 	if (2>ceil(log2(blanco+1))) this->beta=2;
 		else this->beta=ceil(log2(blanco+1));
@@ -49,13 +50,17 @@ Decoder::Decoder(CodedImage &ci, bool vector) {
 	this->cantidad_imagenes=(vector ? 2 : ci.cantidad_imagenes);
 	this->activarCompMov=ci.activarCompMov;
 	this->images = new Image[this->cantidad_imagenes];
+	this->bsize = ci.bsize;
 
-	this->bsize=ci.bsize;
+//	this->nBits = ceil(log2(blanco+1));
+	this->nBits = ((blanco <= 0xFF) ? 8 : 16);
 }
 
 
 void Decoder::decode(Reader &reader, bool vector, Image &previa, int imgActual){
 	cout << "// START DECODER" << endl;
+	if(!vector) cout << "decode(): Imagen/stack de " << nBits << " bits." << endl;
+	
 	numberImgPath++; // para diferenciar las imagenes
 
 	if(primeraImagen){
@@ -64,25 +69,36 @@ void Decoder::decode(Reader &reader, bool vector, Image &previa, int imgActual){
 	} else {
 		prev = previa;
 	}
-
+	
 	if (vector) cout << "decode(): Modo VECTORES" << endl; else cout << "decode(): Modo IMAGEN" << endl;
 		
 //for (int imagen=imgActual; imagen < imgActual + 1; imagen++){
 
 	if (vector) cout << "decode(): imagen vector: " << imgActual << endl; else cout << "decode(): imagen deco: " << imgActual << endl;
 
-	//int contadorH=1,contadorW=1,contador=0;
+//	string nombre = file + "_" + str_(numberImgPath) + "_" + str_(imgActual);
 
+	char* nombre;
+	string tipo;
 
-
-	string nombre = file + "_" + str_(numberImgPath) + "_" + str_(imgActual);
+	if(!vector                    ) tipo = "imagen";
+	if( vector && (imgActual == 0)) tipo = "horizontal";
+	if( vector && (imgActual == 1)) tipo = "vertical";
+	sprintf(nombre, "%sD3D_%s_%03d_%03d.pgm", file.c_str(), tipo.c_str(), numberImgPath, imgActual);
+		
 	cout << "decode(): Path: " << nombre << endl;
 	Writer* writer = new Writer();
 	writer->open(nombre);
 
 	writeHeader(*writer);	//escribe encabezado en el archivo de salida
+
+	/*
 	Image image(alto,ancho);
 	image.white=blanco;
+	*/
+
+	Image image(alto, ancho, blanco);
+	
 	int y=0;
 	int x=0;
 	int x_prev,y_prev;
@@ -97,15 +113,23 @@ void Decoder::decode(Reader &reader, bool vector, Image &previa, int imgActual){
 
 			if (!esRacha){
 				int predicted = getPredictedValue(selectMED(gradients),pxls);	//calcula el valor pixel predicho
-				predicted=fixPrediction(predicted,signo, contexto);
-				int k= getK(contexto);	//calcula k
-				int error_=getError(reader,k,0,0);	//lee el archivo para tener el valor del error codificado
-				int error=unRice(error_,get_s(contexto),k);	//deshace el mapeo de rice para recuperar el error real
-				error=reduccionDeRango(error,signo,predicted);
-				int pixel=predicted+error;	//calcula el pixel como la suma entre el predicho y el error
-				updateImage(pixel,x,y,image);	//va formando el array que representa la imagen con cada pixel decodificado
+				predicted     = fixPrediction(predicted,signo, contexto);
+				
+				int k      = getK(contexto);	        //calcula k
+				int error_ = getError(reader,k,0,0);	//lee el archivo para tener el valor del error codificado
+				int error  = unRice(error_,get_s(contexto),k);	//deshace el mapeo de rice para recuperar el error real
+				error      = reduccionDeRango(error,signo,predicted);
+				
+				int pixel = predicted + error;      //calcula el pixel como la suma entre el predicho y el error
+				updateImage(pixel, x, y, image);    //va formando el array que representa la imagen con cada pixel decodificado
+				
+				/*
 				char pixel_ =pixel+'\0';
 				writer->writeChar(pixel_);	//escribe el pixel en el archivo
+				*/
+				
+				writer->write(pixel, nBits);
+				
 				updateContexto(contexto,error*signo);	//actualiza A y N del contexto
 			} else {
 				int interruption=0;
@@ -113,7 +137,7 @@ void Decoder::decode(Reader &reader, bool vector, Image &previa, int imgActual){
 				int largo=getRachaParams2(reader, x,interruption,cantidad_unos);
 				int contexto=getContext_(x,y, largo,image);
 				Racha racha(largo, interruption, pxls.a,contexto);
-				updateImageRacha(racha, x,y, *writer,image);
+				updateImageRacha(racha, x,y, *writer,image);				
 				if(x + y*ancho + largo < ancho*alto) updateImageInterruption(reader, racha, x,y, x+largo, *writer, cantidad_unos, image);
 				x=x+largo;
 				if (racha.interruption)	{
@@ -293,6 +317,7 @@ int Decoder::getKPrime(Racha &r){
 	
 	return K_racha;
 }
+
 int Decoder::unrice_rachas(int error,int contexto, int k){
 	int map=0;
 	int retorno=(error+contexto+1)>> 1;
@@ -316,24 +341,37 @@ void Decoder::updateImageInterruption(Reader &reader, Racha &racha, int x,int y,
 	if (!racha.interruption){
 		int signo=1;
 		if (racha.contexto==0) signo=-1;
-		int kPrime=getKPrime(racha);
-		int error_=getError(reader,kPrime,1,cantidad_unos);
-		int error = unrice_rachas(error_,racha.contexto,kPrime);
+		
+		int kPrime = getKPrime(racha);
+		int error_ = getError(reader,kPrime,1,cantidad_unos);
+		int error  = unrice_rachas(error_,racha.contexto,kPrime);
 
-		error=reduccionDeRango(error*signo,1,getPixels3D(0,0,prox_,y, image).b);
-		int errorEstadisticos=clipErrorEstadisticos(error);
-		image.setPixel(getPixels3D(0,0,prox_,y, image).b+error,x+racha.largo,y);
-		char pixel_ =getPixels3D(0,0,prox_,y, image).b+error+'\0';
+		error = reduccionDeRango(error*signo, 1, getPixels3D(0, 0, prox_, y, image).b);
+		int errorEstadisticos = clipErrorEstadisticos(error);
+		image.setPixel(getPixels3D(0, 0, prox_, y, image).b + error, x + racha.largo, y);
+		
+		/*
+		char pixel_ = getPixels3D(0, 0, prox_, y, image).b + error + '\0';
 		writer.writeChar(pixel_);	//escribe el pixel en el archivo
-		updateContexto_(racha.contexto, unrice_rachas(error_,racha.contexto,kPrime),error_);
+		*/
+		
+		int pixel = getPixels3D(0, 0, prox_, y, image).b + error;
+		writer.write(pixel, nBits);
+		
+		updateContexto_(racha.contexto, unrice_rachas(error_, racha.contexto, kPrime), error_);
 	}
 }
 
 void Decoder::updateImageRacha(Racha &racha, int x,int y, Writer &writer, Image &image){
 	for (int k=0;k<racha.largo;k++){
-		image.setPixel(racha.pixel,x+k,y);//image[contador+k]=racha.pixel;
+		image.setPixel(racha.pixel, x + k, y);
+		
+		/*
 		char pixel_ =racha.pixel+'\0';
 		writer.writeChar(pixel_);	//escribe el pixel en el archivo
+		*/
+		
+		writer.write(racha.pixel, nBits);
 	}
 }
 
@@ -509,12 +547,12 @@ void Decoder::updateContexto(int contexto, int error){
 	/* Actualiza A sumándole el valor absoluto de este error */
 	if (contexts[contexto].B<=-contexts[contexto].N){
 		contexts[contexto].B=contexts[contexto].B+contexts[contexto].N;
-		if (contexts[contexto].C>-128) contexts[contexto].C=contexts[contexto].C-1;
-		if (contexts[contexto].B<=-contexts[contexto].N) contexts[contexto].B=-contexts[contexto].N+1;
-	} else if (contexts[contexto].B>0){
+		if (contexts[contexto].C > -(1 + blanco)/2) contexts[contexto].C=contexts[contexto].C-1;
+		if (contexts[contexto].B <= -contexts[contexto].N) contexts[contexto].B=-contexts[contexto].N+1;
+	} else if (contexts[contexto].B > 0){
 		contexts[contexto].B=contexts[contexto].B-contexts[contexto].N;
-		if (contexts[contexto].C<127) contexts[contexto].C=contexts[contexto].C+1;
-		if (contexts[contexto].B>0) contexts[contexto].B=0;
+		if (contexts[contexto].C < blanco/2) contexts[contexto].C=contexts[contexto].C+1;
+		if (contexts[contexto].B > 0) contexts[contexto].B=0;
 	}
 }
 
@@ -759,8 +797,9 @@ void Decoder::updateContexto_(int c, int err,int err_){
 
 int Decoder::clipErrorEstadisticos(int error){
 	int errorEstadisticos=error;
-	if(error>128) errorEstadisticos-=256;
-	else if(error<-128) errorEstadisticos+=256;
+	
+	if(error > (1 + blanco)/2) errorEstadisticos -= (1 + blanco);
+	else if(error < -(1 + blanco/2)) errorEstadisticos += (1 + blanco);
 	
 	return errorEstadisticos;
 }

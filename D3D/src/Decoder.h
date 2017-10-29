@@ -144,6 +144,7 @@ public:
 	int alto;
 	int blanco;
 	int bsize;
+	int nBits;
 	};
 }
 

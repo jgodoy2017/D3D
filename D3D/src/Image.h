@@ -25,7 +25,7 @@ namespace std {
 class Image {
 public:
 	Image();
-	Image(int, int);
+	Image(int, int, int);
 	Image(string);
 	Image(string, int);
 	Image(string, string);
@@ -51,6 +51,7 @@ public:
 	int width;
 	int heigth;
 	int white;
+	int nBits;
 
 	/* esta variable representa la imagen, es un array de enteros donde cada elemento es el
 	valor del pixel correspondiente. Es como un array de una dimensión, con todas las filas

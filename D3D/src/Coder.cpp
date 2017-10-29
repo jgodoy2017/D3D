@@ -112,7 +112,8 @@ Image Coder::setInitialImage(){
  void Coder::code(bool vector, Writer &writer){
 	v_ancho = 1+(image.width/bsize);
 	v_alto = 1+(image.heigth/bsize);
-	v_blanco = 255;
+	v_blanco = 255;	
+
 	stringstream ss1;
 	ss1 << Nmax;
 	string nmax = ss1.str();
@@ -149,7 +150,6 @@ Image Coder::setInitialImage(){
 			coderVec->code(1, writer);
 		}
 
-		//for(int prox=0;prox<image.heigth*image.width;prox++){
 		for(int y = 0; y<image.heigth;y++){
 			for(int x = 0; x<image.width;x++){
 				//bucle principal que recorre la imagen y va codificando cada pixel
@@ -157,6 +157,7 @@ Image Coder::setInitialImage(){
 				int signo;
 				bool esRacha;
 				int currentPixel=image2.getPixel(x,y); //valor del pixel actual
+				
 				getProxImageAnterior(x,y,x_prev,y_prev,vector,*imageH,*imageV);
 				pixels3D pxls = getPixels3D(x_prev,y_prev,x,y);
 				grad gradients=getGradients3D(1,pxls); //calcula los gradientes
@@ -164,25 +165,29 @@ Image Coder::setInitialImage(){
 
 				if (!esRacha){
 					int predicted = getPredictedValue(selectMED(gradients),pxls);	//calcula el valor pixel predicho
-					predicted=fixPrediction(predicted,signo, contexto);
-					int error_s= currentPixel-predicted;	//calcula el error como la resta entre el valor actual y el valor predicho
-					int error_=error_s*signo;
-					int k= getK(contexto);	//calcula k para ese contexto
-					int error__=reduccionDeRango(error_);
-					int error =rice(error__, get_s(contexto),k);	//devuelve mapeo de rice del error
-					encode(error,k, writer,0,0);	//codifica el error
-					updateContexto(contexto, error_);	//actualiza los valores para el contexto
+					predicted     = fixPrediction(predicted,signo, contexto);
+					
+					int error_s = currentPixel - predicted;         //calcula el error como la resta entre el valor actual y el valor predicho
+					int error_  = error_s*signo;
+					int k       = getK(contexto);	                //calcula k para ese contexto
+					int error__ = reduccionDeRango(error_);
+					int error   = rice(error__, get_s(contexto),k);	//devuelve mapeo de rice del error
+					encode(error, k, writer, 0, 0);	                //codifica el error
+					updateContexto(contexto, error_);	            //actualiza los valores para el contexto
 				}
 				else {
 					int interruption=0;
-					int largo= getRachaParams2(image2,x,y,pxls.a,interruption);
-					int contexto=getContext_(x,y,largo);
-					Racha racha(largo,interruption,pxls.a,contexto);
-					int cantidad_unos=encodeRacha2(racha, writer);
-					if(x + y*width + largo < width*heigth) encodeMuestraInterrupcion(racha, image2.getPixel(x+largo,y), x+largo,y,writer,cantidad_unos);
+					int largo    = getRachaParams2(image2,x,y,pxls.a,interruption);
+					int contexto = getContext_(x,y,largo);
+					
+					Racha racha(largo, interruption, pxls.a, contexto);
+					
+					int cantidad_unos = encodeRacha2(racha, writer);
+					if(x + y*width + largo < width*heigth) encodeMuestraInterrupcion(racha, image2.getPixel(x + largo, y), x + largo, y, writer, cantidad_unos);
 					racha.updateContexto();
-					x=x+largo;
-					if ((racha.interruption))	x--;	//
+					
+					x += largo;
+					if(racha.interruption) x--;
 				}
 			}
 		} //pixeles
@@ -343,7 +348,7 @@ int Coder::max(int uno, int dos){
 }
 
 float Coder::get_s(int contexto){
-	 return float(float(contexts[contexto].B)/float(contexts[contexto].N)); //es N o N_?
+	 return float(float(contexts[contexto].B)/float(contexts[contexto].N));
 }
 
 int Coder::getRachaParams2(Image &image, int x, int y, int anterior, int &interruption_){
@@ -403,7 +408,6 @@ void Coder::encodeMuestraInterrupcion(Racha &racha, int siguiente, int x, int y,
 		error=rice_rachas(error_,racha.contexto,kPrime,map);
 		updateContexto_(racha.contexto, error_,error,map,kPrime);
 		encode(error, kPrime, writer,1,cantidad_unos);
-	} else {
 	}
 }
 
@@ -426,7 +430,7 @@ int Coder::encodeRacha2(Racha &racha, Writer &writer){
 	int ajuste;
 
 	while (diferencia >= (1 << J[RUNindex])) {
-	   //Agregar un 1 al tream
+	   //Agregar un 1 al stream
 		writer.write(1, 1);
 
 		diferencia = diferencia - (1 << J[RUNindex]);
@@ -497,12 +501,12 @@ void Coder::updateContexto(int contexto, int error){
 
 	if (contexts[contexto].B<=-contexts[contexto].N){
 		contexts[contexto].B=contexts[contexto].B+contexts[contexto].N;
-		if (contexts[contexto].C>-128) contexts[contexto].C=contexts[contexto].C-1;
-		if (contexts[contexto].B<=-contexts[contexto].N) contexts[contexto].B=-contexts[contexto].N+1;
-	} else if (contexts[contexto].B>0){
+		if (contexts[contexto].C >  -(white+1)/2) contexts[contexto].C=contexts[contexto].C-1;
+		if (contexts[contexto].B <= -contexts[contexto].N) contexts[contexto].B=-contexts[contexto].N+1;
+	} else if (contexts[contexto].B > 0){
 		contexts[contexto].B=contexts[contexto].B-contexts[contexto].N;
-		if (contexts[contexto].C<127) contexts[contexto].C=contexts[contexto].C+1;
-		if (contexts[contexto].B>0) contexts[contexto].B=0;
+		if (contexts[contexto].C < (white/2)) contexts[contexto].C=contexts[contexto].C+1;
+		if (contexts[contexto].B > 0) contexts[contexto].B=0;
 	}
 }
 
