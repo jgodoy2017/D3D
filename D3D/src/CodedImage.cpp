@@ -126,7 +126,6 @@ void CodedImage::setCompMov(Reader &reader){
 	if (cifra == '1') {
 		activarCompMov=true;
 		reader.read(8);
-		cout << "CodedImage::setCompMov: activarCompMov = true" << endl;
 		
 		setWidth(reader,true);
 		setHeigth(reader,true);
@@ -135,7 +134,6 @@ void CodedImage::setCompMov(Reader &reader){
 	} else {
 		activarCompMov=false;
 		reader.read(8);
-		cout << "CodedImage::setCompMov: activarCompMov = false - cifra = " << cifra << endl;
 	}
 }
 

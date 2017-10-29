@@ -82,27 +82,14 @@ void Image::loadImage(){
 	
 	Reader* reader = new Reader();
 	reader->open(absolute_path.c_str());
-		
-	int contadorW=1;
-	int contadorH=1;
-	int contador=0;
-
+	
 	setMagic(*reader);
 	setWidth(*reader);
 	setHeigth(*reader);
 	setWhite(*reader);
 
 	image=(int*)malloc(this->width*this->heigth*sizeof(int)); //reserva memoria para guardar toda la imagen
-
-	while (contadorH!=this->heigth+1){
-		contadorW=1;
-		while (contadorW!=this->width+1){
-			image[contador] = reader->read(8);			
-			contadorW++;
-			contador++;
-		}
-		contadorH++;
-	}
+	for(int contador=0; contador < this->width * this->heigth; contador++) image[contador] = reader->read(8);
 	
 	reader->close();
 }
