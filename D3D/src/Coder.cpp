@@ -425,6 +425,7 @@ int Coder::rice_rachas(int error,int contexto, int k, int &map){
 	return retorno;
 }
 
+/*
 int Coder::encodeRacha2(Racha &racha, Writer &writer){
 	int diferencia=racha.largo;
 	int ajuste;
@@ -464,6 +465,32 @@ int Coder::encodeRacha2(Racha &racha, Writer &writer){
 
 		ajuste = J[RUNindex];
 		if (RUNindex > 0) RUNindex--;
+	}
+
+	return (ajuste+1);
+}
+*/
+
+int Coder::encodeRacha2(Racha &racha, Writer &writer){
+	int diferencia=racha.largo;
+	int ajuste;
+
+	while (diferencia >= (1 << J[RUNindex])){
+		writer.write(1, 1);
+		diferencia = diferencia - (1 << J[RUNindex]);
+		if (RUNindex < 31) RUNindex++;
+	}
+
+	if ((diferencia != 0) && (racha.interruption)){
+		writer.write(1, 1);
+	}else if (!racha.interruption){
+		writer.write(0, 1);
+		
+		int resto = diferencia % (1 << J[RUNindex]);
+		writer.write(resto, J[RUNindex]);
+		
+		ajuste = J[RUNindex];
+		if(RUNindex > 0) RUNindex--;
 	}
 
 	return (ajuste+1);
@@ -510,10 +537,11 @@ void Coder::updateContexto(int contexto, int error){
 	}
 }
 
+/*
 void Coder::encode(int error, int k, Writer &writer, int racha,int ajuste){
-	/** Almacena en potencia el valor de 2^k
-	Calcula la parte entera del cociente entre el error y 2^k y lo guarda en "cociente" para codificación binaria
-	Calcula el resto de la división entera entre el error y 2^k y lo guarda en "resto" para codificación unaria */
+	// Almacena en potencia el valor de 2^k
+	// Calcula la parte entera del cociente entre el error y 2^k y lo guarda en "cociente" para codificación binaria
+	// Calcula el resto de la división entera entre el error y 2^k y lo guarda en "resto" para codificación unaria
 
 	int qMax;
 
@@ -553,16 +581,33 @@ void Coder::encode(int error, int k, Writer &writer, int racha,int ajuste){
 				potencia=potencia/2;
 			}
 		} else {
-			/*	Este loop calcula la expresión binaria del resto expresada con k bits, y lo guarda en array auxiliar bitsToFile */
+			//	Este loop calcula la expresión binaria del resto expresada con k bits, y lo guarda en array auxiliar bitsToFile
 			for (int j=0;j<k;j++){
 				writer.write(resto/potencia, 1);
 				resto=resto%potencia;
 				potencia=potencia/2;
 			}
-			/* Este loop calcula la expresión unaria del cociente, con tantos ceros como la variable "cociente"
-			y lo guarda en array auxiliar bitsToFile */
+			// Este loop calcula la expresión unaria del cociente, con tantos ceros como la variable "cociente"
+			//y lo guarda en array auxiliar bitsToFile
 		}
 	}
+}
+*/
+
+void Coder::encode(int error, int k, Writer &writer, int racha, int ajuste){
+	int qMax = (racha ? (this->qMax_ - ajuste) : (this->qMax));
+	if(k<0) k=0;
+	
+	int cociente = error / (1 << k);
+	int resto    = error % (1 << k);
+
+	if (cociente > qMax) cociente = qMax;
+
+	for (int j=0; j<cociente; j++) writer.write(0, 1);
+	if(cociente != qMax)           writer.write(1, 1);
+
+	if(cociente == qMax) writer.write(error, beta);
+	else                 writer.write(resto, k);
 }
 
 int Coder::rice(int error, float s, int k){

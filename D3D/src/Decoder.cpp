@@ -433,8 +433,9 @@ int Decoder::unRice(int error,float s, int k){
 	}
 }
 
+/*
 int Decoder::getError(Reader &reader, int k, int racha, int ajuste){
-	/** Devuelve como entero el error codificado */
+	// Devuelve como entero el error codificado
 
 	int qMax;
 
@@ -450,8 +451,8 @@ int Decoder::getError(Reader &reader, int k, int racha, int ajuste){
 	int bit=0;
 	int contador=0;
 
-	/* Obtiene la cantidad de ceros que le siguen antes del primer uno,
-	es la codificación unaria del cociente entre el error y 2^k */
+	// Obtiene la cantidad de ceros que le siguen antes del primer uno,
+	//es la codificación unaria del cociente entre el error y 2^k
 	//while ((contador!=qMax)&&codedImage.getBit()!=1){
 	//		contador++;
 	//}
@@ -460,8 +461,8 @@ int Decoder::getError(Reader &reader, int k, int racha, int ajuste){
 	}
 
 	if (contador!=qMax){
-		/* Convierte los siguientes k bits de fileToBits en un entero,
-		que corresponden a la parte binaria del error */
+		// Convierte los siguientes k bits de fileToBits en un entero,
+		//que corresponden a la parte binaria del error
 		if ((debug4)and(racha)) cout<<" Parte binaria: "<<endl;
 		for (int j=0;j<k;j++){
 			//bit=codedImage.getBit();
@@ -481,10 +482,30 @@ int Decoder::getError(Reader &reader, int k, int racha, int ajuste){
 	int pot_aux=1;
 	if (k>=0) pot_aux=pow(2,k); //cuando k negativo pow(2,k) es 0, y necesitamos que sea 1
 
-	/* Sumando los dos valores decodificados (cociente y resto entre 2^k) resulta el mapeo de rice
-	del error codificado */
+	// Sumando los dos valores decodificados (cociente y resto entre 2^k) resulta el mapeo de rice
+	//del error codificado
 	if (contador!=qMax) error=error+contador*pot_aux;
 
+	return error;
+}
+*/
+
+int Decoder::getError(Reader &reader, int k, int racha, int ajuste){
+	int qMax = (racha ? (this->qMax_ - ajuste) : (this->qMax));
+	int error, cociente=0, resto=0;
+	
+	if(k<0) k=0;
+	
+	while ((cociente < qMax) && (reader.read(1) == 0)) cociente++;
+
+	if(cociente < qMax){
+		if(k>0) resto = reader.read(k);
+		error = (cociente << k) + resto;
+	}
+	else{
+		error = reader.read(beta);
+	}
+	
 	return error;
 }
 
