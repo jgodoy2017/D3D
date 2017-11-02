@@ -78,12 +78,15 @@ void Decoder::decode(Reader &reader, bool vector, Image &previa, int imgActual){
 
 //	string nombre = file + "_" + str_(numberImgPath) + "_" + str_(imgActual);
 
-	char* nombre;
 	string tipo;
 
 	if(!vector                    ) tipo = "imagen";
 	if( vector && (imgActual == 0)) tipo = "horizontal";
 	if( vector && (imgActual == 1)) tipo = "vertical";
+
+	int largoNombre = file.length() + tipo.length() + 16;
+	char nombre[largoNombre];
+
 	sprintf(nombre, "%sD3D_%s_%03d_%03d.pgm", file.c_str(), tipo.c_str(), numberImgPath, imgActual);
 		
 	cout << "decode(): Path: " << nombre << endl;
@@ -280,7 +283,7 @@ Decoder::pixels3D Decoder::getPixels3D(int x_prev,int y_prev,int x,int y,Image &
 
 Image Decoder::setInitialImage(){
 	Image aux=Image();
-	aux.image=(int*)malloc(ancho*alto*sizeof(int));
+	aux.image=(int*)malloc((ancho)*(alto)*sizeof(int));
 
 	for (int k=0;k<ancho*alto;k++) aux.image[k]=0;
 	/*	definir algún criterio para esta imagen */

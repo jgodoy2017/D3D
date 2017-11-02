@@ -191,7 +191,7 @@ public:
 		int *h_vector;
 		int *v_vector;
 		bool activarCompMov=true;
-		bool activarVarianza=true;
+		bool activarVarianza=false;
 		int vector_ind;
 		int v_ancho;
 		int v_alto;

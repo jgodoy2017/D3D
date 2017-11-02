@@ -110,8 +110,12 @@ Image Coder::setInitialImage(){
 }
 
  void Coder::code(bool vector, Writer &writer){
-	v_ancho = 1+(image.width/bsize);
-	v_alto = 1+(image.heigth/bsize);
+	//v_ancho = 1+(image.width/bsize);
+	//v_alto = 1+(image.heigth/bsize);
+
+	v_ancho = ((image.width%bsize==0) ?(v_ancho = image.width/bsize) : (v_ancho = image.width/bsize + 1));
+	v_alto = ((image.heigth%bsize==0) ?(v_alto = image.heigth/bsize) : (v_alto = image.heigth/bsize + 1));
+
 	v_blanco = 255;	
 
 	stringstream ss1;
@@ -135,8 +139,10 @@ Image Coder::setInitialImage(){
 
 		// ######## Compensación de movimiento
 		if (activarCompMov && !vector){
-			imageH->image=(int*)malloc(this->image.width*this->image.heigth*sizeof(int));
-			imageV->image=(int*)malloc(this->image.width*this->image.heigth*sizeof(int));
+			//imageH->image=(int*)malloc(this->image.width*this->image.heigth*sizeof(int));
+			//imageV->image=(int*)malloc(this->image.width*this->image.heigth*sizeof(int));
+			imageH->image=(int*)malloc(v_ancho*v_alto*sizeof(int));
+			imageV->image=(int*)malloc(v_ancho*v_alto*sizeof(int));
 			imageH->width=v_ancho;
 			imageV->width=v_ancho;
 			imageH->heigth=v_alto;
