@@ -196,7 +196,7 @@ public:
 		int v_ancho;
 		int v_alto;
 		int v_blanco;
-		int bsize = 10; // Tamaño del Macrobloque cuadrado
+		int bsize = 2; // Tamaño del Macrobloque cuadrado
 		int search = 6;
 };
 

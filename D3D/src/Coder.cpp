@@ -116,7 +116,7 @@ Image Coder::setInitialImage(){
 	v_ancho = ((image.width%bsize==0) ?(v_ancho = image.width/bsize) : (v_ancho = image.width/bsize + 1));
 	v_alto = ((image.heigth%bsize==0) ?(v_alto = image.heigth/bsize) : (v_alto = image.heigth/bsize + 1));
 
-	v_blanco = 255;	
+	v_blanco = 2*search;
 
 	stringstream ss1;
 	ss1 << Nmax;
@@ -299,8 +299,8 @@ Image Coder::setInitialImage(){
  				hmin = 0;
  				vmin = 0;
  			}
-  			imageH.setPixel(hmin+128,bloqueH,bloqueV);
-   			imageV.setPixel(vmin+128,bloqueH,bloqueV);
+  			imageH.setPixel(hmin+search,bloqueH,bloqueV);
+   			imageV.setPixel(vmin+search,bloqueH,bloqueV);
  		}
    	}
   	cout <<"Salgo CompMov"<< endl;
@@ -343,8 +343,8 @@ void Coder::getProxImageAnterior(int x, int y, int &x_prev, int &y_prev, bool ve
 	if (activarCompMov && !vector){
  		int bloqueV = y / bsize;
  	 	int bloqueH = x / bsize;
-		x_prev = x + imagenH.getPixel(bloqueH,bloqueV)-128;
-		y_prev = y + imagenV.getPixel(bloqueH,bloqueV)-128;
+		x_prev = x + imagenH.getPixel(bloqueH,bloqueV)-search;
+		y_prev = y + imagenV.getPixel(bloqueH,bloqueV)-search;
 	}
 }
 

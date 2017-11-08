@@ -182,8 +182,8 @@ void Decoder::getProxImageAnterior(int x, int y, int &x_prev, int &y_prev, bool 
 	if (activarCompMov && !vector){
 		int bloqueV = y / bsize;
 	 	int bloqueH = x / bsize;
-		x_prev = x + codedImage.getPixelAncho(bloqueH,bloqueV)-128;
-		y_prev = y + codedImage.getPixelAlto(bloqueH,bloqueV)-128;
+		x_prev = x + codedImage.getPixelAncho(bloqueH,bloqueV)-codedImage.v_white/2;
+		y_prev = y + codedImage.getPixelAlto(bloqueH,bloqueV)-codedImage.v_white/2;
 	}
 }
 
