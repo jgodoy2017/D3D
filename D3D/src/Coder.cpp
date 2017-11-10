@@ -133,6 +133,7 @@ Image Coder::setInitialImage(){
 		cout << (vector ? "vector " : "imagen ") << "coder: " << imagen << endl;
 
 		image2 = images[imagen];
+		if (dibujarVectores) setTempImage();
 		if (imagen > 0) image = images[imagen-1];
 
 		if(!vector) cout << "Procesando imagen >> " << image2.path << endl;
@@ -211,6 +212,7 @@ Image Coder::setInitialImage(){
   	int restoH = 0;	// Variable temporal utilizada para calcular "bv" en el borde inferior
   	int derecha = 0;	// Variable temporal utilizada para calcular "sDer"
   	int abajo = 0;		// Variable temporal utilizada para calcular "sAba"
+
 
   	cout<<"Entro CompMov - "<<endl;
 
@@ -301,6 +303,7 @@ Image Coder::setInitialImage(){
  			}
   			imageH.setPixel(hmin+search,bloqueH,bloqueV);
    			imageV.setPixel(vmin+search,bloqueH,bloqueV);
+   			if (dibujarVectores) drawLine(bloqueH, bloqueV, bsize, hmin, vmin, white);
  		}
    	}
   	cout <<"Salgo CompMov"<< endl;
@@ -334,6 +337,38 @@ float Coder::varianza(float media,int cant,int lista[]){
 	if (function == "LAPLACE"){
 		s = s + abs(image.getPixel(min(x1+1,image.width-1),y1)+image.getPixel(max(x1-1,0),y1)+image.getPixel(x1,max(y1-1,0))+image.getPixel(x1,min(y1+1,image.heigth-1))-4*image.getPixel(x1,y1) - (image2.getPixel(min(x2+1,image2.width-1),y2)+image2.getPixel(max(x2-1,0),y2)+image2.getPixel(x2,max(y2-1,0))+image2.getPixel(x2,min(y2+1,image2.heigth-1))-4*image2.getPixel(x2,y2)));
 	}
+}
+
+ void Coder::drawTemp(int x, int y, int value){
+	 tempimage[x + y*image.width] = value;
+ }
+
+
+ void Coder::drawLine(int bloqueH, int bloqueV, int bsize, int h, int v, int value){
+
+ 	if (h==0 && v==0) {
+ 		drawTemp(bloqueH*bsize, bloqueV*bsize, image2.white);
+ 	} else {
+ 	double length = sqrt( h*h + v*v );
+
+ 	double addh = h / length;
+ 	double addv = v / length;
+
+ 	double x = bloqueH*bsize;
+ 	double y = bloqueV*bsize;
+
+ 	for(int i = 0; i < length; i += 1)
+ 	{
+ 	  drawTemp(floor(x), floor(y), image2.white-10*i);
+ 	  x += addh;
+ 	  y += addv;
+ 	}
+ 	}
+
+ }
+
+ void Coder::setTempImage(){
+	 	tempimage = image2.image;//	definir algún criterio para esta imagen
 }
 
 void Coder::getProxImageAnterior(int x, int y, int &x_prev, int &y_prev, bool vector, Image imagenH, Image imagenV){
