@@ -12,10 +12,13 @@
 #include "math.h"
 #include "Writer.h"
 #include "Reader.h"
+#include "Reader2.h"
 #include <sstream>
 
 namespace std {
 int Decoder::numberImgPath=0;
+
+Decoder::Decoder(){}
 
 Decoder::~Decoder() {}
 
@@ -120,10 +123,14 @@ void Decoder::decode(Reader &reader, bool vector, Image &previa, int imgActual){
 				
 				int k      = getK(contexto);	        //calcula k
 				int error_ = getError(reader,k,0,0);	//lee el archivo para tener el valor del error codificado
+
+
+
 				int error  = unRice(error_,get_s(contexto),k);	//deshace el mapeo de rice para recuperar el error real
 				error      = reduccionDeRango(error,signo,predicted);
 				
 				int pixel = predicted + error;      //calcula el pixel como la suma entre el predicho y el error
+
 				updateImage(pixel, x, y, image);    //va formando el array que representa la imagen con cada pixel decodificado
 				
 				/*
@@ -149,22 +156,161 @@ void Decoder::decode(Reader &reader, bool vector, Image &previa, int imgActual){
 			}
 		}
 	}
-		previa=image;
 
-		if(vector && imgActual == 0){
-			for(int i=0; i<ancho*alto; i++) {
-				codedImage.vector_ancho[i] = previa.image[i];
-			}
-		}
-		if(vector && imgActual == 1){
-			for(int i=0; i<ancho*alto; i++) {
-				codedImage.vector_alto[i] = previa.image[i];
-			}
-		}
-		if(primeraImagen) primeraImagen=false;
 //	}
 		writer->close();
 	cout << "// END DECODER." << endl;
+}
+
+void Decoder::decode_dcmtk(Writer2& writer, const void* compressedData, Image& previa, size_t compressedLength,JlsParameters* info,bool primeraImagen){
+	cout << "// START DECODER" << endl;
+//	cout <<"ok"<<endl;
+	cargar_imagen_actual(compressedData,compressedLength,info);	//carga uncompressedData en imagen2
+
+
+	ancho  = info->width;
+		alto   = info->height;
+		blanco = codedImage.white;
+		Nmax   = 64;
+
+		if (2>ceil(log2(blanco+1))) this->beta=2;
+			else this->beta=ceil(log2(blanco+1));
+
+		if (2>ceil(log2(blanco+1))) {
+			this->Lmax=2*(2+8);
+		} else {
+			if (8>ceil(log2(blanco+1))) {
+				this->Lmax=2*(ceil(log2(blanco+1))+8);
+			}
+			else{
+				this->Lmax=2*(ceil(log2(blanco+1))+ceil(log2(blanco+1)));
+			}
+		}
+
+		this->qMax=Lmax-beta-1;
+		this->qMax_=Lmax-beta-1;
+		this->range=blanco+1;
+
+
+	//	this->nBits = ceil(log2(blanco+1));
+		this->nBits = ((blanco <= 0xFF) ? 8 : 16);
+
+
+
+	setContextsArray();
+
+
+	if(primeraImagen){
+
+		prev=setInitialImage();
+	} else {
+		prev = previa;
+	}
+
+	Reader2 reader=Reader2();
+
+	reader.codedImage=this->codedImage;
+
+
+
+
+//for (int imagen=imgActual; imagen < imgActual + 1; imagen++){
+
+
+
+//	string nombre = file + "_" + str_(numberImgPath) + "_" + str_(imgActual);
+
+	Image image(alto, ancho, blanco);
+
+	int y=0;
+	int x=0;
+	int x_prev,y_prev;
+	for(y=0;y<alto;y++){
+		for(x=0;x<ancho;x++){
+			int signo;
+			bool esRacha;
+
+			pixels3D pxls = getPixels3D(x,y,x,y,image);
+			grad gradients = getGradients3D(1,pxls);
+			int contexto = getContext(getGradients3D(0,pxls), getGradients3D(4,pxls), signo, esRacha);
+
+			if (!esRacha){
+				int predicted = getPredictedValue(selectMED(gradients),pxls);	//calcula el valor pixel predicho
+				predicted     = fixPrediction(predicted,signo, contexto);
+			//	cout<<endl<<x<<" "<<y<<endl;
+				int k      = getK(contexto);	        //calcula k
+				int error_ = getError(reader,k,0,0);	//lee el archivo para tener el valor del error codificado
+				//cout<<error_<<endl;
+
+
+				int error  = unRice(error_,get_s(contexto),k);	//deshace el mapeo de rice para recuperar el error real
+
+				//cout<<error_<<" "<<error<<endl;
+
+				error      = reduccionDeRango(error,signo,predicted);
+
+				//cout<<error<<endl;
+
+				int pixel = predicted + error;      //calcula el pixel como la suma entre el predicho y el error
+				updateImage(pixel, x, y, image);    //va formando el array que representa la imagen con cada pixel decodificado
+
+				/*
+				char pixel_ =pixel+'\0';
+				writer->writeChar(pixel_);	//escribe el pixel en el archivo
+				*/
+
+				writer.write(pixel, nBits);
+
+				//cout<<x<<" "<<y<<" "<<predicted<<" "<<k<<" "<<contexto<<" "<<get_s(contexto)<<" "<<error_<<" "<<signo<<" "<<error<<endl;
+
+				updateContexto(contexto,error*signo);	//actualiza A y N del contexto
+			} else {
+				int interruption=0;
+				int cantidad_unos=0;
+				int largo=getRachaParams2(reader, x,interruption,cantidad_unos);
+				int contexto=getContext_(x,y, largo,image);
+				Racha racha(largo, interruption, pxls.a,contexto);
+				updateImageRacha(racha, x,y, writer,image);
+				if(x + y*ancho + largo < ancho*alto) updateImageInterruption(reader, racha, x,y, x+largo, writer, cantidad_unos, image);
+				x=x+largo;
+				if (racha.interruption)	{
+					x--;
+				}
+			}
+		}
+	}
+
+
+//	}
+		writer.close();
+	cout << "// END DECODER." << endl;
+}
+
+
+void Decoder::cargar_imagen_actual(const void* compressedData,size_t compressedLength,struct JlsParameters* info){
+
+	const Uint8* imagen = static_cast<const Uint8*>(compressedData);
+
+	codedImage=CodedImage(info->height,info->width,255,1);
+	int contador=0;
+
+	int var=0;
+
+	for (int variable=0; (variable<compressedLength); variable++){
+
+		while (contador<3)	{
+
+			if ((int)imagen[variable]==10) contador++;
+			variable++;
+		}
+		codedImage.image[var]=imagen[variable];
+		var++;
+		//cout <<(int)codedImage.image[var-1]<<" ";
+
+
+			}
+
+
 }
 
 string Decoder::str_(int n){
@@ -175,7 +321,7 @@ string Decoder::str_(int n){
 	return n_;
 }
 
-void Decoder::getProxImageAnterior(int x, int y, int &x_prev, int &y_prev, bool vector){
+void Decoder::getProxImageAnterior(int x, int y, int &x_prev, int &y_prev,bool vector){
 	x_prev = x;
 	y_prev = y;
 
@@ -365,6 +511,32 @@ void Decoder::updateImageInterruption(Reader &reader, Racha &racha, int x,int y,
 	}
 }
 
+void Decoder::updateImageInterruption(Reader2 &reader, Racha &racha, int x,int y,int prox_, Writer2 &writer,int cantidad_unos, Image &image){
+	if (!racha.interruption){
+		int signo=1;
+		if (racha.contexto==0) signo=-1;
+
+		int kPrime = getKPrime(racha);
+		int error_ = getError(reader,kPrime,1,cantidad_unos);
+		int error  = unrice_rachas(error_,racha.contexto,kPrime);
+
+		error = reduccionDeRango(error*signo, 1, getPixels3D(0, 0, prox_, y, image).b);
+		int errorEstadisticos = clipErrorEstadisticos(error);
+		image.setPixel(getPixels3D(0, 0, prox_, y, image).b + error, x + racha.largo, y);
+		//cout<<image.getPixel(x,y)<<" "<<racha.largo<<" ";
+		/*
+		char pixel_ = getPixels3D(0, 0, prox_, y, image).b + error + '\0';
+		writer.writeChar(pixel_);	//escribe el pixel en el archivo
+		*/
+
+		int pixel = getPixels3D(0, 0, prox_, y, image).b + error;
+		writer.write(pixel, nBits);
+
+		updateContexto_(racha.contexto, unrice_rachas(error_, racha.contexto, kPrime), error_);
+	}
+}
+
+
 void Decoder::updateImageRacha(Racha &racha, int x,int y, Writer &writer, Image &image){
 	for (int k=0;k<racha.largo;k++){
 		image.setPixel(racha.pixel, x + k, y);
@@ -374,6 +546,18 @@ void Decoder::updateImageRacha(Racha &racha, int x,int y, Writer &writer, Image 
 		writer.writeChar(pixel_);	//escribe el pixel en el archivo
 		*/
 		
+		writer.write(racha.pixel, nBits);
+	}
+}
+void Decoder::updateImageRacha(Racha &racha, int x,int y, Writer2 &writer, Image &image){
+	for (int k=0;k<racha.largo;k++){
+		image.setPixel(racha.pixel, x + k, y);
+
+		/*
+		char pixel_ =racha.pixel+'\0';
+		writer.writeChar(pixel_);	//escribe el pixel en el archivo
+		*/
+
 		writer.write(racha.pixel, nBits);
 	}
 }
@@ -412,6 +596,42 @@ int Decoder::getRachaParams2(Reader &reader, int x,int &interruption_, int &cant
 
 	return largo;
 }
+
+int Decoder::getRachaParams2(Reader2 &reader, int x,int &interruption_, int &cantidad_unos){
+	int largo=0;
+	int bit;
+	int ajuste=0;
+	interruption_=1;
+	bool finDeRacha=false;
+
+	while (true){
+		bit=reader.read(1);
+		if (bit==1){
+			if ((1 << J[RUNindex])>(-largo+ancho-(x))){
+				largo=ancho-(x);
+			} else {
+				largo=largo + (1 << J[RUNindex]);
+				if (RUNindex<31) RUNindex++;
+			}
+			if (largo==ancho-(x)) break;
+		} else {
+			break;
+		}
+	}
+	if (bit==0) {
+	interruption_=0;
+	for (int j=0;j<J[RUNindex];j++){
+		largo=largo+(pow(2,J[RUNindex]-j-1))*reader.read(1);
+	}
+	ajuste = J[RUNindex];
+	if (RUNindex>0) RUNindex--;
+	finDeRacha=true;
+	}
+	cantidad_unos=ajuste+1;
+
+	return largo;
+}
+
 
 void Decoder::updateImage(int pixel, int x,int y, Image &image){
 	/** Agrega el pixel decodificado al array que representa la imagen */
@@ -509,6 +729,30 @@ int Decoder::getError(Reader &reader, int k, int racha, int ajuste){
 		error = reader.read(beta);
 	}
 	
+	return error;
+}
+int Decoder::getError(Reader2 &reader, int k, int racha, int ajuste){
+	int qMax = (racha ? (this->qMax_ - ajuste) : (this->qMax));
+	int error, cociente=0, resto=0;
+
+	if(k<0) k=0;
+
+
+
+	while ((cociente < qMax) && (reader.read(1) == 0)) cociente++;
+
+
+
+	if(cociente < qMax){
+		if(k>0) resto = reader.read(k);
+		error = (cociente << k) + resto;
+	}
+	else{
+		error = reader.read(beta);
+	}
+
+//	cout<<cociente<<" "<<resto<<" "<<qMax<<" "<<this->qMax_<<" "<<this->qMax<<" "<<ajuste<<endl;
+
 	return error;
 }
 
@@ -813,7 +1057,7 @@ void Decoder::updateContexto_(int c, int err,int err_){
 	cntx[c].updateA((err_+1-c)>>1);
 	cntx[c].updateNn(err);
 
-	if(cntx[c].N_racha==RESET) {
+	if(cntx[c].N_racha==RESET_) {
 		cntx[c].reset();
 	}
 	cntx[c].updateN();

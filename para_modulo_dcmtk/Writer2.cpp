@@ -4,11 +4,20 @@
 #include <cstdio>
 #include "Writer2.h"
 
+#include  <iomanip>
+
 namespace std{
 
 Writer2::Writer2(BYTE **ptr_){
 
 	ptr=ptr_; //está bien inicializado? me mareo con los asteriscos
+
+}
+
+Writer2::Writer2(void* buf_,int dec){
+
+	buf=(BYTE*)buf_; //está bien inicializado? me mareo con los asteriscos
+	deco=true;
 
 }
 
@@ -65,20 +74,29 @@ char* Writer2::num2str(unsigned int num){
 
 void Writer2::writeToArray(){
 
-	char* str;
+	char* str= new char[32];
 	unsigned int num=0;
 
 	for(int cBit=0; cBit<32; cBit++) num = 2*num + vWriter2[cBit];
 
 	str = num2str(num);
 
+	if (deco)
+	{
+		buf[bufPointer]=(BYTE)str[0];if (debug1) cout << (int)buf[bufPointer]<<" "; bufPointer++;
+		buf[bufPointer]=(BYTE)str[1];if (debug1) cout << (int)buf[bufPointer]<<" "; bufPointer++;
+		buf[bufPointer]=(BYTE)str[2];if (debug1) cout << (int)buf[bufPointer]<<" "; bufPointer++;
+		buf[bufPointer]=(BYTE)str[3];if (debug1) cout << (int)buf[bufPointer]<<" "; bufPointer++;
 
-	ptr[0][ptrPointer]=(BYTE)str[0]; ptrPointer++;
-	ptr[0][ptrPointer]=(BYTE)str[1]; ptrPointer++;
-	ptr[0][ptrPointer]=(BYTE)str[2]; ptrPointer++;
-	ptr[0][ptrPointer]=(BYTE)str[3]; ptrPointer++;
+	}
+	else{
 
+	ptr[0][ptrPointer]=(BYTE)str[0];if (debug2) cout <<  setfill('0') << setw(2) << hex << (int)ptr[0][ptrPointer]; ptrPointer++;
+	ptr[0][ptrPointer]=(BYTE)str[1];if (debug2) cout <<  setfill('0') << setw(2) << hex << (int)ptr[0][ptrPointer]; ptrPointer++;
+	ptr[0][ptrPointer]=(BYTE)str[2];if (debug2) cout <<setfill('0') << setw(2) << hex << (int)ptr[0][ptrPointer]; ptrPointer++;
+	ptr[0][ptrPointer]=(BYTE)str[3];if (debug2) cout << setfill('0') << setw(2) << hex << (int)ptr[0][ptrPointer]; ptrPointer++;
 
+	}
 }
 
 void Writer2::close(){
@@ -101,7 +119,17 @@ void Writer2::flushByte(int cByte){
 
 	byteToFile[0] = (num & 0xFF);
 
-	ptr[0][ptrPointer]=byteToFile[0]; ptrPointer++;
+
+
+	if (deco){
+
+		buf[bufPointer]=byteToFile[0];if (debug1) cout << (int)buf[bufPointer]<<" "; bufPointer++;
+
+	}
+	else {
+
+		ptr[0][ptrPointer]=byteToFile[0];if (debug2)  cout << setfill('0') << setw(2) << hex << (int)ptr[0][ptrPointer]; ptrPointer++;
+	}
 
 
 }

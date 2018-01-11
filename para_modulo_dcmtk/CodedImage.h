@@ -29,6 +29,7 @@ class CodedImage {
 public:
 	CodedImage();
 	CodedImage(int, int);
+	CodedImage(int, int,int,int);
 	CodedImage(Reader&);
 	CodedImage(Reader&, string);
 	virtual ~CodedImage();
@@ -65,7 +66,7 @@ public:
 
 		/* esta variable representa la imagen codificada, es un array de chars donde cada elemento es
 		cada byte leido del archivo */
-		char *image;
+		unsigned char *image;
 
 //		bool activarCompMov=false;
 		bool activarCompMov;

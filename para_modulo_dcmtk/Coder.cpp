@@ -110,17 +110,18 @@ Image Coder::setInitialImage(){
 	return aux;
 }
 
-void Coder::cargar_imagen_actual(const void* uncompressedData,struct JlsParameters info){
+void Coder::cargar_imagen_actual(const void* uncompressedData,struct JlsParameters* info){
 
 	const Uint8* imagen = static_cast<const Uint8*>(uncompressedData);
 
-	image2=Image(info.height,info.width,255);
+	image2=Image(info->height,info->width,255);
 
 
-	for (int variable=0; (variable<info.height*info.width); variable++){
+	for (int variable=0; (variable<info->height*info->width); variable++){
 
 
 		image2.image[variable]=(int)imagen[variable];
+	//	cout<<image2.image[variable]<<" ";
 
 
 			}
@@ -128,10 +129,56 @@ void Coder::cargar_imagen_actual(const void* uncompressedData,struct JlsParamete
 
 }
 
+void Coder::escribeEncabezado_dcmtk(Writer2 &writer,struct JlsParameters* info){
 
+	/*
+	 * encabezado sin thumbnail
+	 *
+	 */
+
+	string temp1 = str_(info->width)+" ";
+	temp1=temp1+str_(info->height)+" ";
+	temp1=temp1+str_(info->components)+" ";
+	temp1=temp1+str_(info->bitspersample)+" ";
+	temp1=temp1+str_(info->bytesperline)+" ";
+	temp1=temp1+str_(info->components)+" ";
+	temp1=temp1+str_(info->allowedlossyerror)+" ";
+	temp1=temp1+str_(info->ilv)+" ";
+	temp1=temp1+str_(info->colorTransform)+" ";
+	temp1=temp1+str_(info->outputBgr)+" "+"\n";
+
+	string temp2=str_(info->custom.MAXVAL)+" ";
+	temp2=temp2+str_(info->custom.T1)+" ";
+	temp2=temp2+str_(info->custom.T2)+" ";
+	temp2=temp2+str_(info->custom.T3)+" ";
+	temp2=temp2+str_(info->custom.RESET)+" "+"\n";
+
+	string temp3=str_(info->jfif.Ver)+" ";
+	temp3=temp3+str_(info->jfif.units)+" ";
+	temp3=temp3+str_(info->jfif.XDensity)+" ";
+	temp3=temp3+str_(info->jfif.Xthumb)+" ";
+	temp3=temp3+str_(info->jfif.Ythumb)+" "+"\n";
+
+	int temp_l1 = temp1.length();
+	int temp_l2 = temp2.length();
+	int temp_l3 = temp3.length();
+
+	writer.writeString(temp1.c_str(),temp_l1);
+	cantidad_bits+=temp_l1;
+
+	writer.writeString(temp2.c_str(),temp_l2);
+	cantidad_bits+=temp_l2;
+
+	writer.writeString(temp3.c_str(),temp_l3);
+	cantidad_bits+=temp_l3;
+
+	//cout << temp1.c_str();
+	//cout << temp2.c_str();
+	//cout << temp3.c_str();
+}
 
 int Coder::code_dcmtk(Writer2 &writer,
-			const void* uncompressedData, Image &image, struct JlsParameters info){
+			const void* uncompressedData, Image &image__, struct JlsParameters* info,bool primeraImagen){
 
 		//dónde se seteaba la cantidad de bits por pixel?
 
@@ -140,16 +187,45 @@ int Coder::code_dcmtk(Writer2 &writer,
 
 		//sin chequeos sobre tamaños de imagen, largos, etc.
 
+		escribeEncabezado_dcmtk(writer,info);
+
 		cargar_imagen_actual(uncompressedData,info);	//carga uncompressedData en imagen2
-		this->image=image;
+
+
+
+		this->width=image2.width;
+		this->heigth=image2.heigth;
+		this->white=image2.white;
+
+		this->Nmax=64;
+
+		this->beta=max(2, ceil(log2(this->image2.white+1)));
+		this->Lmax=2*(max(2, ceil(log2(this->image2.white+1)) )+max(8, max(2, ceil(log2(this->image2.white+1)) )));
+		this->qMax=Lmax-beta-1;
+		this->qMax_=Lmax-beta-1;
+		this->range=this->image2.white+1;
+
+		setContextsArray();
+
+		if(primeraImagen){
+
+			this->image=setInitialImage();
+
+		} else {
+			this->image=image__;
+
+		}
 
 		cout << "// START CODER" << endl;
 
-		setContextsArray();
+
 
 
 			for(int y = 0; y<image.heigth;y++){
 				for(int x = 0; x<image.width;x++){
+
+					//cout << x<<" "<<y << endl;
+
 					//bucle principal que recorre la imagen y va codificando cada pixel
 
 					int signo;
@@ -164,13 +240,23 @@ int Coder::code_dcmtk(Writer2 &writer,
 					if (!esRacha){
 						int predicted = getPredictedValue(selectMED(gradients),pxls);	//calcula el valor pixel predicho
 						predicted     = fixPrediction(predicted,signo, contexto);
-
-						int error_s = currentPixel - predicted;         //calcula el error como la resta entre el valor actual y el valor predicho
+//						cout<<x<<" "<<y<<endl;
+					int error_s = currentPixel - predicted;         //calcula el error como la resta entre el valor actual y el valor predicho
 						int error_  = error_s*signo;
+
+		//				cout<<error_s<<" "<<error_<<endl;
+
 						int k       = getK(contexto);	                //calcula k para ese contexto
 						int error__ = reduccionDeRango(error_);
 						int error   = rice(error__, get_s(contexto),k);	//devuelve mapeo de rice del error
+
+	//					cout<<error<<endl;
+
 						encode(error, k, writer, 0, 0);	                //codifica el error
+						//cout<<x<<" "<<y<<" "<<error<<" ";
+
+					//	cout<<x<<" "<<y<<" "<<predicted<<" "<<k<<" "<<contexto<<" "<<get_s(contexto)<<" "<<error<<" "<<signo<<" "<<error__<<" "<<endl;
+
 						updateContexto(contexto, error_);	            //actualiza los valores para el contexto
 					}
 					else {
@@ -194,7 +280,12 @@ int Coder::code_dcmtk(Writer2 &writer,
 
 			writer.close();
 
-			return (cantidad_bits/8)+1;	//le sumo 1 por el último flush
+		/*if (writer.ptrPointer%2==1) {
+				writer.writeChar((char)0x00);
+				writer.writeToArray();
+			}
+*/
+			return writer.ptrPointer;
 }
 
 
@@ -536,6 +627,8 @@ void Coder::encodeMuestraInterrupcion(Racha &racha, int siguiente, int x, int y,
 	int error=0, error_=0, kPrime=1000;
 
 	if (!racha.interruption){
+		//cout<<siguiente<<" "<<racha.largo<<" ";
+
 		if (racha.contexto==0){
 			error_=(siguiente-getPixels3D(0,0,x,y).b)*(-1);
 		} else {
@@ -824,6 +917,8 @@ void Coder::encode(int error, int k, Writer2 &writer, int racha, int ajuste){
 	int cociente = error / (1 << k);
 	int resto    = error % (1 << k);
 
+	//cout<<cociente<<" "<<resto<<" "<<qMax<<" "<<this->qMax_<<" "<<this->qMax<<" "<<ajuste<<endl;
+
 	if (cociente > qMax) cociente = qMax;
 
 	for (int j=0; j<cociente; j++) {
@@ -988,7 +1083,7 @@ void Coder::setContextsArray(){
 			for (int i=-4;i<5;i++){
 				for (int l=-4;l<5;l++){
 					for (int m=-4;m<5;m++){
-						Context contexto(k,j,i,l,m,image.white);
+						Context contexto(k,j,i,l,m,image2.white);
 						contexts[indice]=contexto;
 						indice++;
 					}
@@ -1231,7 +1326,7 @@ void Coder::updateContexto_(int c, int err,int err_,int map,int k){
 	cntx[c].updateA((err_+1-c)>>1);
 	cntx[c].updateNn(err);
 
-	if(cntx[c].N_racha==RESET) {
+	if(cntx[c].N_racha==RESET_) {
 		cntx[c].reset();
 	}
 
@@ -1332,6 +1427,16 @@ string Coder::str_(int n){
 	string n_ = ss1.str();
 
 	return n_;
+}
+
+string Coder::c_str_(char c){
+	stringstream ss;
+	string target;
+
+	ss << c;
+	ss >> target;
+
+	return target;
 }
 
 Coder::~Coder() {

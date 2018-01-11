@@ -23,6 +23,14 @@ CodedImage::CodedImage(int heigth, int width) {
 	this->width=width;
 }
 
+CodedImage::CodedImage(int heigth, int width,int white,int reserva) {
+	this->heigth=heigth;
+	this->width=width;
+	this->white=white;
+
+	if (reserva) image=(unsigned char*)malloc(this->width*this->heigth*sizeof(unsigned char));// Reserva memoria para guardar toda la imagen
+}
+
 CodedImage::CodedImage(Reader &reader){
 	this->path="";
 	this->name="";

@@ -18,6 +18,7 @@ typedef unsigned short USHORT;
 typedef unsigned char   Uint8; //pelarlo, igual creo que no pasa nada si se duplica
 
 
+
 #ifdef charls_EXPORTS
 #define DCMTK_CHARLS_EXPORT DCMTK_DECL_EXPORT
 #else
@@ -60,7 +61,7 @@ struct JlsCustomParameters
 	int T1;
 	int T2;
 	int T3;
-	//int RESET;
+	int RESET;
 };
 
 

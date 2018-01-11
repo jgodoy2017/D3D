@@ -16,6 +16,9 @@
 #include "ContextRun.h"
 #include "Racha.h"
 #include "Writer.h"
+#include "Writer2.h"
+#include "Reader2.h"
+#include "pubtypes.h"
 
 namespace std {
 
@@ -56,9 +59,11 @@ public:
 
 			} pixels3D;
 
-		Decoder(CodedImage&, bool);
+			Decoder();
+			Decoder(CodedImage&, bool);
 		virtual ~Decoder();
 		void decode(Reader&, bool, Image&, int);
+		void decode_dcmtk(Writer2& writer, const void* compressedData, Image& previa,size_t compressedLength,JlsParameters* info,bool);
 		pixels getPixels(int, Image&);
 		pixels getPixels_(int, Image&);
 		pixels3D getPixels3D(int,int, int,int,Image&);
@@ -84,11 +89,15 @@ public:
 		int unRice(int,float,int);
 		int unrice_rachas(int,int,int);
 		int getError(Reader&,int,int,int);
+		int getError(Reader2&,int,int,int);
 		int getError_(int);
 		int getRachaParams(int, int&,int&);
 		int getRachaParams2(Reader&, int, int&,int&);
+		int getRachaParams2(Reader2&, int, int&,int&);
 		void updateImageRacha(Racha&, int,int, Writer&, Image&);
+		void updateImageRacha(Racha&, int,int, Writer2&, Image&);
 		void updateImageInterruption(Reader&, Racha&, int,int,int, Writer&, int, Image&);
+		void updateImageInterruption(Reader2&, Racha&, int,int,int, Writer2&, int, Image&);
 		int reduccionDeRango(int, int,int);
 		int clipErrorEstadisticos(int);
 		Image setInitialImage();
@@ -97,6 +106,8 @@ public:
 		void getProxImageAnterior(int,int,int&,int&,bool);
 		int selectMED(grad);
 		string str_(int n);
+
+		void cargar_imagen_actual(const void* uncompressedData,size_t compressedLength,struct JlsParameters* info);
 
 		/* Este objeto representa la imagen codificada que está decodificando */
 		CodedImage codedImage;

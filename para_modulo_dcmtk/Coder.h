@@ -65,10 +65,11 @@ public:
 	void code(bool, Writer&);
 
 	int code_dcmtk(Writer2& writer,
-			const void* uncompressedData,Image& image, struct JlsParameters info);
+			const void* uncompressedData,Image& image, struct JlsParameters* info,bool primeraImagen);
 
 	//return type distinto a charls
 
+	void escribeEncabezado_dcmtk(Writer2 &writer,struct JlsParameters* info);
 	void CompMov(Image&, Image&); // Compensación de movimiento
 	void drawLine(int,int,int,int,int,int);
 	void drawTemp(int,int,int);
@@ -121,9 +122,10 @@ public:
 	int fixPrediction(int,int, int);
 	bool hasEnding (std::string const &fullString, std::string const &ending);
 	string str_(int n);
+	string c_str_(char n);
 
-	void cargar_imagen_actual(const void* uncompressedData,struct JlsParameters info);
-	void cargar_imagen_anterior(const void* uncompressedData_anterior,struct JlsParameters info);
+	void cargar_imagen_actual(const void* uncompressedData,struct JlsParameters* info);
+
 
 	int max(int, int);
 

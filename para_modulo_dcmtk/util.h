@@ -6,6 +6,13 @@
 #ifndef CHARLS_UTIL
 #define CHARLS_UTIL
 
+#ifndef inlinehint
+#define inlinehint __forceinline
+#define inlinehint
+#define inlinehint inline
+#define inlinehint inline
+#endif
+
 #define INCLUDE_CSTDDEF
 #include "dcmtk/ofstd/ofstdinc.h"
 #include "pubtypes.h"

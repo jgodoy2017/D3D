@@ -1,0 +1,3 @@
+las imágenes fueron extraidas con el comando :
+
+./dcmj2pnm ./US-MONO2-8-8x-execho ./salida +Fa +Fn +op

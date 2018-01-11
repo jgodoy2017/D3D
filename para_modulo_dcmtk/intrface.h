@@ -28,18 +28,19 @@ extern "C"
   CHARLS_IMEXPORT(enum JLS_ERROR) JpegLsEncode(BYTE **ptr, size_t *size, size_t* pcbyteWritten,
 		const void* uncompressedData, size_t uncompressedLength, struct JlsParameters* pparams);
 
-/*
+
   CHARLS_IMEXPORT(enum JLS_ERROR) JpegLsDecode(void* uncompressedData, size_t uncompressedLength, 
 		const void* compressedData, size_t compressedLength, 
 		struct JlsParameters* info);
 
+CHARLS_IMEXPORT(enum JLS_ERROR) JpegLsReadHeader(const void* compressedData, size_t compressedLength, 
+		struct JlsParameters* pparams);
+
+/*
 
   CHARLS_IMEXPORT(enum JLS_ERROR) JpegLsDecodeRect(void* uncompressedData, size_t uncompressedLength, 
 		const void* compressedData, size_t compressedLength, 
 		struct JlsRect rect, struct JlsParameters* info);
-
-  CHARLS_IMEXPORT(enum JLS_ERROR) JpegLsReadHeader(const void* compressedData, size_t compressedLength, 
-		struct JlsParameters* pparams);
 
   CHARLS_IMEXPORT(enum JLS_ERROR) JpegLsVerifyEncode(const void* uncompressedData, size_t uncompressedLength, 
 		const void* compressedData, size_t compressedLength);
