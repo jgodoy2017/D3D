@@ -2,7 +2,7 @@
 
 #include <cstdlib>
 
-#define RESET 64
+//#define RESET 64
 
 using namespace std;
 

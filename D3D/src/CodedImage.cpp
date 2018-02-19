@@ -48,7 +48,7 @@ void CodedImage::loadImage(Reader &reader){
 	salvo que esta vez los elementos de codedImage se guardan en un array de chars, en vez de un array de enteros
 	ya que esta vez cada byte del archivo no tiene una interpretación real, es solo código */
 
-	cout << "// START CODEDIMAGE" << endl;
+	//cout << "// START CODEDIMAGE" << endl;
 
 	int contador=0;
 	
@@ -63,7 +63,7 @@ void CodedImage::loadImage(Reader &reader){
 	vector_alto =  (int*)malloc((this->v_width*this->v_heigth)*sizeof(int));
 	vector_ancho = (int*)malloc((this->v_width*this->v_heigth)*sizeof(int));
 
-	cout << "// END CODEDIMAGE" << endl;
+	//cout << "// END CODEDIMAGE" << endl;
 }
 
 int CodedImage::getPixelAlto(int x, int y){
@@ -96,7 +96,7 @@ void CodedImage::setCantidadImagenes(Reader &reader){
 	}
 	
 	this->cantidad_imagenes = lCantidad_imagenes;
-	cout << "cantidad_imagenes: " << this->cantidad_imagenes << endl;
+	//cout << "cantidad_imagenes: " << this->cantidad_imagenes << endl;
 }
 
 void CodedImage::setNmax(Reader &reader){
@@ -109,7 +109,7 @@ void CodedImage::setNmax(Reader &reader){
 	}
 	
 	this->Nmax = lNmax;
-	cout << "Nmax: " << this->Nmax << endl;
+	//cout << "Nmax: " << this->Nmax << endl;
 }
 
 void CodedImage::setMagic(Reader &reader){
@@ -117,7 +117,7 @@ void CodedImage::setMagic(Reader &reader){
 	reader.readString(1);
 
 	this->magic = lMagic;
-	cout << "magic: " << this->magic << endl;
+	//cout << "magic: " << this->magic << endl;
 }
 
 void CodedImage::setCompMov(Reader &reader){
@@ -173,7 +173,7 @@ void CodedImage::setBSize(Reader &reader){
 	}
 	
 	this->bsize = lBsize;
-	cout << "bsize: " << this->bsize << endl;
+	//cout << "bsize: " << this->bsize << endl;
 }
 
 void CodedImage::setWhite(Reader &reader, bool vector){

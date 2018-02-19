@@ -70,6 +70,7 @@ void Writer::writeToFile(){
 
 	str = num2str(num);
 	file.write(str, 4);
+	cantidad_bytes_escritos+=4;
 }
 
 void Writer::close(){
@@ -92,6 +93,7 @@ void Writer::flushByte(int cByte){
 	
 	byteToFile[0] = (num & 0xFF);
 	file.write(byteToFile, 1);
+	cantidad_bytes_escritos++;
 }
 
 Writer::~Writer(){}

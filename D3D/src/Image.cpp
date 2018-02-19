@@ -133,7 +133,7 @@ void Image::setMagic(Reader& reader){
 	reader.readString(1);
 
 	this->magic = lMagic;
-	cout << "magic: " << this->magic << endl;
+	//cout << "magic: " << this->magic << endl;
 }
 
 void Image::setWidth(Reader& reader){
@@ -146,7 +146,7 @@ void Image::setWidth(Reader& reader){
 	}
 	
 	this->width = lWidth;
-	cout << "width: " << this->width << endl;
+	//cout << "width: " << this->width << endl;
 }
 
 void Image::setHeigth(Reader& reader){
@@ -159,7 +159,7 @@ void Image::setHeigth(Reader& reader){
 	}
 	
 	this->heigth = lHeigth;
-	cout << "heigth: " << this->heigth << endl;
+	//cout << "heigth: " << this->heigth << endl;
 }
 
 void Image::setWhite(Reader& reader){
@@ -172,7 +172,7 @@ void Image::setWhite(Reader& reader){
 	}
 	
 	this->white = lWhite;
-	cout << "white: " << this->white << endl;
+	//cout << "white: " << this->white << endl;
 }
 
 Image::~Image() {

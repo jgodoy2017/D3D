@@ -46,6 +46,15 @@ public:
 
 	} pixels;	//se define esta estructura para agrupar los píxeles a, b y c
 
+	typedef struct pixels2D{
+
+		int a;
+		int b;
+		int c;
+		int d;
+
+	} pixels2D;	//se define esta estructura para agrupar los píxeles a, b y c
+
 	typedef struct grad_struct{
 
 		int ga;
@@ -55,11 +64,12 @@ public:
 	} grad;	//se define esta estructura para modelar el vector de gradientes
 
 	Coder();
-	Coder(Image,Image,int);
-	Coder(string,int,int);
+	Coder(Image,Image);
+	Coder(string,bool);
 
 	Image setInitialImage();
 	void code(bool, Writer&);
+	void code2D(Writer&);
 	void CompMov(Image&, Image&); // Compensación de movimiento
 	void drawLine(int,int,int,int,int,int);
 	void drawTemp(int,int,int);
@@ -68,13 +78,18 @@ public:
 	void itera(string, int&, int, int, int, int); // Compensación de movimiento
 	int selectMED(grad);
 	int getPredictedValue(int, pixels3D);
+	int getPredictedValue2D(pixels2D);
+	grad getGradients2D(pixels2D);
 	grad getGradients3D(int, pixels3D);
 	pixels getPixels(int);
 	pixels getPixels_(int);
+	pixels2D getPixels2D(int);
 	pixels3D getPixels3D(int,int,int,int);
 	int getP(pixels);
 	grad setGradients(pixels);
 	void setContextsArray();
+	void setContextsArray2D();
+	int getContext2D(grad, int&);
 	int getContext(grad,grad, int&, bool&);
 	int getContext_(int,int,int);
 	int getPredictedValue(pixels);
@@ -105,10 +120,15 @@ public:
 	int encodeRacha(Racha&);
 	int encodeRacha2(Racha&, Writer&);
 	void encodeMuestraInterrupcion(Racha&, int,int, int,Writer&, int);
+	void encodeMuestraInterrupcion(Racha&, Image&,int, int,Writer&, int);
 	int reduccionDeRango(int);
 	int fixPrediction(int,int, int);
 	bool hasEnding (std::string const &fullString, std::string const &ending);
 	string str_(int n);
+	void setParams(int,int,int,int,int);
+	void setCompParams(bool,bool,bool,int,int,int);
+	void setMode(bool);
+	void setDebug(bool);
 
 	int max(int, int);
 
@@ -129,7 +149,6 @@ public:
 
 	//Writer writer;
 	int width, heigth, white, magic;
-	int Nmax;		//el valor de Nmax
 	int i;
 
 	int contador=0; /*** eliminar ***/
@@ -157,6 +176,8 @@ public:
 	int kr=0;
 	int m_r=1;
 
+
+	bool nuevo_debug=false;
 	bool debug=false;
 	bool debug2=false;
 	bool debug3=false;
@@ -195,15 +216,25 @@ public:
 		int *tempimage;
 		int *h_vector;
 		int *v_vector;
-		bool activarCompMov=true;
-		bool activarVarianza=true;
-		bool dibujarVectores=false;
+		bool activarCompMov;
+		bool activarVarianza;
+		bool dibujarVectores;
 		int vector_ind;
 		int v_ancho;
 		int v_alto;
 		int v_blanco;
-		int bsize = 10; // Tamaño del Macrobloque cuadrado
-		int search = 6;
+		int umbralVarianza;
+		int bsize; // Tamaño del Macrobloque cuadrado
+		int search;
+
+		int Nmax;		//el valor de Nmax
+		int reset;
+		int t1;
+		int t2;
+		int t3;
+
+		bool jpls2d=false;
+
 };
 
 } /* namespace std */

@@ -40,6 +40,15 @@ public:
 
 		} grad;
 
+		typedef struct pixels2D{
+
+			int a;
+			int b;
+			int c;
+			int d;
+
+		} pixels2D;
+
 		typedef struct pixels3D{
 
 						int a;
@@ -59,17 +68,23 @@ public:
 		Decoder(CodedImage&, bool);
 		virtual ~Decoder();
 		void decode(Reader&, bool, Image&, int);
+		void decode2D(Reader&, int);
 		pixels getPixels(int, Image&);
 		pixels getPixels_(int, Image&);
+		pixels2D getPixels2D(int,Image&);
 		pixels3D getPixels3D(int,int, int,int,Image&);
 		int getP(pixels);
 		grad setGradients(pixels);
+		grad getGradients2D(pixels2D pxls);
 		grad getGradients3D(int,pixels3D);
 		void setContextsArray();
+		void setContextsArray2D();
 		int getContext(grad, int&);
 		int getContext_(int, int, int, Image&);
 		int getContext(grad,grad, int&, bool&);
+		int getContext2D(grad, int&);
 		int getPredictedValue(pixels);
+		int getPredictedValue2D(pixels2D);
 		int getPredictedValue(int, pixels3D);
 		int getK(int);
 		int getKPrime(Racha&);
@@ -97,11 +112,14 @@ public:
 		void getProxImageAnterior(int,int,int&,int&,bool);
 		int selectMED(grad);
 		string str_(int n);
+		void setParams(int,int,int, int, int);
+		void setCompParams(bool);
+		void setMode(bool);
+		void setDebug(bool);
 
 		/* Este objeto representa la imagen codificada que está decodificando */
 		CodedImage codedImage;
 		static int numberImgPath;
-		int Nmax;
 		//int i;
 
 		static const int CANTIDAD_MAXIMA_CONTEXTOS=9*9*9*9*9;
@@ -123,7 +141,7 @@ public:
 	int kr=0;
 	int m_r=1;
 
-	bool debug=false;
+	bool debug=true;
 	bool debug4=false;
 
 	int range;
@@ -138,13 +156,24 @@ public:
 
 	ContextRun cntx[2];    // Contextos especiales para rachas.
 
-	bool activarCompMov=false;
+	bool activarCompMov;
 	bool primeraImagen=true;
 	int ancho;
 	int alto;
 	int blanco;
 	int bsize;
 	int nBits;
+
+	int Nmax;
+	int reset;
+	int t1;
+	int t2;
+	int t3;
+
+	bool nuevo_debug;
+
+	bool jpls2d=false;
+
 	};
 }
 

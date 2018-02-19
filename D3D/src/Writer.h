@@ -18,6 +18,8 @@ public:
 	void writeString(const char*, int);
 	void close();
 	
+	int cantidad_bytes_escritos=0;
+
 private:
 	char* num2str(unsigned int);
 	void writeToFile();
@@ -27,6 +29,8 @@ private:
 	ofstream file;
 	int vWriter[32];
 	int pWriter=0;
+
+
 };
 
 }

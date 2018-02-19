@@ -17,6 +17,7 @@ class Context {
 public:
 	Context();
 	Context(int, int, int, int,int, int);
+	Context(int, int, int, int);
 	void updateC();
 	virtual ~Context();
 
