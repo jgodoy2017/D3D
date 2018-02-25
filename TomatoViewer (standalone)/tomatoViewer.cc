@@ -72,7 +72,7 @@ int main(int argc, char* argv[]){
 		miniReader->getMinMax(&lMinVal, &lMaxVal);
 	
 		if(frame != oldFrame){   // Si hay cambio de frame...
-			// Creo la ventana. Los numeros son: (x, y) de la esquina superior derecha, (ancho, largo), ancho del borde.
+			// Creo la ventana. Los numeros son: (x, y) de la esquina superior izquierda, (ancho, largo), ancho del borde.
 			w = XCreateSimpleWindow(dpy, DefaultRootWindow(dpy), (width - lWidth)/2, (height-lHeight)/2, lWidth, lHeight, 4, whiteColor, blackColor);
 												   
 			// Necesito capturar el "evento" que indica que se termino de dibujar la ventana ("MapNotify").

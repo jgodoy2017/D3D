@@ -11,7 +11,7 @@ int WaitForKey::now(){
 	
 	/*
 	  Codigo oscuro. BeWaRe.  (--__--)
-	  Intento capturar el las flechas para avanzar/retroceder de frame.
+	  Intento capturar las flechas para avanzar/retroceder de frame.
 	  
 	  Devuelve:
 	     ARRIBA    = 1
